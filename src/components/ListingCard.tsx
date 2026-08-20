@@ -1,13 +1,23 @@
 import { Link } from 'react-router-dom';
 import type { Listing } from '../types';
+import { useCompare } from '../context/CompareContext';
 import styles from './ListingCard.module.css';
 
 export default function ListingCard({ listing }: { listing: Listing }) {
+  const { isCompared, toggle, maxReached } = useCompare();
+  const compared = isCompared(listing.id);
+
   const badgeClass = {
     vip: styles.badgeVip,
     premium_vip: styles.badgePremiumVip,
     standart: '',
   }[listing.vipTier];
+
+  const handleCompareClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggle(listing.id);
+  };
 
   return (
     <Link to={`/elan/${listing.id}`} className={styles.card}>
@@ -18,6 +28,16 @@ export default function ListingCard({ listing }: { listing: Listing }) {
             {listing.vipTier === 'vip' ? 'VIP' : 'PREMIUM'}
           </div>
         )}
+        <button
+          type="button"
+          className={compared ? styles.compareBtnActive : styles.compareBtn}
+          onClick={handleCompareClick}
+          disabled={!compared && maxReached}
+          title={!compared && maxReached ? 'Maksimum 3 elan müqayisə edilə bilər' : undefined}
+        >
+          <span className={compared ? styles.compareCheckActive : styles.compareCheck} />
+          Müqayisə et
+        </button>
       </div>
       <div className={styles.content}>
         <h3>

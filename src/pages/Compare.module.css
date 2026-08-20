@@ -1,0 +1,186 @@
+.page {
+  padding: var(--space-10) var(--space-6) var(--space-20);
+  min-height: 70vh;
+}
+
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-8);
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.clearBtn {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.clearBtn:hover {
+  border-color: var(--error);
+  box-shadow: none;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-secondary);
+}
+
+.rowLabelCol {
+  width: 220px;
+  min-width: 180px;
+  padding: var(--space-3) var(--space-4);
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-align: left;
+  background: var(--bg-elevated);
+  border-right: 1px solid var(--border);
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.carCol {
+  min-width: 200px;
+  padding: var(--space-5) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  vertical-align: top;
+}
+
+.removeCar {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 10px;
+  padding: 0;
+}
+
+.removeCar:hover {
+  box-shadow: none;
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.carLink {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.carLink img {
+  width: 100%;
+  max-width: 160px;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.carTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.carLink:hover .carTitle {
+  color: var(--accent);
+}
+
+tbody tr td {
+  padding: var(--space-3) var(--space-4);
+  font-size: 13px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.diffCell {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.sectionLabel {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
+  padding-top: var(--space-2);
+}
+
+.equipCell {
+  font-size: 15px;
+}
+
+.equipYes {
+  color: var(--success);
+  font-weight: 700;
+}
+
+.equipNo {
+  color: var(--text-tertiary);
+}
+
+.empty {
+  max-width: 420px;
+  margin: var(--space-20) auto 0;
+  text-align: center;
+}
+
+.empty h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: var(--space-3);
+}
+
+.empty p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: var(--space-6);
+}
+
+.emptyBtn {
+  padding: var(--space-3) var(--space-6);
+  font-weight: 700;
+}
+
+.loading {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: var(--space-16) 0;
+}
