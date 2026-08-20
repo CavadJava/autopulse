@@ -116,3 +116,43 @@
     width: 100%;
   }
 }
+
+/* Mobile: same denser treatment as QuickFilterBar — small wrapping
+   fields instead of stacked full-width rows. */
+@media (max-width: 640px) {
+  .row {
+    flex-direction: row;
+    gap: 6px;
+  }
+
+  .select,
+  .selectSm,
+  .numInput {
+    width: auto;
+    flex: 1 1 auto;
+    min-width: 88px;
+    font-size: 12px;
+    padding: 8px;
+  }
+
+  .toggleGroup {
+    width: auto;
+    flex: 1 1 auto;
+  }
+
+  .toggle,
+  .toggleActive {
+    font-size: 11px;
+    padding: 8px 10px;
+  }
+
+  .equipmentGrid .toggle,
+  .equipmentGrid .toggleActive {
+    padding: 7px 10px;
+    font-size: 11px;
+  }
+
+  .equipmentTitle {
+    font-size: 12px;
+  }
+}

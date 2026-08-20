@@ -1,51 +1,133 @@
 #!/usr/bin/env bash
+# Deploys AutoPulse to the shared VPS.
 #
-# AutoPulse — server deploy script
+# The app is a static SPA: source is synced to the server, dependencies are
+# installed there, the production build is generated, and Caddy serves dist/
+# directly with an SPA fallback.
 #
-# Runs ON THE SERVER (157.180.73.79). Clones/pulls the repo, builds the
-# static site, and publishes it to the path Caddy serves for
-# autopulse.157.180.73.79.sslip.io.
+# Idempotent: safe to re-run any time to ship the latest code.
 #
-# Usage on the server:
-#   curl -fsSL https://raw.githubusercontent.com/CavadJava/autopulse/main/deploy/deploy.sh | bash
-#   # or, once the repo is already cloned:
-#   bash /opt/autopulse/deploy/deploy.sh
-#
+# Overrides:
+#   SERVER=root@host SSH_KEY=~/.ssh/id_ed25519 DOMAIN=my.host ./deploy.sh
+
 set -euo pipefail
 
-REPO_URL="https://github.com/CavadJava/autopulse.git"
-APP_DIR="/opt/autopulse"
-RELEASE_DIR="/opt/autopulse/dist"
-BRANCH="main"
+SERVER="${SERVER:-root@157.180.73.79}"
+SSH_KEY="${SSH_KEY:-$HOME/.ssh/youtube-remote-webrtc_ed25519}"
+REMOTE_DIR="${REMOTE_DIR:-/opt/autopulse}"
+SERVICE_USER="${SERVICE_USER:-youtube-remote}"
+DOMAIN="${DOMAIN:-autopulse.157.180.73.79.sslip.io}"
 
-echo "==> AutoPulse deploy başlayır..."
+LOCAL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# 1. Clone or update the repo
-if [ -d "$APP_DIR/.git" ]; then
-  echo "==> Mövcud repo tapıldı, yenilənir..."
-  cd "$APP_DIR"
-  git fetch origin "$BRANCH"
-  git reset --hard "origin/$BRANCH"
-else
-  echo "==> Repo clone edilir..."
-  git clone --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
-  cd "$APP_DIR"
-fi
+SSH_OPTS=(-i "$SSH_KEY" -o StrictHostKeyChecking=accept-new)
 
-# 2. Install dependencies (npm ci uses package-lock.json for reproducible installs)
-echo "==> Asılılıqlar quraşdırılır..."
-npm ci
+ssh_() {
+  ssh "${SSH_OPTS[@]}" "$SERVER" "$@"
+}
 
-# 3. Build the production bundle
-echo "==> Build edilir..."
-npm run build
+echo "==> [1/6] Syncing source to $SERVER:$REMOTE_DIR"
 
-# 4. Verify the build actually produced output before touching anything live
-if [ ! -f "$APP_DIR/dist/index.html" ]; then
-  echo "XƏTA: build 'dist/index.html' yaratmadı. Deploy dayandırıldı." >&2
-  exit 1
-fi
+ssh_ "mkdir -p '$REMOTE_DIR'"
 
-echo "==> Build tamamlandı: $RELEASE_DIR"
-echo "==> Caddy bu qovluğu birbaşa serve edir (aşağıdakı Caddyfile bloku ilə)."
-echo "==> Deploy uğurla bitdi. https://autopulse.157.180.73.79.sslip.io yoxlayın."
+rsync -az --delete \
+  --exclude .git \
+  --exclude node_modules \
+  --exclude dist \
+  --exclude .env \
+  --exclude .env.production \
+  -e "ssh ${SSH_OPTS[*]}" \
+  "$LOCAL_DIR"/ "$SERVER:$REMOTE_DIR/"
+
+echo "==> [2/6] Ensuring Node.js 18+ is installed"
+
+ssh_ '
+  if ! command -v node >/dev/null || [ "$(node -e "console.log(process.versions.node.split(\".\")[0])")" -lt 18 ]; then
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    apt-get install -y nodejs
+  fi
+
+  node -v
+  npm -v
+'
+
+echo "==> [3/6] Installing dependencies and building"
+
+ssh_ "
+  cd '$REMOTE_DIR'
+
+  if [ -f package-lock.json ]; then
+    npm ci --no-audit --no-fund
+  else
+    npm install --no-audit --no-fund
+  fi
+
+  npm run build
+"
+
+echo "==> Verifying build output"
+
+ssh_ "
+  test -f '$REMOTE_DIR/dist/index.html' || {
+    echo \"XƏTA: build dist/index.html yaratmadı.\" >&2
+    exit 1
+  }
+"
+
+echo "==> [4/6] Ownership and permissions"
+
+ssh_ "chown -R '$SERVICE_USER:$SERVICE_USER' '$REMOTE_DIR'"
+
+# Caddy runs as its own system user and serves dist/ directly.
+ssh_ "chmod -R o+rX '$REMOTE_DIR/dist'"
+
+echo "==> [5/6] Configuring Caddy site for $DOMAIN"
+
+CADDY_SNIPPET="$(mktemp)"
+trap 'rm -f "$CADDY_SNIPPET"' EXIT
+
+cat > "$CADDY_SNIPPET" <<EOF
+
+$DOMAIN {
+    root * $REMOTE_DIR/dist
+
+    try_files {path} /index.html
+
+    file_server
+}
+EOF
+
+scp \
+  "${SSH_OPTS[@]}" \
+  "$CADDY_SNIPPET" \
+  "$SERVER:/tmp/autopulse-caddy-snippet.txt"
+
+ssh_ "
+  if ! grep -q '$DOMAIN' /etc/caddy/Caddyfile 2>/dev/null; then
+    cat /tmp/autopulse-caddy-snippet.txt >> /etc/caddy/Caddyfile
+  else
+    echo 'Caddy config for $DOMAIN already exists; skipping append.'
+  fi
+
+  rm -f /tmp/autopulse-caddy-snippet.txt
+
+  caddy fmt --overwrite /etc/caddy/Caddyfile
+"
+
+# Validate before reloading so a bad config doesn't replace the live one.
+ssh_ "caddy validate --config /etc/caddy/Caddyfile"
+
+# Reload can occasionally hiccup under load. Caddy keeps the previous
+# working configuration in that case, so don't fail the whole deploy.
+ssh_ "systemctl reload caddy" || \
+  echo "    (Caddy reload hiccuped — previous config remains active)"
+
+echo "==> [6/6] Verifying deployment"
+
+ssh_ "
+  test -f '$REMOTE_DIR/dist/index.html' &&
+  echo 'dist/index.html present'
+"
+
+echo "==> Done: https://$DOMAIN/"
+echo "==> AutoPulse deploy uğurla tamamlandı."

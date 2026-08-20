@@ -39,6 +39,10 @@ interface FilterPanelProps {
 }
 
 export default function FilterPanel({ filters, onFilterChange }: FilterPanelProps) {
+  // Collapsed by default — the panel is only ever expanded via the mobile
+  // toggle below; on desktop the CSS media query keeps it always visible
+  // regardless of this state.
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     marka: true,
     qiymət: true,
@@ -69,8 +73,16 @@ export default function FilterPanel({ filters, onFilterChange }: FilterPanelProp
 
   return (
     <aside className={styles.panel}>
-      <h3 className={styles.title}>Filtrlər</h3>
+      <button
+        type="button"
+        className={styles.mobileToggle}
+        onClick={() => setMobileOpen((v) => !v)}
+      >
+        <h3 className={styles.title}>Filtrlər</h3>
+        <span className={mobileOpen ? styles.chevronOpen : styles.chevron}>▾</span>
+      </button>
 
+      <div className={mobileOpen ? styles.bodyOpen : styles.body}>
       <div className={styles.section}>
         <button className={styles.sectionHeader} onClick={() => toggleSection('marka')}>
           Marka {expanded.marka ? '−' : '+'}
@@ -261,6 +273,7 @@ export default function FilterPanel({ filters, onFilterChange }: FilterPanelProp
             </label>
           </div>
         )}
+      </div>
       </div>
     </aside>
   );

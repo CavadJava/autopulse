@@ -150,16 +150,6 @@
 }
 
 @media (max-width: 900px) {
-  .row {
-    flex-direction: column;
-  }
-
-  .select,
-  .numInput,
-  .toggleGroup {
-    width: 100%;
-  }
-
   .footer {
     flex-direction: column;
     align-items: stretch;
@@ -167,5 +157,51 @@
 
   .showBtn {
     margin-left: 0;
+  }
+}
+
+/* Mobile: keep the same horizontal-bar layout, just denser — small
+   wrapping fields instead of one full-width column per field. */
+@media (max-width: 640px) {
+  .bar {
+    padding: var(--space-3);
+    gap: var(--space-2);
+    border-radius: var(--radius);
+  }
+
+  .row {
+    gap: 6px;
+  }
+
+  .select,
+  .numInput {
+    flex: 1 1 auto;
+    min-width: 88px;
+    font-size: 12px;
+    padding: 8px 8px;
+  }
+
+  .toggle,
+  .toggleActive {
+    font-size: 11px;
+    padding: 8px 10px;
+  }
+
+  .today {
+    font-size: 11px;
+  }
+
+  .footerCenter {
+    gap: var(--space-2);
+  }
+
+  .resetLink,
+  .moreBtn {
+    font-size: 11px;
+  }
+
+  .showBtn {
+    padding: 10px 16px;
+    font-size: 13px;
   }
 }

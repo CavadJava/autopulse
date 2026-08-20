@@ -12,7 +12,37 @@
 .title {
   font-size: 16px;
   font-weight: 700;
-  margin-bottom: var(--space-5);
+  margin-bottom: 0;
+}
+
+.mobileToggle {
+  display: none;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 0;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mobileToggle:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+.chevron,
+.chevronOpen {
+  color: var(--text-secondary);
+  font-size: 14px;
+  transition: transform 0.15s ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.body {
+  margin-top: var(--space-5);
 }
 
 .section {
@@ -92,5 +122,31 @@
     width: 100%;
     position: static;
     margin-bottom: var(--space-5);
+  }
+}
+
+/* Mobile: collapse the whole panel behind a small toggle so it doesn't
+   push the listings grid down the page — QuickFilterBar already covers
+   the most-used filters up top. */
+@media (max-width: 640px) {
+  .panel {
+    padding: var(--space-4);
+  }
+
+  .mobileToggle {
+    display: flex;
+  }
+
+  .title {
+    font-size: 14px;
+  }
+
+  .body {
+    display: none;
+  }
+
+  .bodyOpen {
+    display: block;
+    margin-top: var(--space-4);
   }
 }
