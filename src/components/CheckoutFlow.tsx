@@ -12,6 +12,7 @@ interface CheckoutFlowProps {
 export default function CheckoutFlow({ planId, planName, price }: CheckoutFlowProps) {
   const [step, setStep] = useState<'method' | 'form' | 'success'>('method');
   const [loading, setLoading] = useState(false);
+  const [saveCard, setSaveCard] = useState(false);
   const [cardData, setCardData] = useState({
     nömrə: '',
     tarix: '',
@@ -59,6 +60,80 @@ export default function CheckoutFlow({ planId, planName, price }: CheckoutFlowPr
     handleSubmit('card');
   };
 
+  if (step === 'form') {
+    return (
+      <div className={styles.paymentCard}>
+        <div className={styles.paymentHeader}>
+          <span className={styles.paymentBrand}>
+            <span className={styles.paymentBrandAccent}>Auto</span>Pulse
+          </span>
+          <div className={styles.cardLogos}>
+            <span className={styles.cardLogoVisa}>VISA</span>
+            <span className={styles.cardLogoMc} />
+          </div>
+        </div>
+
+        <p className={styles.paymentSubtitle}>Siz AutoPulse-da təqdim olunan xidmətin ödənişini edirsiniz.</p>
+
+        <div className={styles.paymentAmountRow}>
+          <span>Ödəniləcək məbləğ</span>
+          <span className={styles.paymentAmount}>{price.toFixed(2)} AZN</span>
+        </div>
+
+        <form onSubmit={handleFormSubmit} className={styles.paymentForm}>
+          <FloatingField
+            label="Kartın nömrəsi"
+            value={cardData.nömrə}
+            onChange={(v) => handleCardChange('nömrə', v.replace(/\D/g, ''))}
+            maxLength={16}
+            inputMode="numeric"
+          />
+          <div className={styles.paymentRow}>
+            <FloatingField
+              label="Son istifadə tarixi"
+              value={cardData.tarix}
+              onChange={(v) => {
+                let val = v.replace(/\D/g, '');
+                if (val.length > 2) val = val.slice(0, 2) + '/' + val.slice(2, 4);
+                handleCardChange('tarix', val);
+              }}
+              maxLength={5}
+              placeholder="AA/İİ"
+              inputMode="numeric"
+            />
+            <FloatingField
+              label="CVV/CVC"
+              value={cardData.cvv}
+              onChange={(v) => handleCardChange('cvv', v.replace(/\D/g, ''))}
+              maxLength={3}
+              inputMode="numeric"
+            />
+          </div>
+          <FloatingField
+            label="Kart sahibinin adı"
+            value={cardData.ad}
+            onChange={(v) => handleCardChange('ad', v)}
+          />
+
+          <label className={styles.saveCardRow}>
+            <span className={saveCard ? styles.checkboxActive : styles.checkbox} onClick={() => setSaveCard((v) => !v)} />
+            Sürətli ödənişlər üçün kartı yadda saxla
+          </label>
+
+          <button type="submit" disabled={loading} className={styles.paymentSubmitBtn}>
+            {loading ? 'Emal edilir...' : 'Bank kartı ilə ödəyin'}
+          </button>
+        </form>
+
+        <div className={styles.paymentFooter}>
+          <span>Verified by VISA</span>
+          <span>MasterCard SecureCode</span>
+          <span>PCI DSS</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.checkout}>
       <div className={styles.summary}>
@@ -88,52 +163,6 @@ export default function CheckoutFlow({ planId, planName, price }: CheckoutFlowPr
         </div>
       )}
 
-      {step === 'form' && (
-        <form onSubmit={handleFormSubmit} className={styles.form}>
-          <h3>Kart Məlumatları</h3>
-          <input
-            type="text"
-            placeholder="Kart nömrəsi (16 rəqəm)"
-            maxLength={16}
-            value={cardData.nömrə}
-            onChange={(e) => handleCardChange('nömrə', e.target.value.replace(/\D/g, ''))}
-            required
-          />
-          <div className={styles.row}>
-            <input
-              type="text"
-              placeholder="MM/YY"
-              maxLength={5}
-              value={cardData.tarix}
-              onChange={(e) => {
-                let val = e.target.value.replace(/\D/g, '');
-                if (val.length > 2) val = val.slice(0, 2) + '/' + val.slice(2, 4);
-                handleCardChange('tarix', val);
-              }}
-              required
-            />
-            <input
-              type="text"
-              placeholder="CVV"
-              maxLength={3}
-              value={cardData.cvv}
-              onChange={(e) => handleCardChange('cvv', e.target.value.replace(/\D/g, ''))}
-              required
-            />
-          </div>
-          <input
-            type="text"
-            placeholder="Kart sahibinin adı"
-            value={cardData.ad}
-            onChange={(e) => handleCardChange('ad', e.target.value)}
-            required
-          />
-          <button type="submit" disabled={loading} className={styles.submitBtn}>
-            {loading ? 'Emal edilir...' : `${price} AZN Ödə`}
-          </button>
-        </form>
-      )}
-
       {step === 'success' && (
         <div className={styles.success}>
           <div className={styles.checkmark}>✓</div>
@@ -145,6 +174,38 @@ export default function CheckoutFlow({ planId, planName, price }: CheckoutFlowPr
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function FloatingField({
+  label,
+  value,
+  onChange,
+  maxLength,
+  placeholder,
+  inputMode,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  maxLength?: number;
+  placeholder?: string;
+  inputMode?: 'numeric' | 'text';
+}) {
+  return (
+    <div className={styles.floatingField}>
+      <input
+        type="text"
+        className={styles.floatingInput}
+        placeholder={placeholder ?? ' '}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        maxLength={maxLength}
+        inputMode={inputMode}
+        required
+      />
+      <label className={styles.floatingLabel}>{label}</label>
     </div>
   );
 }

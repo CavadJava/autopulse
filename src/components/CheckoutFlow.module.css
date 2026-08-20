@@ -75,36 +75,180 @@
   cursor: not-allowed;
 }
 
-.form {
+/* Card payment step — a self-contained, brand-neutral mock payment card */
+.paymentCard {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  max-width: 440px;
+  box-shadow: var(--shadow-lg);
+}
+
+.paymentHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.paymentBrand {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.paymentBrandAccent {
+  color: var(--accent);
+}
+
+.cardLogos {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.cardLogoVisa {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.cardLogoMc {
+  width: 26px;
+  height: 16px;
+  border-radius: 4px;
+  background:
+    radial-gradient(circle at 35% 50%, #eb001b 0 45%, transparent 46%),
+    radial-gradient(circle at 65% 50%, #f79e1b 0 45%, transparent 46%);
+  opacity: 0.9;
+}
+
+.paymentSubtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--space-4);
+}
+
+.paymentAmountRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--space-6);
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.paymentAmount {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--success);
+}
+
+.paymentForm {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 }
 
-.form h3 {
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.form input {
-  padding: var(--space-3);
-  font-size: 14px;
-}
-
-.row {
+.paymentRow {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-3);
 }
 
-.submitBtn {
-  padding: var(--space-4);
+.floatingField {
+  position: relative;
+}
+
+.floatingInput {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 15px;
+  padding: 18px 0 8px;
+  border-radius: 0;
+}
+
+.floatingInput:focus {
+  border-bottom-color: var(--accent);
+}
+
+.floatingLabel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.saveCardRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.checkbox,
+.checkboxActive {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkboxActive {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.checkboxActive::after {
+  content: '✓';
+  color: var(--bg-primary);
+  font-size: 11px;
   font-weight: 700;
 }
 
-.submitBtn:disabled {
+.paymentSubmitBtn {
+  padding: var(--space-4);
+  font-weight: 700;
+  margin-top: var(--space-2);
+}
+
+.paymentSubmitBtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.paymentFooter {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--text-tertiary);
+  flex-wrap: wrap;
+  text-align: center;
 }
 
 .success {
