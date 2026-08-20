@@ -1,0 +1,23 @@
+.page {
+  background: var(--bg-primary);
+  padding: 60px 20px;
+  min-height: 80vh;
+}
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.container h1 {
+  font-size: 36px;
+  font-weight: 800;
+  margin-bottom: 32px;
+}
+
+.loading,
+.error {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
