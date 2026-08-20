@@ -4,9 +4,12 @@ import type { Plan } from '../types';
 import PricingCard from '../components/PricingCard';
 import styles from './Pricing.module.css';
 
+type Dövr = 'aylıq' | 'illik';
+
 export default function Pricing() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dövr, setDövr] = useState<Dövr>('aylıq');
 
   useEffect(() => {
     (async () => {
@@ -21,7 +24,9 @@ export default function Pricing() {
     })();
   }, []);
 
-  const subscriptionPlans = plans.filter((p) => p.tip === 'subscription');
+  const subscriptionPlans = plans
+    .filter((p) => p.tip === 'subscription')
+    .filter((p) => !p.dövr || p.dövr === dövr);
   const vipPlans = plans.filter((p) => p.tip === 'vip_tier');
 
   return (
@@ -38,10 +43,28 @@ export default function Pricing() {
         <>
           <section className={styles.section}>
             <div className={styles.container}>
-              <h2>Hesab Planları</h2>
-              <p className={styles.subtitle}>
-                Aylıq abunə planları — limitsiz elan yerləşdirmə və digər xüsusiyyətlər
-              </p>
+              <div className={styles.sectionHead}>
+                <div>
+                  <h2>Hesab Planları</h2>
+                  <p className={styles.subtitle}>
+                    Fərdi istifadəçi üçün pulsuz, biznes hesablar üçün aylıq və ya illik abunə
+                  </p>
+                </div>
+                <div className={styles.dövrToggle}>
+                  <button
+                    className={dövr === 'aylıq' ? styles.dövrActive : styles.dövr}
+                    onClick={() => setDövr('aylıq')}
+                  >
+                    Aylıq
+                  </button>
+                  <button
+                    className={dövr === 'illik' ? styles.dövrActive : styles.dövr}
+                    onClick={() => setDövr('illik')}
+                  >
+                    İllik <span className={styles.savingsBadge}>2 ay pulsuz</span>
+                  </button>
+                </div>
+              </div>
               <div className={styles.grid}>
                 {subscriptionPlans.map((plan) => (
                   <PricingCard key={plan.id} plan={plan} />

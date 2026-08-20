@@ -76,11 +76,15 @@ export interface SavedCard {
   növ: 'Visa' | 'Mastercard';
 }
 
+export type PlanDövrü = 'aylıq' | 'illik';
+
 export interface Plan {
   id: string;
   ad: string;
   təsvir: string;
   qiymət: number;
+  valyuta: 'AZN';
+  dövr?: PlanDövrü;
   xüsusiyyətlər: string[];
   tip: 'subscription' | 'vip_tier';
 }

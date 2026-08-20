@@ -65,11 +65,11 @@ export default function CheckoutFlow({ planId, planName, price }: CheckoutFlowPr
         <h3>Sifariş Xülasəsi</h3>
         <div className={styles.summaryRow}>
           <span>{planName}</span>
-          <span className={styles.price}>${price}</span>
+          <span className={styles.price}>{price} AZN</span>
         </div>
         <div className={styles.total}>
           <span>Cəmi</span>
-          <span className={styles.price}>${price}</span>
+          <span className={styles.price}>{price} AZN</span>
         </div>
       </div>
 
@@ -129,7 +129,7 @@ export default function CheckoutFlow({ planId, planName, price }: CheckoutFlowPr
             required
           />
           <button type="submit" disabled={loading} className={styles.submitBtn}>
-            {loading ? 'Emal edilir...' : `${price}$ Ödə`}
+            {loading ? 'Emal edilir...' : `${price} AZN Ödə`}
           </button>
         </form>
       )}

@@ -35,7 +35,7 @@ function buildFərdiUser(zəng: string): User {
     zəng,
     subscriptionPlan: 'free',
     elanlarSayı: 2,
-    məhdudiyyət: 2,
+    məhdudiyyət: 5,
     balans: 0,
   };
 }

@@ -9,7 +9,8 @@ export default function PricingCard({ plan }: { plan: Plan }) {
     navigate(`/checkout?planId=${plan.id}`);
   };
 
-  const isPopular = plan.id === 'business' || plan.id === 'premium_vip';
+  const isPopular = plan.id === 'business-monthly' || plan.id === 'premium_vip';
+  const periodLabel = plan.dövr === 'illik' ? '/il' : plan.dövr === 'aylıq' ? '/ay' : null;
 
   return (
     <div className={`${styles.card} ${isPopular ? styles.popular : ''}`}>
@@ -17,8 +18,10 @@ export default function PricingCard({ plan }: { plan: Plan }) {
       <h3>{plan.ad}</h3>
       <p className={styles.desc}>{plan.təsvir}</p>
       <div className={styles.price}>
-        <span className={styles.amount}>{plan.qiymət === 0 ? 'Pulsuz' : `$${plan.qiymət}`}</span>
-        {plan.qiymət > 0 && <span className={styles.period}>/ay</span>}
+        <span className={styles.amount}>
+          {plan.qiymət === 0 ? 'Pulsuz' : `${plan.qiymət} ${plan.valyuta}`}
+        </span>
+        {periodLabel && <span className={styles.period}>{periodLabel}</span>}
       </div>
       <ul className={styles.features}>
         {plan.xüsusiyyətlər.map((feature, idx) => (
