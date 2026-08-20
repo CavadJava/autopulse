@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { submitCheckout } from '../api/pricing';
-import { CheckoutPayload } from '../types';
+import type { CheckoutPayload } from '../types';
 import styles from './CheckoutFlow.module.css';
 
 interface CheckoutFlowProps {

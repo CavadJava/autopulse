@@ -1,4 +1,4 @@
-import { Listing } from '../types';
+import type { Listing } from '../types';
 import { mockListings } from './mockData/listings';
 
 export interface ListingFilters {

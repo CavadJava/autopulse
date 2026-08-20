@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import FilterPanel, { Filters } from '../components/FilterPanel';
+import FilterPanel from '../components/FilterPanel';
+import type { Filters } from '../components/FilterPanel';
 import ListingGrid from '../components/ListingGrid';
 import { getListings } from '../api/listings';
-import { Listing } from '../types';
+import type { Listing } from '../types';
 import styles from './Listings.module.css';
 
 export default function Listings() {

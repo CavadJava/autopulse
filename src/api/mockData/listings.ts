@@ -1,4 +1,4 @@
-import { Listing } from '../../types';
+import type { Listing } from '../../types';
 
 const img = (label: string) => `https://placehold.co/600x400/151A2B/6EE7F9?text=${encodeURIComponent(label)}`;
 

@@ -4,7 +4,7 @@ import StatsBar from '../components/StatsBar';
 import HowItWorks from '../components/HowItWorks';
 import ListingGrid from '../components/ListingGrid';
 import { getListings } from '../api/listings';
-import { Listing } from '../types';
+import type { Listing } from '../types';
 import styles from './Home.module.css';
 
 export default function Home() {

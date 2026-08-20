@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Listing } from '../types';
+import type { Listing } from '../types';
 import styles from './ListingCard.module.css';
 
 export default function ListingCard({ listing }: { listing: Listing }) {

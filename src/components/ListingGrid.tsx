@@ -1,4 +1,4 @@
-import { Listing } from '../types';
+import type { Listing } from '../types';
 import ListingCard from './ListingCard';
 import styles from './ListingGrid.module.css';
 

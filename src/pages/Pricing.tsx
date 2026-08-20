@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getPricingPlans } from '../api/pricing';
-import { Plan } from '../types';
+import type { Plan } from '../types';
 import PricingCard from '../components/PricingCard';
 import styles from './Pricing.module.css';
 

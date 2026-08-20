@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Plan } from '../types';
+import type { Plan } from '../types';
 import styles from './PricingCard.module.css';
 
 export default function PricingCard({ plan }: { plan: Plan }) {

@@ -1,7 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { getPricingPlans } from '../api/pricing';
-import { Plan } from '../types';
+import type { Plan } from '../types';
 import CheckoutFlow from '../components/CheckoutFlow';
 import styles from './CheckoutPage.module.css';
 

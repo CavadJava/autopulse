@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getListingById, getListings } from '../api/listings';
-import { Listing } from '../types';
+import type { Listing } from '../types';
 import ListingGrid from '../components/ListingGrid';
 import styles from './ListingDetail.module.css';
 

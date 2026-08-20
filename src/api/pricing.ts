@@ -1,4 +1,4 @@
-import { Plan, CheckoutPayload } from '../types';
+import type { Plan, CheckoutPayload } from '../types';
 import { mockPlans } from './mockData/pricing';
 
 export async function getPricingPlans(): Promise<Plan[]> {
