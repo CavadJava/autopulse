@@ -6,21 +6,3 @@
   max-width: var(--max-width);
   margin: 0 auto;
 }
-
-.sectionHead {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: var(--space-8);
-}
-
-.container h2 {
-  font-size: 28px;
-  font-weight: 700;
-}
-
-.viewAll {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--accent);
-}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Filters } from './FilterPanel';
+import AdvancedFilterPanel from './AdvancedFilterPanel';
 import styles from './QuickFilterBar.module.css';
 
 interface QuickFilterBarProps {
@@ -151,6 +152,8 @@ export default function QuickFilterBar({
         />
       </div>
 
+      {moreOpen && <AdvancedFilterPanel filters={filters} onFilterChange={onFilterChange} />}
+
       <div className={styles.footer}>
         <div className={styles.today}>
           <span className={styles.todayLabel}>Bu gün:</span>{' '}
@@ -172,7 +175,7 @@ export default function QuickFilterBar({
             Sıfırla
           </button>
           <button className={styles.moreBtn} onClick={() => setMoreOpen((v) => !v)}>
-            Daha çox filtr {moreOpen ? '▲' : '▼'}
+            {moreOpen ? 'Gizlət' : 'Daha çox filtr'} {moreOpen ? '▲' : '▼'}
           </button>
         </div>
 

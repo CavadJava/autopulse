@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { SatıcıTipi } from '../types';
 import styles from './FilterPanel.module.css';
 
 export interface Filters {
@@ -15,6 +16,21 @@ export interface Filters {
   vəziyyət?: string;
   kredit?: boolean;
   barter?: boolean;
+
+  // Advanced ("Daha çox filtr") fields
+  həcmMin?: number;
+  həcmMax?: number;
+  gücMin?: number;
+  gücMax?: number;
+  yürüşMax?: number;
+  sürətlərQutusu?: number;
+  satıcıTipi?: SatıcıTipi;
+  yerlərSayı?: number;
+  bazarÜçünYığılıb?: string;
+  vuruğuVar?: boolean;
+  rənglənib?: boolean;
+  qəzalı?: boolean;
+  təchizat?: string[];
 }
 
 interface FilterPanelProps {

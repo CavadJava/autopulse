@@ -1,4 +1,4 @@
-import type { Listing } from '../types';
+import type { Listing, SatıcıTipi } from '../types';
 import { mockListings } from './mockData/listings';
 
 export interface ListingFilters {
@@ -15,6 +15,21 @@ export interface ListingFilters {
   vəziyyət?: string;
   kredit?: boolean;
   barter?: boolean;
+
+  // Advanced ("Daha çox filtr") fields
+  həcmMin?: number;
+  həcmMax?: number;
+  gücMin?: number;
+  gücMax?: number;
+  yürüşMax?: number;
+  sürətlərQutusu?: number;
+  satıcıTipi?: SatıcıTipi;
+  yerlərSayı?: number;
+  bazarÜçünYığılıb?: string;
+  vuruğuVar?: boolean;
+  rənglənib?: boolean;
+  qəzalı?: boolean;
+  təchizat?: string[];
 }
 
 export async function getListings(filters?: ListingFilters): Promise<Listing[]> {
@@ -61,6 +76,47 @@ export async function getListings(filters?: ListingFilters): Promise<Listing[]> 
   }
   if (filters?.barter) {
     results = results.filter((l) => l.barter === true);
+  }
+
+  // Advanced filters
+  if (filters?.həcmMin) {
+    results = results.filter((l) => l.həcm >= filters.həcmMin!);
+  }
+  if (filters?.həcmMax) {
+    results = results.filter((l) => l.həcm <= filters.həcmMax!);
+  }
+  if (filters?.gücMin) {
+    results = results.filter((l) => l.güc >= filters.gücMin!);
+  }
+  if (filters?.gücMax) {
+    results = results.filter((l) => l.güc <= filters.gücMax!);
+  }
+  if (filters?.yürüşMax) {
+    results = results.filter((l) => l.yürüş <= filters.yürüşMax!);
+  }
+  if (filters?.sürətlərQutusu) {
+    results = results.filter((l) => l.sürətlərQutusu === filters.sürətlərQutusu);
+  }
+  if (filters?.satıcıTipi) {
+    results = results.filter((l) => l.satıcıTipi === filters.satıcıTipi);
+  }
+  if (filters?.yerlərSayı) {
+    results = results.filter((l) => l.yerlərSayı === filters.yerlərSayı);
+  }
+  if (filters?.bazarÜçünYığılıb) {
+    results = results.filter((l) => l.bazarÜçünYığılıb === filters.bazarÜçünYığılıb);
+  }
+  if (filters?.vuruğuVar === false) {
+    results = results.filter((l) => l.vuruğuVar === false);
+  }
+  if (filters?.rənglənib === false) {
+    results = results.filter((l) => l.rənglənib === false);
+  }
+  if (filters?.qəzalı) {
+    results = results.filter((l) => l.qəzalı === true);
+  }
+  if (filters?.təchizat && filters.təchizat.length > 0) {
+    results = results.filter((l) => filters.təchizat!.every((t) => l.təchizat.includes(t)));
   }
 
   // Sort: Premium VIP first, then VIP, then Standart by date

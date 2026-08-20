@@ -1,6 +1,8 @@
 export type VIPTier = 'standart' | 'vip' | 'premium_vip';
 export type SubscriptionPlan = 'free' | 'business';
 
+export type SatıcıTipi = 'diler' | 'şəxsi';
+
 export interface Listing {
   id: string;
   marka: string;
@@ -23,6 +25,18 @@ export interface Listing {
   satıcıZəng: string;
   tarix: string;
   vipTier: VIPTier;
+
+  // Advanced ("Daha çox filtr") fields
+  həcm: number; // sm³
+  güc: number; // a.g. (horsepower)
+  sürətlərQutusu: number;
+  satıcıTipi: SatıcıTipi;
+  yerlərSayı: number;
+  bazarÜçünYığılıb: string;
+  vuruğuVar: boolean;
+  rənglənib: boolean;
+  qəzalı: boolean;
+  təchizat: string[];
 }
 
 export interface User {

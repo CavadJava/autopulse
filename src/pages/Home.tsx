@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react';
 import SearchHero from '../components/SearchHero';
 import StatsBar from '../components/StatsBar';
 import HowItWorks from '../components/HowItWorks';
-import ListingGrid from '../components/ListingGrid';
+import ListingSection from '../components/ListingSection';
 import { getListings } from '../api/listings';
 import type { Listing } from '../types';
-import { Link } from 'react-router-dom';
 import styles from './Home.module.css';
 
 export default function Home() {
@@ -16,9 +15,7 @@ export default function Home() {
     (async () => {
       try {
         const data = await getListings();
-        // Show only 6 most recent Premium/VIP listings
-        const featured = data.slice(0, 6);
-        setListings(featured);
+        setListings(data);
       } catch (error) {
         console.error('Failed to fetch listings:', error);
       } finally {
@@ -27,17 +24,40 @@ export default function Home() {
     })();
   }, []);
 
+  const salonVip = listings.filter((l) => l.vipTier === 'premium_vip' && l.satıcıTipi === 'diler').slice(0, 4);
+  const vip = listings.filter((l) => l.vipTier === 'vip' || (l.vipTier === 'premium_vip' && l.satıcıTipi !== 'diler')).slice(0, 4);
+  const standard = listings.filter((l) => l.vipTier === 'standart').slice(0, 4);
+
   return (
     <main>
       <SearchHero />
       <StatsBar />
       <section className={styles.featured}>
         <div className={styles.container}>
-          <div className={styles.sectionHead}>
-            <h2>Seçilmiş Elanlar</h2>
-            <Link to="/elanlar" className={styles.viewAll}>Hamısına bax →</Link>
-          </div>
-          {loading ? <p>Yüklənir...</p> : <ListingGrid listings={listings} />}
+          {loading ? (
+            <p>Yüklənir...</p>
+          ) : (
+            <>
+              <ListingSection
+                title="Salonların VIP Elanları"
+                listings={salonVip}
+                viewAllHref="/elanlar"
+                viewAllLabel="Bütün salon elanları →"
+              />
+              <ListingSection
+                title="VIP Elanlar"
+                listings={vip}
+                viewAllHref="/elanlar"
+                viewAllLabel="Bütün VIP elanlar →"
+              />
+              <ListingSection
+                title="Standard Elanlar"
+                listings={standard}
+                viewAllHref="/elanlar"
+                viewAllLabel="Hamısına bax →"
+              />
+            </>
+          )}
         </div>
       </section>
       <HowItWorks />

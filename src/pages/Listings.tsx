@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import FilterPanel from '../components/FilterPanel';
 import type { Filters } from '../components/FilterPanel';
 import QuickFilterBar from '../components/QuickFilterBar';
-import ListingGrid from '../components/ListingGrid';
+import ListingSection from '../components/ListingSection';
 import { getListings } from '../api/listings';
 import type { Listing } from '../types';
 import styles from './Listings.module.css';
@@ -30,6 +30,10 @@ export default function Listings() {
     setFilters(newFilters);
   };
 
+  const salonVip = listings.filter((l) => l.vipTier === 'premium_vip' && l.satıcıTipi === 'diler');
+  const vip = listings.filter((l) => l.vipTier === 'vip' || (l.vipTier === 'premium_vip' && l.satıcıTipi !== 'diler'));
+  const standard = listings.filter((l) => l.vipTier === 'standart');
+
   return (
     <div className={styles.page}>
       <div className={styles.wide}>
@@ -52,7 +56,11 @@ export default function Listings() {
           {loading ? (
             <p className={styles.loading}>Yüklənir...</p>
           ) : (
-            <ListingGrid listings={listings} />
+            <>
+              <ListingSection title="Salonların VIP Elanları" listings={salonVip} />
+              <ListingSection title="VIP Elanlar" listings={vip} />
+              <ListingSection title="Standard Elanlar" listings={standard} />
+            </>
           )}
         </div>
       </div>
