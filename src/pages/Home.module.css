@@ -1,0 +1,15 @@
+.featured {
+  padding: 60px 20px;
+  background: var(--bg-primary);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.container h2 {
+  font-size: 32px;
+  font-weight: 800;
+  margin-bottom: 32px;
+}
