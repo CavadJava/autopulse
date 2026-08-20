@@ -31,6 +31,7 @@ export default function App() {
           <Route path="/giris" element={<Login />} />
           <Route path="/giris/kod" element={<LoginVerify />} />
           <Route path="/elan-ver" element={<NewListing />} />
+          <Route path="/elan-ver/:id" element={<NewListing />} />
           <Route path="/kabinet" element={<KabinetLayout />}>
             <Route index element={<KabinetOverview />} />
             <Route path="elanlarim" element={<KabinetElanlarim />} />

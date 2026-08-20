@@ -1,5 +1,15 @@
 export type Kateqoriya = 'Minik' | 'Kommersiya' | 'Moto';
 
+// Unifies existing (already-uploaded, URL-backed) photos with newly-picked local Files
+// so the same array can be drag-reordered and rendered regardless of source.
+export type ListingPhoto =
+  | { id: string; kind: 'existing'; url: string }
+  | { id: string; kind: 'new'; file: File };
+
+export function photoPreviewUrl(photo: ListingPhoto): string {
+  return photo.kind === 'existing' ? photo.url : URL.createObjectURL(photo.file);
+}
+
 export interface NewListingFormState {
   kateqoriya: Kateqoriya | null;
   marka: string;
@@ -16,7 +26,7 @@ export interface NewListingFormState {
   bazarÜçünYığılıb: string;
   yürüş: string;
   yürüşVahidi: 'km' | 'mil';
-  şəkillər: File[];
+  şəkillər: ListingPhoto[];
   təchizat: string[];
   vuruğuVar: boolean;
   rənglənib: boolean;

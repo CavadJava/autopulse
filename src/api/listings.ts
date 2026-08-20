@@ -134,3 +134,15 @@ export async function getListingById(id: string): Promise<Listing | null> {
   await new Promise((resolve) => setTimeout(resolve, 200));
   return mockListings.find((l) => l.id === id) || null;
 }
+
+// Mock update — mutates the in-memory mock array so the edit survives navigation
+// within the session. A real backend would PATCH the listing server-side.
+export async function updateListing(id: string, patch: Partial<Listing>): Promise<Listing> {
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  const idx = mockListings.findIndex((l) => l.id === id);
+  if (idx === -1) {
+    throw new Error('Elan tapılmadı.');
+  }
+  mockListings[idx] = { ...mockListings[idx], ...patch };
+  return mockListings[idx];
+}

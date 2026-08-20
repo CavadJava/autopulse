@@ -1,9 +1,99 @@
-import { useMemo, useRef, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { BRANDS, CAR_GENERATIONS, DEFAULT_GENERATIONS, MODIFICATIONS, DEFAULT_MODIFICATIONS } from '../api/mockData/brands';
-import { initialNewListingForm, type Kateqoriya, type NewListingFormState } from '../types/newListingForm';
+import { getListingById, updateListing } from '../api/listings';
+import type { Listing } from '../types';
+import {
+  initialNewListingForm,
+  type Kateqoriya,
+  type ListingPhoto,
+  type NewListingFormState,
+} from '../types/newListingForm';
+import PhotoGrid from '../components/PhotoGrid';
 import styles from './NewListing.module.css';
+
+// Maps the color names used elsewhere in the app (ListingCard filters, mock data)
+// to a swatch hex from RƏNGLƏR below, so editing an existing listing pre-selects
+// its color instead of leaving the whole rest of the form hidden.
+const RƏNG_NAME_TO_HEX: Record<string, string> = {
+  Qara: '#000000',
+  Ağ: '#F2EFE8',
+  Gümüş: '#B7BCC4',
+  Qırmızı: '#E11B1B',
+  Mavi: '#4E9AE0',
+};
+
+const RƏNG_HEX_TO_NAME: Record<string, string> = Object.fromEntries(
+  Object.entries(RƏNG_NAME_TO_HEX).map(([name, hex]) => [hex, name])
+);
+
+function listingToFormState(listing: Listing): NewListingFormState {
+  return {
+    kateqoriya: 'Minik',
+    marka: listing.marka,
+    model: listing.model,
+    il: listing.il,
+    ban: listing.ban,
+    nəsil: 'Cari nəsil',
+    mühərrikNövü: listing.yanacaq === 'Elektrik' ? 'Elektro' : listing.yanacaq,
+    ötürücü: listing.ötürücü,
+    sürətlərQutusu: String(listing.sürətlərQutusu),
+    modifikasiya: listing.mühərrik,
+    yerlərSayı: listing.yerlərSayı,
+    rəng: RƏNG_NAME_TO_HEX[listing.rəng] ?? '#000000',
+    bazarÜçünYığılıb: listing.bazarÜçünYığılıb,
+    yürüş: String(listing.yürüş),
+    yürüşVahidi: 'km',
+    şəkillər: listing.şəkillər.map((url, idx) => ({
+      id: `existing-${idx}`,
+      kind: 'existing' as const,
+      url,
+    })),
+    təchizat: listing.təchizat,
+    vuruğuVar: listing.vuruğuVar,
+    rənglənib: listing.rənglənib,
+    qəzalı: listing.qəzalı,
+    vinKod: '',
+    əlavəMəlumat: listing.təsvir,
+    şəhər: listing.şəhər,
+    qiymət: String(listing.qiymət),
+    valyuta: 'AZN',
+    kreditlə: listing.kredit,
+    barterMümkündür: listing.barter,
+    ad: listing.satıcıAd,
+    email: '',
+    telefon: listing.satıcıZəng,
+  };
+}
+
+function formStateToListingPatch(form: NewListingFormState): Partial<Listing> {
+  return {
+    marka: form.marka,
+    model: form.model,
+    il: form.il ?? 0,
+    ban: form.ban,
+    yanacaq: (form.mühərrikNövü === 'Elektro' ? 'Elektrik' : form.mühərrikNövü) as Listing['yanacaq'],
+    ötürücü: form.ötürücü,
+    sürətlərQutusu: parseInt(form.sürətlərQutusu) || 0,
+    mühərrik: form.modifikasiya,
+    yerlərSayı: form.yerlərSayı ?? 5,
+    rəng: (form.rəng && RƏNG_HEX_TO_NAME[form.rəng]) || 'Digər',
+    bazarÜçünYığılıb: form.bazarÜçünYığılıb,
+    yürüş: parseInt(form.yürüş) || 0,
+    təchizat: form.təchizat,
+    vuruğuVar: form.vuruğuVar,
+    rənglənib: form.rənglənib,
+    qəzalı: form.qəzalı,
+    təsvir: form.əlavəMəlumat,
+    şəhər: form.şəhər,
+    qiymət: parseInt(form.qiymət) || 0,
+    kredit: form.kreditlə,
+    barter: form.barterMümkündür,
+    satıcıAd: form.ad,
+    satıcıZəng: form.telefon,
+  };
+}
 
 const KATEQORİYALAR: { key: Kateqoriya; icon: string; label: string }[] = [
   { key: 'Minik', icon: '🚗', label: 'Minik' },
@@ -40,9 +130,34 @@ const MIN_PHOTOS = 3;
 export default function NewListing() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { id } = useParams<{ id: string }>();
+  const isEditMode = Boolean(id);
+
   const [form, setForm] = useState<NewListingFormState>(initialNewListingForm);
   const [submitted, setSubmitted] = useState(false);
+  const [loadingExisting, setLoadingExisting] = useState(isEditMode);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    (async () => {
+      setLoadingExisting(true);
+      setLoadError(null);
+      try {
+        const listing = await getListingById(id);
+        if (!listing) {
+          setLoadError('Elan tapılmadı.');
+          return;
+        }
+        setForm(listingToFormState(listing));
+      } catch {
+        setLoadError('Elan yüklənərkən xəta baş verdi.');
+      } finally {
+        setLoadingExisting(false);
+      }
+    })();
+  }, [id]);
 
   const set = <K extends keyof NewListingFormState>(key: K, value: NewListingFormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -64,14 +179,8 @@ export default function NewListing() {
     setForm(initialNewListingForm);
   };
 
-  const handlePhotosSelected = (files: FileList | null) => {
-    if (!files) return;
-    const next = [...form.şəkillər, ...Array.from(files)].slice(0, MAX_PHOTOS);
-    set('şəkillər', next);
-  };
-
-  const removePhoto = (idx: number) => {
-    set('şəkillər', form.şəkillər.filter((_, i) => i !== idx));
+  const handlePhotosChange = (photos: ListingPhoto[]) => {
+    set('şəkillər', photos);
   };
 
   const toggleEquipment = (item: string) => {
@@ -81,12 +190,38 @@ export default function NewListing() {
     set('təchizat', next);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock submission — no backend. Real implementation would POST the form + upload images.
+    if (isEditMode && id) {
+      setSaving(true);
+      try {
+        // Mock update — new (locally-picked) photos aren't uploaded anywhere;
+        // only existing photo URLs are persisted, in their current (possibly reordered) order.
+        const existingUrls = form.şəkillər
+          .filter((p): p is Extract<ListingPhoto, { kind: 'existing' }> => p.kind === 'existing')
+          .map((p) => p.url);
+        await updateListing(id, { ...formStateToListingPatch(form), şəkillər: existingUrls });
+        setSubmitted(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch {
+        setLoadError('Yadda saxlanılarkən xəta baş verdi.');
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+    // Mock creation — no backend. Real implementation would POST the form + upload images.
     setSubmitted(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  if (loadingExisting) {
+    return <div className={styles.page}><p className={styles.loadingText}>Yüklənir...</p></div>;
+  }
+
+  if (loadError && !submitted) {
+    return <div className={styles.page}><p className={styles.loadingText}>{loadError}</p></div>;
+  }
 
   if (submitted) {
     return (
@@ -94,8 +229,12 @@ export default function NewListing() {
         <div className={styles.card}>
           <div className={styles.successState}>
             <div className={styles.successIcon}>✓</div>
-            <h1>Elanınız qəbul edildi</h1>
-            <p>Elanınız yoxlanılır və tezliklə saytda dərc olunacaq.</p>
+            <h1>{isEditMode ? 'Dəyişikliklər yadda saxlanıldı' : 'Elanınız qəbul edildi'}</h1>
+            <p>
+              {isEditMode
+                ? 'Elanınız yeniləndi.'
+                : 'Elanınız yoxlanılır və tezliklə saytda dərc olunacaq.'}
+            </p>
             <button className={styles.primaryBtn} onClick={() => navigate('/kabinet/elanlarim')}>
               Elanlarıma bax
             </button>
@@ -110,7 +249,7 @@ export default function NewListing() {
       <form onSubmit={handleSubmit}>
         <div className={styles.card}>
           <div className={styles.cardHeader}>
-            <h1>Yeni elan</h1>
+            <h1>{isEditMode ? 'Elanı redaktə et' : 'Yeni elan'}</h1>
             <button type="button" className={styles.resetBtn} onClick={handleReset}>
               Sıfırla
             </button>
@@ -450,36 +589,10 @@ export default function NewListing() {
                 <strong>Qadağandır!</strong>
                 <span>Skrinşotlar, çərçivəli şəkillər və ekran şəkilləri.</span>
               </div>
-              <div className={styles.photoGrid}>
-                {form.şəkillər.map((file, idx) => (
-                  <div key={idx} className={styles.photoThumb}>
-                    <img src={URL.createObjectURL(file)} alt={`Şəkil ${idx + 1}`} />
-                    <button type="button" className={styles.photoRemove} onClick={() => removePhoto(idx)}>
-                      ✕
-                    </button>
-                  </div>
-                ))}
-                {form.şəkillər.length < MAX_PHOTOS && (
-                  <button
-                    type="button"
-                    className={styles.photoAddTile}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <span className={styles.photoAddIcon}>📷</span>
-                    Şəkil əlavə etmək
-                  </button>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  hidden
-                  onChange={(e) => handlePhotosSelected(e.target.files)}
-                />
-              </div>
+              <PhotoGrid photos={form.şəkillər} onChange={handlePhotosChange} maxPhotos={MAX_PHOTOS} />
               <p className={styles.photoHint}>
-                Minimum {MIN_PHOTOS} şəkil, maksimum {MAX_PHOTOS} şəkil ({form.şəkillər.length}/{MAX_PHOTOS})
+                Minimum {MIN_PHOTOS} şəkil, maksimum {MAX_PHOTOS} şəkil ({form.şəkillər.length}/{MAX_PHOTOS}) ·
+                Sıralamaq üçün şəkilləri sürükləyin
               </p>
             </div>
 
@@ -644,13 +757,13 @@ export default function NewListing() {
 
             <div className={styles.submitRow}>
               <p className={styles.agreement}>
-                Elan yerləşdirərək, siz AutoPulse-un{' '}
+                {isEditMode ? 'Dəyişiklikləri yadda saxlayaraq' : 'Elan yerləşdirərək'}, siz AutoPulse-un{' '}
                 <a href="#terms" onClick={(e) => e.preventDefault()}>İstifadəçi razılaşması</a> və{' '}
                 <a href="#rules" onClick={(e) => e.preventDefault()}>Qaydaları</a> ilə razı olduğunuzu
                 təsdiq edirsiniz
               </p>
-              <button type="submit" className={styles.submitBtn}>
-                Elan yerləşdir
+              <button type="submit" className={styles.submitBtn} disabled={saving}>
+                {saving ? 'Yadda saxlanılır...' : isEditMode ? 'Dəyişiklikləri yadda saxla' : 'Elan yerləşdir'}
               </button>
             </div>
           </>

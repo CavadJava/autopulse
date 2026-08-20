@@ -95,7 +95,12 @@ export default function KabinetElanlarim() {
               <div className={styles.cardBody}>
                 <div className={styles.price}>{listing.qiymət.toLocaleString()} AZN</div>
                 <div className={styles.başlıq}>{listing.başlıq}</div>
-                <button className={styles.adBtn}>📈 Reklam et</button>
+                <div className={styles.cardActions}>
+                  <Link to={`/elan-ver/${listing.listingId}`} className={styles.editBtn}>
+                    ✎ Redaktə et
+                  </Link>
+                  <button className={styles.adBtn}>📈 Reklam et</button>
+                </div>
               </div>
             </div>
           ))}
