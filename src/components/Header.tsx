@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import styles from './Header.module.css';
 
 export default function Header() {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -32,6 +34,13 @@ export default function Header() {
             <Link to="/business">Biznes üçün</Link>
           </div>
           <div className={styles.actions}>
+            <button
+              className={styles.themeToggle}
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Açıq temaya keç' : 'Tund temaya keç'}
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
             {user ? (
               <div className={styles.userMenu}>
                 <button className={styles.userBtn} onClick={() => setMenuOpen((v) => !v)}>

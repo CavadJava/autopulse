@@ -15,7 +15,7 @@
 }
 
 .card.popular {
-  border-color: rgba(94, 234, 212, 0.35);
+  border-color: var(--accent-medium);
   box-shadow: var(--shadow-glow);
 }
 

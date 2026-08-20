@@ -18,9 +18,11 @@ import Header from './components/Header';
 import CompareBar from './components/CompareBar';
 import { AuthProvider } from './context/AuthContext';
 import { CompareProvider } from './context/CompareContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 export default function App() {
   return (
+    <ThemeProvider>
     <AuthProvider>
       <CompareProvider>
         <Router>
@@ -48,5 +50,6 @@ export default function App() {
         </Router>
       </CompareProvider>
     </AuthProvider>
+    </ThemeProvider>
   );
 }

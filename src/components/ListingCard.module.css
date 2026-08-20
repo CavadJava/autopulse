@@ -47,12 +47,12 @@
 }
 
 .badgeVip {
-  background: rgba(94, 234, 212, 0.9);
+  background: var(--accent-solidish);
   color: var(--bg-primary);
 }
 
 .badgePremiumVip {
-  background: rgba(245, 196, 81, 0.92);
+  background: var(--gold-solidish);
   color: var(--bg-primary);
 }
 
@@ -64,7 +64,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(10, 14, 23, 0.75);
+  background: var(--scrim);
   backdrop-filter: blur(4px);
   color: var(--text-primary);
   border: 1px solid rgba(255, 255, 255, 0.15);

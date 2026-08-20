@@ -13,7 +13,7 @@
   transform: translateX(-50%);
   width: 800px;
   height: 500px;
-  background: radial-gradient(ellipse, rgba(94, 234, 212, 0.1), transparent 70%);
+  background: radial-gradient(ellipse, var(--accent-soft), transparent 70%);
   pointer-events: none;
 }
 
@@ -28,7 +28,7 @@
   align-items: center;
   gap: 8px;
   background: var(--accent-soft);
-  border: 1px solid rgba(94, 234, 212, 0.25);
+  border: 1px solid var(--accent-medium);
   color: var(--accent);
   font-size: 13px;
   font-weight: 600;
