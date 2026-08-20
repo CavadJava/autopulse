@@ -1,0 +1,123 @@
+.filterTabs {
+  display: flex;
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.filterTab,
+.filterTabActive {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.filterTab:hover {
+  box-shadow: none;
+  transform: none;
+  color: var(--text-primary);
+}
+
+.filterTabActive {
+  color: var(--accent);
+}
+
+.empty {
+  color: var(--text-secondary);
+  padding: var(--space-10) 0;
+  text-align: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-5);
+}
+
+.card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.imageLink {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 10;
+}
+
+.imageLink img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.badgeSaytda,
+.badgeImtina,
+.badgeGözləmədə,
+.badgeBaşaÇatmış {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+}
+
+.badgeSaytda {
+  background: var(--success);
+  color: var(--bg-primary);
+}
+
+.badgeImtina {
+  background: var(--error);
+  color: var(--bg-primary);
+}
+
+.badgeGözləmədə {
+  background: var(--gold);
+  color: var(--bg-primary);
+}
+
+.badgeBaşaÇatmış {
+  background: var(--text-tertiary);
+  color: var(--bg-primary);
+}
+
+.cardBody {
+  padding: var(--space-4);
+}
+
+.price {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.başlıq {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: var(--space-1) 0 var(--space-3);
+}
+
+.adBtn {
+  width: 100%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid rgba(94, 234, 212, 0.25);
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.adBtn:hover {
+  box-shadow: none;
+}

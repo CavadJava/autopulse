@@ -1,0 +1,74 @@
+.card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  max-width: 600px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.header h2 {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.deleteLink {
+  background: transparent;
+  border: none;
+  color: var(--error);
+  font-size: 13px;
+  padding: 0;
+}
+
+.deleteLink:hover {
+  box-shadow: none;
+  transform: none;
+  text-decoration: underline;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.label {
+  color: var(--text-secondary);
+}
+
+.value {
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.changeLink {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  font-size: 13px;
+  padding: 0;
+  font-weight: 600;
+}
+
+.changeLink:hover {
+  box-shadow: none;
+  transform: none;
+  text-decoration: underline;
+}

@@ -41,13 +41,36 @@ export interface Listing {
   təchizat: string[];
 }
 
+export type AccountKind = 'fərdi' | 'biznes';
+export type İstifadəçiElanStatusu = 'saytda' | 'imtina_olunub' | 'gözləmədə' | 'müddəti_başa_çatmış';
+
 export interface User {
   id: string;
   ad: string;
-  zəng: string;
+  hesabTipi: AccountKind;
+  zəng?: string;
+  email?: string;
+  ünvan?: string;
   subscriptionPlan: SubscriptionPlan;
   elanlarSayı: number;
   məhdudiyyət: number;
+  balans: number;
+}
+
+export interface UserListing {
+  id: string;
+  listingId: string;
+  başlıq: string;
+  qiymət: number;
+  şəkil: string;
+  status: İstifadəçiElanStatusu;
+  tarix: string;
+}
+
+export interface SavedCard {
+  id: string;
+  maskedNömrə: string;
+  növ: 'Visa' | 'Mastercard';
 }
 
 export interface Plan {

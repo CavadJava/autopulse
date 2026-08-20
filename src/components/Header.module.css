@@ -92,6 +92,72 @@
   box-shadow: none;
 }
 
+.userMenu {
+  position: relative;
+}
+
+.userBtn {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 8px 14px 8px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.userBtn:hover {
+  border-color: var(--accent);
+  box-shadow: none;
+}
+
+.avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  min-width: 160px;
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  z-index: 150;
+}
+
+.dropdown a,
+.dropdown button {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.dropdown a:hover,
+.dropdown button:hover {
+  background: var(--bg-elevated);
+  box-shadow: none;
+  transform: none;
+}
+
 @media (max-width: 768px) {
   .links {
     display: none;
