@@ -6,7 +6,7 @@ export default function ListingCard({ listing }: { listing: Listing }) {
   const badgeClass = {
     vip: styles.badgeVip,
     premium_vip: styles.badgePremiumVip,
-    standart: styles.badgeStandart,
+    standart: '',
   }[listing.vipTier];
 
   return (
@@ -15,7 +15,7 @@ export default function ListingCard({ listing }: { listing: Listing }) {
         <img src={listing.şəkillər[0]} alt={`${listing.marka} ${listing.model}`} />
         {listing.vipTier !== 'standart' && (
           <div className={`${styles.badge} ${badgeClass}`}>
-            {listing.vipTier === 'vip' ? 'VIP' : 'PREMIUM VIP'}
+            {listing.vipTier === 'vip' ? 'VIP' : 'PREMIUM'}
           </div>
         )}
       </div>
@@ -33,8 +33,10 @@ export default function ListingCard({ listing }: { listing: Listing }) {
         </div>
         <div className={styles.footer}>
           <div className={styles.price}>{listing.qiymət.toLocaleString()} ₼</div>
-          {listing.kredit && <span className={styles.feature}>Kredit</span>}
-          {listing.barter && <span className={styles.feature}>Barter</span>}
+          <div className={styles.badges}>
+            {listing.kredit && <span className={styles.feature}>Kredit</span>}
+            {listing.barter && <span className={styles.feature}>Barter</span>}
+          </div>
         </div>
       </div>
     </Link>

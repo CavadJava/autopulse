@@ -1,89 +1,89 @@
 .dashboard {
-  background: var(--bg-primary);
-  padding: 40px;
+  padding: var(--space-10) var(--space-6);
   max-width: 900px;
   margin: 0 auto;
 }
 
 .dashboard h1 {
-  font-size: 32px;
-  font-weight: 800;
-  margin-bottom: 8px;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: var(--space-1);
 }
 
 .subtitle {
   color: var(--text-secondary);
-  font-size: 16px;
-  margin-bottom: 32px;
+  font-size: 15px;
+  margin-bottom: var(--space-8);
 }
 
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  margin-bottom: 32px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
 }
 
 .card {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: var(--space-5);
 }
 
 .label {
   font-size: 12px;
   color: var(--text-secondary);
   text-transform: uppercase;
-  font-weight: 700;
-  margin-bottom: 8px;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
 }
 
 .value {
-  font-size: 28px;
-  font-weight: 800;
-  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
 }
 
 .usageCard {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 24px;
-  margin-bottom: 32px;
+  padding: var(--space-6);
+  margin-bottom: var(--space-8);
 }
 
 .usageHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .usageHeader h3 {
-  font-size: 16px;
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .usageText {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--accent);
   font-weight: 700;
 }
 
 .progressBar {
   width: 100%;
-  height: 8px;
-  background: var(--border);
+  height: 6px;
+  background: var(--bg-elevated);
   border-radius: 4px;
   overflow: hidden;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .progress {
   height: 100%;
   background: var(--accent);
-  transition: width 0.3s;
+  border-radius: 4px;
 }
 
 .usageNote {
@@ -94,41 +94,30 @@
 .actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.primaryBtn,
-.secondaryBtn {
-  padding: 14px 20px;
-  border-radius: var(--radius);
-  font-weight: 700;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
+  gap: var(--space-3);
 }
 
 .primaryBtn {
-  background: var(--accent);
-  color: var(--bg-primary);
-}
-
-.primaryBtn:hover {
-  opacity: 0.9;
+  padding: var(--space-4) var(--space-5);
+  font-weight: 600;
 }
 
 .secondaryBtn {
+  padding: var(--space-4) var(--space-5);
+  font-weight: 600;
   background: transparent;
-  border: 1px solid var(--accent);
-  color: var(--accent);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
 }
 
 .secondaryBtn:hover {
-  background: rgba(110, 231, 249, 0.1);
+  box-shadow: none;
+  border-color: var(--accent);
 }
 
 @media (max-width: 768px) {
   .dashboard {
-    padding: 20px;
+    padding: var(--space-5);
   }
 
   .actions {

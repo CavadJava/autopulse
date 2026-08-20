@@ -1,58 +1,62 @@
 .card {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 32px 24px;
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
   display: flex;
   flex-direction: column;
-  transition: all 0.3s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   position: relative;
 }
 
 .card:hover {
-  border-color: var(--accent);
   transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
 }
 
 .card.popular {
-  border-color: var(--accent);
-  box-shadow: 0 0 20px rgba(110, 231, 249, 0.2);
+  border-color: rgba(94, 234, 212, 0.35);
+  box-shadow: var(--shadow-glow);
 }
 
 .badge {
   position: absolute;
-  top: -12px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: -13px;
+  left: var(--space-8);
   background: var(--accent);
   color: var(--bg-primary);
-  padding: 4px 12px;
-  border-radius: 12px;
+  padding: 5px 14px;
+  border-radius: 100px;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .card h3 {
-  font-size: 20px;
-  font-weight: 800;
-  margin-bottom: 8px;
+  font-size: 19px;
+  font-weight: 700;
+  margin-bottom: var(--space-2);
 }
 
 .desc {
   color: var(--text-secondary);
   font-size: 14px;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-6);
+  min-height: 42px;
 }
 
 .price {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--border);
 }
 
 .amount {
-  font-size: 36px;
-  font-weight: 800;
-  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: 38px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .period {
@@ -64,37 +68,43 @@
 .features {
   list-style: none;
   padding: 0;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
 .features li {
-  padding: 8px 0;
   font-size: 14px;
   color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.check {
+  color: var(--accent);
+  font-weight: 700;
+  flex-shrink: 0;
 }
 
 .cta {
-  background: var(--border);
+  background: var(--bg-elevated);
   color: var(--text-primary);
-  border: none;
-  padding: 12px 20px;
+  border: 1px solid var(--border-strong);
+  padding: 13px 20px;
   border-radius: var(--radius);
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
+  font-weight: 600;
 }
 
 .cta:hover {
-  background: var(--border);
-  opacity: 0.8;
+  box-shadow: none;
+  border-color: var(--accent);
 }
 
 .cta.ctaPrimary {
   background: var(--accent);
   color: var(--bg-primary);
-}
-
-.cta.ctaPrimary:hover {
-  opacity: 0.9;
+  border-color: transparent;
 }

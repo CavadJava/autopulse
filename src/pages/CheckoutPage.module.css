@@ -1,6 +1,5 @@
 .page {
-  background: var(--bg-primary);
-  padding: 60px 20px;
+  padding: var(--space-16) var(--space-6);
   min-height: 80vh;
 }
 
@@ -10,14 +9,14 @@
 }
 
 .container h1 {
-  font-size: 36px;
-  font-weight: 800;
-  margin-bottom: 32px;
+  font-size: 30px;
+  font-weight: 700;
+  margin-bottom: var(--space-8);
 }
 
 .loading,
 .error {
   text-align: center;
-  padding: 60px 20px;
+  padding: var(--space-16) var(--space-6);
   color: var(--text-secondary);
 }

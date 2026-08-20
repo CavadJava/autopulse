@@ -22,7 +22,9 @@ export default function PricingCard({ plan }: { plan: Plan }) {
       </div>
       <ul className={styles.features}>
         {plan.xüsusiyyətlər.map((feature, idx) => (
-          <li key={idx}>✓ {feature}</li>
+          <li key={idx}>
+            <span className={styles.check}>✓</span> {feature}
+          </li>
         ))}
       </ul>
       <button

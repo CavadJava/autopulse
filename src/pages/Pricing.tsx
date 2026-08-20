@@ -27,8 +27,9 @@ export default function Pricing() {
   return (
     <div className={styles.page}>
       <div className={styles.hero}>
-        <h1>Qiymətləndirmə Planları</h1>
-        <p>Sizin üçün uyğun plani seçin</p>
+        <div className={styles.eyebrow}>Qiymətlər</div>
+        <h1>Sadə, şəffaf qiymətləndirmə</h1>
+        <p>Fərdi istifadəçidən böyük dilerlərə qədər — hər ölçüdə biznes üçün.</p>
       </div>
 
       {loading ? (

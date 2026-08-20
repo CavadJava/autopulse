@@ -1,77 +1,83 @@
 .page {
-  background: var(--bg-primary);
   min-height: 100vh;
 }
 
 .hero {
-  background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
-  padding: 80px 20px;
+  padding: var(--space-20) var(--space-6) var(--space-16);
   text-align: center;
   border-bottom: 1px solid var(--border);
 }
 
+.eyebrow {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-3);
+}
+
 .hero h1 {
-  font-size: 48px;
-  font-weight: 800;
-  margin-bottom: 12px;
+  font-size: 44px;
+  font-weight: 700;
+  margin-bottom: var(--space-3);
 }
 
 .hero p {
-  font-size: 18px;
+  font-size: 16px;
   color: var(--text-secondary);
 }
 
 .section {
-  padding: 60px 20px;
+  padding: var(--space-16) var(--space-6);
   border-bottom: 1px solid var(--border);
 }
 
 .container {
-  max-width: 1200px;
+  max-width: var(--max-width);
   margin: 0 auto;
 }
 
 .section h2 {
-  font-size: 32px;
-  font-weight: 800;
-  margin-bottom: 12px;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: var(--space-2);
 }
 
 .subtitle {
   color: var(--text-secondary);
-  font-size: 16px;
-  margin-bottom: 32px;
+  font-size: 15px;
+  margin-bottom: var(--space-8);
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-6);
 }
 
 .loading {
   text-align: center;
-  padding: 60px 20px;
+  padding: var(--space-16) var(--space-6);
   color: var(--text-secondary);
 }
 
 .faqSection {
-  padding: 60px 20px;
-  background: var(--bg-secondary);
+  padding: var(--space-16) var(--space-6);
 }
 
 .faqGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 32px;
-  margin-top: 32px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-8);
+  margin-top: var(--space-8);
 }
 
 .faqItem h3 {
-  font-size: 16px;
-  font-weight: 800;
-  margin-bottom: 12px;
-  color: var(--accent);
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+  color: var(--text-primary);
 }
 
 .faqItem p {
@@ -82,11 +88,11 @@
 
 @media (max-width: 768px) {
   .hero h1 {
-    font-size: 32px;
+    font-size: 30px;
   }
 
   .section h2 {
-    font-size: 24px;
+    font-size: 22px;
   }
 
   .grid {

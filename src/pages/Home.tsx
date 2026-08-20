@@ -5,6 +5,7 @@ import HowItWorks from '../components/HowItWorks';
 import ListingGrid from '../components/ListingGrid';
 import { getListings } from '../api/listings';
 import type { Listing } from '../types';
+import { Link } from 'react-router-dom';
 import styles from './Home.module.css';
 
 export default function Home() {
@@ -32,7 +33,10 @@ export default function Home() {
       <StatsBar />
       <section className={styles.featured}>
         <div className={styles.container}>
-          <h2>Seçilmiş Elanlar</h2>
+          <div className={styles.sectionHead}>
+            <h2>Seçilmiş Elanlar</h2>
+            <Link to="/elanlar" className={styles.viewAll}>Hamısına bax →</Link>
+          </div>
           {loading ? <p>Yüklənir...</p> : <ListingGrid listings={listings} />}
         </div>
       </section>

@@ -20,10 +20,17 @@ export default function SearchHero() {
   return (
     <div className={styles.hero}>
       <div className={styles.container}>
+        <div className={styles.eyebrow}>
+          <span className={styles.eyebrowDot} />
+          Azərbaycanın etibarlı avtomobil bazarı
+        </div>
         <h1 className={styles.title}>
-          Sürətli tap.<br />
-          <span className={styles.accent}>Ağıllı seç.</span>
+          Doğru avtomobili<br />
+          <span className={styles.accent}>ağıllı şəkildə tapın.</span>
         </h1>
+        <p className={styles.subtitle}>
+          Minlərlə yoxlanılmış elan, şəffaf qiymətlər və birbaşa satıcı əlaqəsi — hamısı bir platformada.
+        </p>
         <form onSubmit={handleSearch} className={styles.form}>
           <input
             type="text"

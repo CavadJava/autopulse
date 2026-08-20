@@ -1,6 +1,5 @@
 .page {
-  background: var(--bg-primary);
-  padding: 40px 20px;
+  padding: var(--space-10) var(--space-6);
   min-height: 80vh;
 }
 
@@ -8,8 +7,8 @@
   max-width: 1400px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 30px;
+  grid-template-columns: 260px 1fr;
+  gap: var(--space-8);
 }
 
 .content {
@@ -18,13 +17,13 @@
 }
 
 .header {
-  margin-bottom: 32px;
+  margin-bottom: var(--space-8);
 }
 
 .header h1 {
-  font-size: 32px;
-  font-weight: 800;
-  margin-bottom: 8px;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: var(--space-1);
 }
 
 .count {
@@ -35,7 +34,7 @@
 .loading {
   text-align: center;
   color: var(--text-secondary);
-  padding: 60px 20px;
+  padding: var(--space-16) var(--space-6);
 }
 
 @media (max-width: 1024px) {
