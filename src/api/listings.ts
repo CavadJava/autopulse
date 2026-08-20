@@ -6,6 +6,8 @@ export interface ListingFilters {
   şəhər?: string;
   qiymətMin?: number;
   qiymətMax?: number;
+  ilMin?: number;
+  ilMax?: number;
   yanacaq?: string;
   ban?: string;
   ötürücü?: string;
@@ -32,6 +34,12 @@ export async function getListings(filters?: ListingFilters): Promise<Listing[]> 
   }
   if (filters?.qiymətMax) {
     results = results.filter((l) => l.qiymət <= filters.qiymətMax!);
+  }
+  if (filters?.ilMin) {
+    results = results.filter((l) => l.il >= filters.ilMin!);
+  }
+  if (filters?.ilMax) {
+    results = results.filter((l) => l.il <= filters.ilMax!);
   }
   if (filters?.yanacaq) {
     results = results.filter((l) => l.yanacaq === filters.yanacaq);

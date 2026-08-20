@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import FilterPanel from '../components/FilterPanel';
 import type { Filters } from '../components/FilterPanel';
+import QuickFilterBar from '../components/QuickFilterBar';
 import ListingGrid from '../components/ListingGrid';
 import { getListings } from '../api/listings';
 import type { Listing } from '../types';
@@ -31,8 +32,16 @@ export default function Listings() {
 
   return (
     <div className={styles.page}>
+      <div className={styles.wide}>
+        <QuickFilterBar
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          resultCount={listings.length}
+          newTodayCount={1562}
+        />
+      </div>
       <div className={styles.container}>
-        <FilterPanel onFilterChange={handleFilterChange} />
+        <FilterPanel filters={filters} onFilterChange={handleFilterChange} />
         <div className={styles.content}>
           <div className={styles.header}>
             <h1>Avtomobil Elanları</h1>

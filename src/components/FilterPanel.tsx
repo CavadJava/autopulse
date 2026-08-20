@@ -6,6 +6,8 @@ export interface Filters {
   şəhər?: string;
   qiymətMin?: number;
   qiymətMax?: number;
+  ilMin?: number;
+  ilMax?: number;
   yanacaq?: string;
   ban?: string;
   ötürücü?: string;
@@ -16,10 +18,11 @@ export interface Filters {
 }
 
 interface FilterPanelProps {
+  filters: Filters;
   onFilterChange: (filters: Filters) => void;
 }
 
-export default function FilterPanel({ onFilterChange }: FilterPanelProps) {
+export default function FilterPanel({ filters, onFilterChange }: FilterPanelProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     marka: true,
     qiymət: true,
@@ -32,12 +35,8 @@ export default function FilterPanel({ onFilterChange }: FilterPanelProps) {
     digər: false,
   });
 
-  const [filters, setFilters] = useState<Filters>({});
-
   const handleFilterChange = (key: keyof Filters, value: string | number | boolean | undefined) => {
-    const newFilters = { ...filters, [key]: value };
-    setFilters(newFilters);
-    onFilterChange(newFilters);
+    onFilterChange({ ...filters, [key]: value });
   };
 
   const toggleSection = (section: string) => {
