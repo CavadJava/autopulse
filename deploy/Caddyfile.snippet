@@ -1,0 +1,17 @@
+# AutoPulse — Caddy route
+#
+# Append this block to the server's main Caddyfile (usually /etc/caddy/Caddyfile).
+# Caddy auto-provisions HTTPS for sslip.io subdomains — no manual cert work needed.
+#
+# SPA note: try_files falls back to index.html so React Router's client-side
+# routes (e.g. /elanlar, /elan/1, /kabinet) work on hard refresh / direct link.
+
+autopulse.157.180.73.79.sslip.io {
+    root * /opt/autopulse/dist
+    encode gzip
+
+    @notFound not path /assets/* /favicon.svg /mock-map.svg /icons.svg
+    rewrite @notFound /index.html
+
+    file_server
+}
