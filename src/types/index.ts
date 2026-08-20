@@ -57,6 +57,8 @@ export interface User {
   balans: number;
 }
 
+export type PromoTier = 'ireli_cek' | 'vip' | 'premium_vip';
+
 export interface UserListing {
   id: string;
   listingId: string;
@@ -65,6 +67,7 @@ export interface UserListing {
   şəkil: string;
   status: İstifadəçiElanStatusu;
   tarix: string;
+  vipTier: VIPTier;
 }
 
 export interface SavedCard {

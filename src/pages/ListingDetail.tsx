@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { getListingById, getListings } from '../api/listings';
-import type { Listing } from '../types';
+import { promoteListing, PROMO_PRICES } from '../api/auth';
+import type { Listing, PromoTier } from '../types';
 import ListingGrid from '../components/ListingGrid';
+import PromoteModal from '../components/PromoteModal';
+import { useAuth } from '../context/AuthContext';
 import styles from './ListingDetail.module.css';
 
 function formatDate(iso: string) {
@@ -19,13 +22,14 @@ const DESCRIPTION_PREVIEW_LENGTH = 160;
 
 export default function ListingDetail() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const { user, login } = useAuth();
   const [listing, setListing] = useState<Listing | null>(null);
   const [similar, setSimilar] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [phoneRevealed, setPhoneRevealed] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
+  const [promoteOpen, setPromoteOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -67,6 +71,13 @@ export default function ListingDetail() {
     !descExpanded && isLongDescription
       ? listing.təsvir.slice(0, DESCRIPTION_PREVIEW_LENGTH).trimEnd() + '…'
       : listing.təsvir;
+
+  const handlePromote = async (tier: PromoTier) => {
+    if (!user || !listing) return;
+    await promoteListing(user.hesabTipi, listing.id, tier);
+    login({ ...user, balans: user.balans - PROMO_PRICES[tier] });
+    setListing({ ...listing, vipTier: tier === 'ireli_cek' ? 'standart' : tier });
+  };
 
   return (
     <div className={styles.page}>
@@ -233,25 +244,29 @@ export default function ListingDetail() {
             <div className={styles.cardDivider} />
 
             <div className={styles.promoGrid}>
-              <button className={styles.promoTile} onClick={() => navigate('/checkout?planId=vip')}>
+              <button className={styles.promoTile} onClick={() => setPromoteOpen(true)}>
                 <span className={styles.promoIcon}>↑</span>
                 <span>İrəli çək</span>
-                <span className={styles.promoPrice}>3.00-dən</span>
+                <span className={styles.promoPrice}>{PROMO_PRICES.ireli_cek} AZN</span>
               </button>
-              <button className={styles.promoTile} onClick={() => navigate('/checkout?planId=vip')}>
+              <button className={styles.promoTile} onClick={() => setPromoteOpen(true)}>
                 <span className={styles.promoIcon}>♦</span>
                 <span>VIP</span>
-                <span className={styles.promoPrice}>5.00-dən</span>
+                <span className={styles.promoPrice}>{PROMO_PRICES.vip} AZN</span>
               </button>
-              <button className={styles.promoTile} onClick={() => navigate('/checkout?planId=premium_vip')}>
+              <button className={styles.promoTile} onClick={() => setPromoteOpen(true)}>
                 <span className={styles.promoIcon}>♛</span>
                 <span>Premium</span>
-                <span className={styles.promoPrice}>7.00-dən</span>
+                <span className={styles.promoPrice}>{PROMO_PRICES.premium_vip} AZN</span>
               </button>
             </div>
           </div>
         </aside>
       </div>
+
+      {promoteOpen && user && (
+        <PromoteModal onClose={() => setPromoteOpen(false)} onConfirm={handlePromote} />
+      )}
 
       {similar.length > 0 && (
         <section className={styles.similarSection}>

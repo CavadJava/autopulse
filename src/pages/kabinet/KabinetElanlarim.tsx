@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getMyListings } from '../../api/auth';
-import type { UserListing, İstifadəçiElanStatusu } from '../../types';
+import { getMyListings, promoteListing, PROMO_PRICES } from '../../api/auth';
+import type { PromoTier, UserListing, VIPTier, İstifadəçiElanStatusu } from '../../types';
+import PromoteModal from '../../components/PromoteModal';
 import styles from './KabinetElanlarim.module.css';
 
 const STATUS_LABEL: Record<İstifadəçiElanStatusu, string> = {
@@ -19,13 +20,20 @@ const STATUS_BADGE_CLASS: Record<İstifadəçiElanStatusu, string> = {
   müddəti_başa_çatmış: styles.badgeBaşaÇatmış,
 };
 
+const VIP_TIER_LABEL: Record<VIPTier, string> = {
+  standart: 'Standart',
+  vip: 'VIP',
+  premium_vip: 'Premium VIP',
+};
+
 type FilterKey = 'hamısı' | İstifadəçiElanStatusu;
 
 export default function KabinetElanlarim() {
-  const { user } = useAuth();
+  const { user, login } = useAuth();
   const [listings, setListings] = useState<UserListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterKey>('hamısı');
+  const [promotingId, setPromotingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -64,6 +72,15 @@ export default function KabinetElanlarim() {
     { key: 'imtina_olunub', label: 'İmtina olunmuş' },
   ];
 
+  const promotingListing = listings.find((l) => l.id === promotingId) ?? null;
+
+  const handlePromote = async (tier: PromoTier) => {
+    if (!user || !promotingListing) return;
+    const updated = await promoteListing(user.hesabTipi, promotingListing.listingId, tier);
+    login({ ...user, balans: user.balans - PROMO_PRICES[tier] });
+    setListings((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
+  };
+
   return (
     <div>
       <div className={styles.filterTabs}>
@@ -91,6 +108,9 @@ export default function KabinetElanlarim() {
                 <span className={STATUS_BADGE_CLASS[listing.status]}>
                   {STATUS_LABEL[listing.status]}
                 </span>
+                {listing.vipTier !== 'standart' && (
+                  <span className={styles.vipBadge}>{VIP_TIER_LABEL[listing.vipTier]}</span>
+                )}
               </Link>
               <div className={styles.cardBody}>
                 <div className={styles.price}>{listing.qiymət.toLocaleString()} AZN</div>
@@ -99,12 +119,18 @@ export default function KabinetElanlarim() {
                   <Link to={`/elan-ver/${listing.listingId}`} className={styles.editBtn}>
                     ✎ Redaktə et
                   </Link>
-                  <button className={styles.adBtn}>📈 Reklam et</button>
+                  <button className={styles.adBtn} onClick={() => setPromotingId(listing.id)}>
+                    📈 Reklam et
+                  </button>
                 </div>
               </div>
             </div>
           ))}
         </div>
+      )}
+
+      {promotingListing && (
+        <PromoteModal onClose={() => setPromotingId(null)} onConfirm={handlePromote} />
       )}
     </div>
   );

@@ -1,0 +1,153 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: var(--space-4);
+}
+
+.modal {
+  width: 100%;
+  max-width: 420px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-lg);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-5);
+}
+
+.header h3 {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.close {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 0;
+  font-size: 16px;
+}
+
+.close:hover {
+  box-shadow: none;
+  transform: none;
+  color: var(--text-primary);
+}
+
+.balanceRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-5);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.balanceValue {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 15px;
+}
+
+.tierGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.tier,
+.tierActive {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: var(--space-4) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tier:hover {
+  box-shadow: none;
+  border-color: var(--border-strong);
+}
+
+.tierActive {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-glow);
+}
+
+.tierIcon {
+  font-size: 18px;
+  color: var(--gold);
+}
+
+.tierLabel {
+  font-size: 12px;
+}
+
+.tierPrice {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.warning {
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.warning p {
+  font-size: 13px;
+  color: var(--error);
+  margin-bottom: var(--space-3);
+}
+
+.topUpBtn {
+  width: 100%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+  padding: var(--space-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.topUpBtn:hover {
+  box-shadow: none;
+  border-color: var(--accent);
+}
+
+.confirmBtn {
+  width: 100%;
+  padding: var(--space-4);
+  font-weight: 700;
+}
+
+.confirmBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
