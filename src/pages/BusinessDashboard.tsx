@@ -1,3 +1,5 @@
-export default function BusinessDashboard() {
-  return <div style={{padding: 40}}>BusinessDashboard page (placeholder)</div>;
+import Dashboard from '../components/BusinessDashboard';
+
+export default function BusinessDashboardPage() {
+  return <Dashboard />;
 }
