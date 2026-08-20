@@ -21,7 +21,7 @@ export const mockListings: Listing[] = [
     rəng: 'Qara', vəziyyət: 'İşlənmiş', kredit: true, barter: false,
     təsvir: 'Yaxşı vəziyyətdə, tam xidmətli BMW 5 Series.',
     şəkillər: [img(0), img(1), img(2)],
-    satıcıAd: 'Əli Hüseynov', satıcıZəng: '+994501234567', tarix: '2026-08-15T10:00:00Z', vipTier: 'premium_vip',
+    satıcıAd: 'Əli Hüseynov', satıcıZəng: '+994501234567', satıcıÜzvlükTarixi: '2025-06-01T00:00:00Z', baxışSayı: 1041, tarix: '2026-08-15T10:00:00Z', vipTier: 'premium_vip',
     həcm: 2998, güc: 340, sürətlərQutusu: 8, satıcıTipi: 'diler', yerlərSayı: 5, bazarÜçünYığılıb: 'Avropa', vuruğuVar: false, rənglənib: false, qəzalı: false, təchizat: ['Yüngül lehimli disklər', 'ABS', 'Lyuk', 'Mərkəzi qapanma', 'Kondisioner', 'Oturacaqların isidilməsi', 'Dəri salon', 'Ksenon lampalar'],
   },
   {
@@ -30,7 +30,7 @@ export const mockListings: Listing[] = [
     rəng: 'Ağ', vəziyyət: 'İşlənmiş', kredit: true, barter: true,
     təsvir: 'Şəxsi istifadə edilib, sənədləri tam.',
     şəkillər: [img(3), img(4)],
-    satıcıAd: 'Fatima Qasımova', satıcıZəng: '+994551234567', tarix: '2026-08-14T14:30:00Z', vipTier: 'vip',
+    satıcıAd: 'Fatima Qasımova', satıcıZəng: '+994551234567', satıcıÜzvlükTarixi: '2022-03-01T00:00:00Z', baxışSayı: 2250, tarix: '2026-08-14T14:30:00Z', vipTier: 'vip',
     həcm: 1991, güc: 197, sürətlərQutusu: 9, satıcıTipi: 'şəxsi', yerlərSayı: 5, bazarÜçünYığılıb: 'Avropa', vuruğuVar: false, rənglənib: true, qəzalı: false, təchizat: ['Yüngül lehimli disklər', 'ABS', 'Yağış sensoru', 'Kondisioner', 'Arxa görüntü kamerası'],
   },
   {
@@ -39,7 +39,7 @@ export const mockListings: Listing[] = [
     rəng: 'Gümüş', vəziyyət: 'İşlənmiş', kredit: false, barter: false,
     təsvir: 'Ekonomik hibrid mühərrik, az yanacaq sərfi.',
     şəkillər: [img(5), img(6)],
-    satıcıAd: 'Rəşad Məmmədov', satıcıZəng: '+994701234567', tarix: '2026-08-13T09:00:00Z', vipTier: 'standart',
+    satıcıAd: 'Rəşad Məmmədov', satıcıZəng: '+994701234567', satıcıÜzvlükTarixi: '2025-12-01T00:00:00Z', baxışSayı: 2379, tarix: '2026-08-13T09:00:00Z', vipTier: 'standart',
     həcm: 2487, güc: 208, sürətlərQutusu: 8, satıcıTipi: 'diler', yerlərSayı: 5, bazarÜçünYığılıb: 'ABŞ', vuruğuVar: false, rənglənib: false, qəzalı: false, təchizat: ['ABS', 'Yağış sensoru', 'Kondisioner', 'İşıq sensoru', 'Start-stop'],
   },
   {
@@ -48,7 +48,7 @@ export const mockListings: Listing[] = [
     rəng: 'Mavi', vəziyyət: 'İşlənmiş', kredit: true, barter: false,
     təsvir: 'Ailə avtomobili, qəza olmayıb.',
     şəkillər: [img(7)],
-    satıcıAd: 'Aygün Əliyeva', satıcıZəng: '+994551112233', tarix: '2026-08-12T11:00:00Z', vipTier: 'standart',
+    satıcıAd: 'Aygün Əliyeva', satıcıZəng: '+994551112233', satıcıÜzvlükTarixi: '2025-06-01T00:00:00Z', baxışSayı: 2997, tarix: '2026-08-12T11:00:00Z', vipTier: 'standart',
     həcm: 1999, güc: 163, sürətlərQutusu: 6, satıcıTipi: 'şəxsi', yerlərSayı: 5, bazarÜçünYığılıb: 'Koreya', vuruğuVar: false, rənglənib: false, qəzalı: false, təchizat: ['ABS', 'Mərkəzi qapanma', 'Kondisioner'],
   },
   {
@@ -57,7 +57,7 @@ export const mockListings: Listing[] = [
     rəng: 'Qara', vəziyyət: 'İşlənmiş', kredit: true, barter: true,
     təsvir: 'Tam full paket, quattro sistemi.',
     şəkillər: [img(8), img(9), img(10)],
-    satıcıAd: 'Elvin Quliyev', satıcıZəng: '+994502223344', tarix: '2026-08-16T08:00:00Z', vipTier: 'premium_vip',
+    satıcıAd: 'Elvin Quliyev', satıcıZəng: '+994502223344', satıcıÜzvlükTarixi: '2023-10-01T00:00:00Z', baxışSayı: 3229, tarix: '2026-08-16T08:00:00Z', vipTier: 'premium_vip',
     həcm: 2995, güc: 340, sürətlərQutusu: 8, satıcıTipi: 'diler', yerlərSayı: 5, bazarÜçünYığılıb: 'Avropa', vuruğuVar: false, rənglənib: false, qəzalı: false, təchizat: ['Yüngül lehimli disklər', 'ABS', 'Lyuk', 'Mərkəzi qapanma', 'Park radarı', 'Kondisioner', 'Oturacaqların isidilməsi', 'Dəri salon', 'Ksenon lampalar', 'Arxa görüntü kamerası', '360° kamera', 'Head-up displey'],
   },
   {
@@ -66,7 +66,7 @@ export const mockListings: Listing[] = [
     rəng: 'Ağ', vəziyyət: 'İşlənmiş', kredit: false, barter: false,
     təsvir: 'Etibarlı, az xərcli avtomobil.',
     şəkillər: [img(11)],
-    satıcıAd: 'Kamran Nəsirov', satıcıZəng: '+994703334455', tarix: '2026-08-10T13:00:00Z', vipTier: 'standart',
+    satıcıAd: 'Kamran Nəsirov', satıcıZəng: '+994703334455', satıcıÜzvlükTarixi: '2024-05-01T00:00:00Z', baxışSayı: 2108, tarix: '2026-08-10T13:00:00Z', vipTier: 'standart',
     həcm: 1968, güc: 150, sürətlərQutusu: 6, satıcıTipi: 'şəxsi', yerlərSayı: 5, bazarÜçünYığılıb: 'Avropa', vuruğuVar: true, rənglənib: true, qəzalı: false, təchizat: ['ABS', 'Yağış sensoru', 'Kondisioner'],
   },
   {
@@ -75,7 +75,7 @@ export const mockListings: Listing[] = [
     rəng: 'Qara', vəziyyət: 'İşlənmiş', kredit: true, barter: true,
     təsvir: 'Premium SUV, tam təchizatlı.',
     şəkillər: [img(12), img(13)],
-    satıcıAd: 'Nərmin Hacıyeva', satıcıZəng: '+994554445566', tarix: '2026-08-16T15:00:00Z', vipTier: 'vip',
+    satıcıAd: 'Nərmin Hacıyeva', satıcıZəng: '+994554445566', satıcıÜzvlükTarixi: '2025-06-01T00:00:00Z', baxışSayı: 3021, tarix: '2026-08-16T15:00:00Z', vipTier: 'vip',
     həcm: 2993, güc: 381, sürətlərQutusu: 8, satıcıTipi: 'diler', yerlərSayı: 5, bazarÜçünYığılıb: 'Avropa', vuruğuVar: false, rənglənib: false, qəzalı: false, təchizat: ['Yüngül lehimli disklər', 'ABS', 'Lyuk', 'Mərkəzi qapanma', 'Kondisioner', 'Oturacaqların isidilməsi', 'Dəri salon', 'Ksenon lampalar', 'Arxa görüntü kamerası', '360° kamera'],
   },
   {
@@ -84,7 +84,7 @@ export const mockListings: Listing[] = [
     rəng: 'Gümüş', vəziyyət: 'İşlənmiş', kredit: true, barter: false,
     təsvir: 'Güclü off-road imkanları, əla vəziyyətdə.',
     şəkillər: [img(14)],
-    satıcıAd: 'Tural Abbasov', satıcıZəng: '+994505556677', tarix: '2026-08-11T10:00:00Z', vipTier: 'standart',
+    satıcıAd: 'Tural Abbasov', satıcıZəng: '+994505556677', satıcıÜzvlükTarixi: '2024-11-01T00:00:00Z', baxışSayı: 2846, tarix: '2026-08-11T10:00:00Z', vipTier: 'standart',
     həcm: 4461, güc: 309, sürətlərQutusu: 6, satıcıTipi: 'diler', yerlərSayı: 7, bazarÜçünYığılıb: 'ABŞ', vuruğuVar: false, rənglənib: false, qəzalı: false, təchizat: ['ABS', 'Mərkəzi qapanma', 'Kondisioner', 'Oturacaqların isidilməsi', 'Arxa görüntü kamerası', 'Start-stop'],
   },
   {
@@ -93,7 +93,7 @@ export const mockListings: Listing[] = [
     rəng: 'Ağ', vəziyyət: 'Yeni', kredit: true, barter: false,
     təsvir: 'Demək olar ki, yeni, salon şəraiti.',
     şəkillər: [img(15), img(16)],
-    satıcıAd: 'Sənan Vəliyev', satıcıZəng: '+994556667788', tarix: '2026-08-17T09:30:00Z', vipTier: 'premium_vip',
+    satıcıAd: 'Sənan Vəliyev', satıcıZəng: '+994556667788', satıcıÜzvlükTarixi: '2023-10-01T00:00:00Z', baxışSayı: 2365, tarix: '2026-08-17T09:30:00Z', vipTier: 'premium_vip',
     həcm: 1497, güc: 204, sürətlərQutusu: 9, satıcıTipi: 'diler', yerlərSayı: 5, bazarÜçünYığılıb: 'Avropa', vuruğuVar: false, rənglənib: false, qəzalı: false, təchizat: ['Yüngül lehimli disklər', 'ABS', 'Lyuk', 'Yağış sensoru', 'Mərkəzi qapanma', 'Kondisioner', 'Oturacaqların isidilməsi', 'Dəri salon', 'Ksenon lampalar', 'Arxa görüntü kamerası', 'Head-up displey', 'Start-stop'],
   },
   {
@@ -102,7 +102,7 @@ export const mockListings: Listing[] = [
     rəng: 'Qırmızı', vəziyyət: 'İşlənmiş', kredit: false, barter: true,
     təsvir: 'Kompakt SUV, şəhər içi üçün ideal.',
     şəkillər: [img(17)],
-    satıcıAd: 'Günel İsmayılova', satıcıZəng: '+994707778899', tarix: '2026-08-09T12:00:00Z', vipTier: 'standart',
+    satıcıAd: 'Günel İsmayılova', satıcıZəng: '+994707778899', satıcıÜzvlükTarixi: '2022-09-01T00:00:00Z', baxışSayı: 1968, tarix: '2026-08-09T12:00:00Z', vipTier: 'standart',
     həcm: 1999, güc: 181, sürətlərQutusu: 6, satıcıTipi: 'şəxsi', yerlərSayı: 5, bazarÜçünYığılıb: 'Koreya', vuruğuVar: false, rənglənib: false, qəzalı: false, təchizat: ['ABS', 'Mərkəzi qapanma', 'Kondisioner', 'Arxa görüntü kamerası'],
   },
   {
@@ -111,7 +111,7 @@ export const mockListings: Listing[] = [
     rəng: 'Qara', vəziyyət: 'İşlənmiş', kredit: true, barter: true,
     təsvir: '7 yerli, ailə üçün geniş SUV.',
     şəkillər: [img(18), img(19)],
-    satıcıAd: 'Orxan Bayramov', satıcıZəng: '+994508889900', tarix: '2026-08-15T17:00:00Z', vipTier: 'vip',
+    satıcıAd: 'Orxan Bayramov', satıcıZəng: '+994508889900', satıcıÜzvlükTarixi: '2020-01-01T00:00:00Z', baxışSayı: 1744, tarix: '2026-08-15T17:00:00Z', vipTier: 'vip',
     həcm: 2967, güc: 333, sürətlərQutusu: 8, satıcıTipi: 'diler', yerlərSayı: 7, bazarÜçünYığılıb: 'Avropa', vuruğuVar: false, rənglənib: false, qəzalı: false, təchizat: ['Yüngül lehimli disklər', 'ABS', 'Lyuk', 'Mərkəzi qapanma', 'Kondisioner', 'Oturacaqların isidilməsi', 'Dəri salon', 'Ksenon lampalar', 'Arxa görüntü kamerası', '360° kamera'],
   },
   {
@@ -120,7 +120,7 @@ export const mockListings: Listing[] = [
     rəng: 'Mavi', vəziyyət: 'İşlənmiş', kredit: false, barter: false,
     təsvir: 'Yaxşı yanacaq sərfi, rahat idarəetmə.',
     şəkillər: [img(20)],
-    satıcıAd: 'Leyla Rzayeva', satıcıZəng: '+994559990011', tarix: '2026-08-08T14:00:00Z', vipTier: 'standart',
+    satıcıAd: 'Leyla Rzayeva', satıcıZəng: '+994559990011', satıcıÜzvlükTarixi: '2023-04-01T00:00:00Z', baxışSayı: 2119, tarix: '2026-08-08T14:00:00Z', vipTier: 'standart',
     həcm: 1395, güc: 150, sürətlərQutusu: 6, satıcıTipi: 'şəxsi', yerlərSayı: 5, bazarÜçünYığılıb: 'Avropa', vuruğuVar: true, rənglənib: false, qəzalı: true, təchizat: ['ABS', 'Mərkəzi qapanma', 'Kondisioner'],
   },
 ];

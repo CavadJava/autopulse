@@ -23,7 +23,9 @@ export interface Listing {
   şəkillər: string[];
   satıcıAd: string;
   satıcıZəng: string;
+  satıcıÜzvlükTarixi: string;
   tarix: string;
+  baxışSayı: number;
   vipTier: VIPTier;
 
   // Advanced ("Daha çox filtr") fields

@@ -73,6 +73,12 @@
 .meta {
   color: var(--text-secondary);
   font-size: 14px;
+  margin-bottom: var(--space-2);
+}
+
+.subMeta {
+  color: var(--text-tertiary);
+  font-size: 13px;
   margin-bottom: var(--space-6);
 }
 
@@ -140,6 +146,21 @@
   width: 50%;
 }
 
+.equipmentGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.equipmentPill {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  padding: 7px 12px;
+  border-radius: 100px;
+}
+
 .contactBlock {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -154,17 +175,40 @@
   margin-bottom: var(--space-3);
 }
 
+.sellerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
 .sellerName {
   font-size: 15px;
   font-weight: 600;
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-1);
+}
+
+.sellerMeta {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.sellerTypeBadge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
 }
 
 .actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-3);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-2);
 }
 
 .btnCall,
@@ -183,9 +227,56 @@
   border-color: var(--accent);
 }
 
-.phone {
-  font-size: 14px;
+.phoneHint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+.promoBlock {
+  background: linear-gradient(135deg, rgba(94, 234, 212, 0.08), rgba(245, 196, 81, 0.05));
+  border: 1px solid rgba(94, 234, 212, 0.25);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  margin-bottom: var(--space-8);
+}
+
+.promoBlock h2 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: var(--space-2);
+}
+
+.promoSubtitle {
+  font-size: 13px;
   color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.promoActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.promoBtn {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  padding: var(--space-3);
+  font-weight: 600;
+}
+
+.promoBtn:hover {
+  box-shadow: none;
+  border-color: var(--accent);
+}
+
+.promoBtnPrimary {
+  background: var(--gold);
+  color: var(--bg-primary);
+  padding: var(--space-3);
+  font-weight: 700;
 }
 
 .mapPlaceholder {
