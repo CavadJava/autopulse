@@ -1,0 +1,100 @@
+.card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.card:hover {
+  border-color: var(--accent);
+  transform: translateY(-4px);
+}
+
+.card.popular {
+  border-color: var(--accent);
+  box-shadow: 0 0 20px rgba(110, 231, 249, 0.2);
+}
+
+.badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: var(--bg-primary);
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.card h3 {
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.desc {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.price {
+  margin-bottom: 24px;
+}
+
+.amount {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.period {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-left: 4px;
+}
+
+.features {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 24px;
+  flex: 1;
+}
+
+.features li {
+  padding: 8px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.cta {
+  background: var(--border);
+  color: var(--text-primary);
+  border: none;
+  padding: 12px 20px;
+  border-radius: var(--radius);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cta:hover {
+  background: var(--border);
+  opacity: 0.8;
+}
+
+.cta.ctaPrimary {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
+.cta.ctaPrimary:hover {
+  opacity: 0.9;
+}
