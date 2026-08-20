@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { getListingById, getListings } from '../api/listings';
 import type { Listing } from '../types';
 import ListingGrid from '../components/ListingGrid';
@@ -15,6 +15,8 @@ function memberSince(iso: string) {
   return d.toLocaleDateString('az-AZ', { month: '2-digit', year: 'numeric' });
 }
 
+const DESCRIPTION_PREVIEW_LENGTH = 160;
+
 export default function ListingDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -23,12 +25,14 @@ export default function ListingDetail() {
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [phoneRevealed, setPhoneRevealed] = useState(false);
+  const [descExpanded, setDescExpanded] = useState(false);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       setSelectedImage(0);
       setPhoneRevealed(false);
+      setDescExpanded(false);
       try {
         if (id) {
           const detail = await getListingById(id);
@@ -58,28 +62,41 @@ export default function ListingDetail() {
   if (!listing) return <div className={styles.error}>Elan tapılmadı.</div>;
 
   const maskedPhone = listing.satıcıZəng.replace(/(\+994\d{2})\d{3}(\d{2})(\d{2})/, '$1 XXX $2 $3');
+  const isLongDescription = listing.təsvir.length > DESCRIPTION_PREVIEW_LENGTH;
+  const descriptionText =
+    !descExpanded && isLongDescription
+      ? listing.təsvir.slice(0, DESCRIPTION_PREVIEW_LENGTH).trimEnd() + '…'
+      : listing.təsvir;
 
   return (
     <div className={styles.page}>
-      <div className={styles.container}>
-        <div className={styles.gallery}>
-          <div className={styles.mainImage}>
-            <img src={listing.şəkillər[selectedImage]} alt="Main" />
-          </div>
-          <div className={styles.thumbnails}>
-            {listing.şəkillər.map((img, idx) => (
-              <img
-                key={idx}
-                src={img}
-                alt="Thumbnail"
-                className={selectedImage === idx ? styles.active : ''}
-                onClick={() => setSelectedImage(idx)}
-              />
-            ))}
-          </div>
-        </div>
+      <div className={styles.breadcrumb}>
+        <Link to={`/elanlar?marka=${listing.marka}`}>{listing.marka}</Link>
+        <span className={styles.breadcrumbSep}>·</span>
+        <span className={styles.breadcrumbCurrent}>{listing.model}</span>
+        <span className={styles.breadcrumbSep}>·</span>
+        <span className={styles.breadcrumbId}>Elan № {listing.id.padStart(8, '0')}</span>
+      </div>
 
-        <div className={styles.content}>
+      <div className={styles.container}>
+        <div className={styles.main}>
+          <div className={styles.gallery}>
+            <div className={styles.mainImage}>
+              <img src={listing.şəkillər[selectedImage]} alt="Main" />
+            </div>
+            <div className={styles.thumbnails}>
+              {listing.şəkillər.map((img, idx) => (
+                <img
+                  key={idx}
+                  src={img}
+                  alt="Thumbnail"
+                  className={selectedImage === idx ? styles.active : ''}
+                  onClick={() => setSelectedImage(idx)}
+                />
+              ))}
+            </div>
+          </div>
+
           <h1 className={styles.title}>
             {listing.marka} {listing.model}
           </h1>
@@ -89,12 +106,6 @@ export default function ListingDetail() {
           <p className={styles.subMeta}>
             👁 {listing.baxışSayı.toLocaleString()} baxış · Yeniləndi: {formatDate(listing.tarix)}
           </p>
-
-          <div className={styles.priceBlock}>
-            <div className={styles.price}>{listing.qiymət.toLocaleString()} ₼</div>
-            {listing.kredit && <span className={styles.feature}>Kredit Mövcuddur</span>}
-            {listing.barter && <span className={styles.feature}>Barter Qəbul Edir</span>}
-          </div>
 
           <section className={styles.section}>
             <h2>Texniki Xarakteristikalar</h2>
@@ -157,7 +168,14 @@ export default function ListingDetail() {
 
           <section className={styles.section}>
             <h2>Təsvir</h2>
-            <p>{listing.təsvir}</p>
+            <p className={styles.description}>
+              {descriptionText}
+              {isLongDescription && (
+                <button className={styles.readMoreBtn} onClick={() => setDescExpanded((v) => !v)}>
+                  {descExpanded ? ' Qısalt' : ' Davamını oxu'}
+                </button>
+              )}
+            </p>
           </section>
 
           {listing.təchizat.length > 0 && (
@@ -173,54 +191,6 @@ export default function ListingDetail() {
             </section>
           )}
 
-          <section className={styles.contactBlock}>
-            <h2>Satıcı Məlumatları</h2>
-            <div className={styles.sellerRow}>
-              <div>
-                <p className={styles.sellerName}>{listing.satıcıAd}</p>
-                <p className={styles.sellerMeta}>
-                  {listing.şəhər} · AutoPulse üzvü: {memberSince(listing.satıcıÜzvlükTarixi)}-dən
-                </p>
-              </div>
-              <span className={styles.sellerTypeBadge}>
-                {listing.satıcıTipi === 'diler' ? 'Diler / Salon' : 'Şəxsi Satıcı'}
-              </span>
-            </div>
-            <div className={styles.actions}>
-              <button
-                className={styles.btnCall}
-                onClick={() => setPhoneRevealed(true)}
-              >
-                📞 {phoneRevealed ? listing.satıcıZəng : maskedPhone}
-              </button>
-              <button className={styles.btnMessage}>💬 Mesaj Gönder</button>
-            </div>
-            {!phoneRevealed && (
-              <p className={styles.phoneHint}>Nömrəni görmək üçün düyməyə klikləyin</p>
-            )}
-          </section>
-
-          <section className={styles.promoBlock}>
-            <h2>Elanınızı görünən edin</h2>
-            <p className={styles.promoSubtitle}>
-              Bu elanı VIP və ya Premium VIP statusuna yüksəldərək daha çox baxış qazanın.
-            </p>
-            <div className={styles.promoActions}>
-              <button
-                className={styles.promoBtn}
-                onClick={() => navigate('/checkout?planId=vip')}
-              >
-                VIP et — 9.99$
-              </button>
-              <button
-                className={styles.promoBtnPrimary}
-                onClick={() => navigate('/checkout?planId=premium_vip')}
-              >
-                Premium VIP et — 24.99$
-              </button>
-            </div>
-          </section>
-
           <section className={styles.section}>
             <h2>Yerləşmə</h2>
             <div className={styles.mapPlaceholder}>
@@ -229,12 +199,69 @@ export default function ListingDetail() {
             </div>
           </section>
         </div>
+
+        <aside className={styles.sidebar}>
+          <div className={styles.contactCard}>
+            <div className={styles.priceRow}>
+              <div className={styles.price}>{listing.qiymət.toLocaleString()} ₼</div>
+            </div>
+            <div className={styles.featureRow}>
+              {listing.kredit && <span className={styles.feature}>Kredit</span>}
+              {listing.barter && <span className={styles.feature}>Barter</span>}
+            </div>
+
+            <div className={styles.cardDivider} />
+
+            <div className={styles.sellerRow}>
+              <div>
+                <p className={styles.sellerName}>{listing.satıcıAd}</p>
+                <p className={styles.sellerMeta}>{listing.şəhər}</p>
+                <p className={styles.sellerMeta}>
+                  Satıcı {memberSince(listing.satıcıÜzvlükTarixi)} tarixindən AutoPulse-da
+                </p>
+              </div>
+              <span className={styles.sellerTypeBadge}>
+                {listing.satıcıTipi === 'diler' ? 'Diler / Salon' : 'Şəxsi'}
+              </span>
+            </div>
+
+            <button className={styles.btnCall} onClick={() => setPhoneRevealed(true)}>
+              📞 {phoneRevealed ? listing.satıcıZəng : `Nömrəni göstər · ${maskedPhone}`}
+            </button>
+            <button className={styles.btnMessage}>💬 Mesaj yaz</button>
+
+            <div className={styles.cardDivider} />
+
+            <div className={styles.promoGrid}>
+              <button className={styles.promoTile} onClick={() => navigate('/checkout?planId=vip')}>
+                <span className={styles.promoIcon}>↑</span>
+                <span>İrəli çək</span>
+                <span className={styles.promoPrice}>3.00-dən</span>
+              </button>
+              <button className={styles.promoTile} onClick={() => navigate('/checkout?planId=vip')}>
+                <span className={styles.promoIcon}>♦</span>
+                <span>VIP</span>
+                <span className={styles.promoPrice}>5.00-dən</span>
+              </button>
+              <button className={styles.promoTile} onClick={() => navigate('/checkout?planId=premium_vip')}>
+                <span className={styles.promoIcon}>♛</span>
+                <span>Premium</span>
+                <span className={styles.promoPrice}>7.00-dən</span>
+              </button>
+            </div>
+          </div>
+        </aside>
       </div>
 
       {similar.length > 0 && (
         <section className={styles.similarSection}>
           <div className={styles.similarContainer}>
-            <h2>Oxşar Elanlar</h2>
+            <div className={styles.similarHead}>
+              <h2>Bənzər Elanlar</h2>
+              <Link to="/elanlar" className={styles.similarViewAll}>
+                Hamısını göstər
+              </Link>
+            </div>
             <ListingGrid listings={similar} />
           </div>
         </section>
