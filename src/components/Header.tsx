@@ -14,6 +14,10 @@ export default function Header() {
     navigate('/');
   };
 
+  const handleNewListing = () => {
+    navigate(user ? '/elan-ver' : '/giris');
+  };
+
   return (
     <header className={styles.header}>
       <div className={styles.container}>
@@ -48,7 +52,9 @@ export default function Header() {
                 Giriş
               </button>
             )}
-            <button className={styles.cta}>Elan Ver</button>
+            <button className={styles.cta} onClick={handleNewListing}>
+              Elan Ver
+            </button>
           </div>
         </nav>
       </div>

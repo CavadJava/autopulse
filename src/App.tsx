@@ -7,6 +7,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import BusinessDashboard from './pages/BusinessDashboard';
 import Login from './pages/Login';
 import LoginVerify from './pages/LoginVerify';
+import NewListing from './pages/NewListing';
 import KabinetLayout from './pages/kabinet/KabinetLayout';
 import KabinetOverview from './pages/kabinet/KabinetOverview';
 import KabinetElanlarim from './pages/kabinet/KabinetElanlarim';
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/business" element={<BusinessDashboard />} />
           <Route path="/giris" element={<Login />} />
           <Route path="/giris/kod" element={<LoginVerify />} />
+          <Route path="/elan-ver" element={<NewListing />} />
           <Route path="/kabinet" element={<KabinetLayout />}>
             <Route index element={<KabinetOverview />} />
             <Route path="elanlarim" element={<KabinetElanlarim />} />
