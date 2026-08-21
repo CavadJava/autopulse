@@ -11,16 +11,17 @@ const TABS: { key: GalleryTab; label: string; icon: string }[] = [
   { key: 'doors', label: 'Doors', icon: '🚪' },
 ];
 
-// Generic hotspot positions (percent of image box) — paired with the listing's
-// own equipment list so every car gets plausible, data-driven callouts without
-// hand-authoring positions per listing.
+// Hotspot positions tuned to where those parts actually sit on a typical
+// 3/4-front car photo (like our mock shots): background/skyline off to the
+// sides, windshield/mirror upper-mid, wheel/rocker-panel lower, front bumper
+// centered low — instead of arbitrary evenly-spread percentages.
 const HOTSPOT_POSITIONS = [
-  { top: '28%', left: '22%' },
-  { top: '20%', left: '48%' },
-  { top: '35%', left: '68%' },
-  { top: '58%', left: '15%' },
-  { top: '62%', left: '52%' },
-  { top: '55%', left: '80%' },
+  { top: '62%', left: '8%' }, // background, driver's side
+  { top: '18%', left: '46%' }, // skyline behind the roofline
+  { top: '36%', left: '70%' }, // windshield / A-pillar
+  { top: '61%', left: '84%' }, // rear wheel / rocker panel
+  { top: '70%', left: '51%' }, // front bumper / grille
+  { top: '26%', left: '16%' }, // background, passenger's side
 ];
 
 interface InteractiveGalleryProps {
@@ -47,7 +48,7 @@ export default function InteractiveGallery({ listing }: InteractiveGalleryProps)
             <button
               key={h.label}
               type="button"
-              className={styles.hotspot}
+              className={`${styles.hotspot} ${activeHotspot === idx ? styles.hotspotActive : ''}`}
               style={{ top: h.top, left: h.left }}
               onClick={() => setActiveHotspot(activeHotspot === idx ? null : idx)}
             >
