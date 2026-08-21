@@ -43,6 +43,45 @@ export interface NewListingFormState {
   telefon: string;
 }
 
+const DRAFT_STORAGE_KEY = 'autopulse.newListingDraft';
+
+// File objects can't survive JSON serialization, so drafts only persist
+// 'existing' (URL-backed) photos. Locally-picked files are lost across a
+// page leave/return — the rest of the form (marka, model, spesifikasiyalar,
+// qiymət, etc.) is what actually matters to restore.
+type PersistableFormState = Omit<NewListingFormState, 'şəkillər'> & {
+  şəkillər: Extract<ListingPhoto, { kind: 'existing' }>[];
+};
+
+export function saveDraft(form: NewListingFormState) {
+  const persistable: PersistableFormState = {
+    ...form,
+    şəkillər: form.şəkillər.filter(
+      (p): p is Extract<ListingPhoto, { kind: 'existing' }> => p.kind === 'existing'
+    ),
+  };
+  try {
+    sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(persistable));
+  } catch {
+    // sessionStorage can throw in private-browsing/quota-exceeded edge cases —
+    // losing draft persistence isn't worth failing the whole form interaction.
+  }
+}
+
+export function loadDraft(): NewListingFormState | null {
+  try {
+    const stored = sessionStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!stored) return null;
+    return JSON.parse(stored) as NewListingFormState;
+  } catch {
+    return null;
+  }
+}
+
+export function clearDraft() {
+  sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+}
+
 export const initialNewListingForm: NewListingFormState = {
   kateqoriya: null,
   marka: '',

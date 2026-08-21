@@ -6,6 +6,9 @@ import { getListingById, updateListing } from '../api/listings';
 import type { Listing } from '../types';
 import {
   initialNewListingForm,
+  loadDraft,
+  saveDraft,
+  clearDraft,
   type Kateqoriya,
   type ListingPhoto,
   type NewListingFormState,
@@ -133,7 +136,14 @@ export default function NewListing() {
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
 
-  const [form, setForm] = useState<NewListingFormState>(initialNewListingForm);
+  // In create mode, restore a previously-abandoned draft (e.g. the user
+  // navigated away and came back) instead of starting from a blank form.
+  // Edit mode always loads the real listing — a stale draft would be
+  // confusing there, so it's skipped and cleared.
+  const [form, setForm] = useState<NewListingFormState>(() =>
+    isEditMode ? initialNewListingForm : loadDraft() ?? initialNewListingForm
+  );
+  const [restoredFromDraft] = useState(() => !isEditMode && loadDraft() !== null);
   const [submitted, setSubmitted] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(isEditMode);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -141,6 +151,7 @@ export default function NewListing() {
 
   useEffect(() => {
     if (!id) return;
+    clearDraft();
     (async () => {
       setLoadingExisting(true);
       setLoadError(null);
@@ -158,6 +169,13 @@ export default function NewListing() {
       }
     })();
   }, [id]);
+
+  // Persist every change so leaving the page (back button, another link) and
+  // coming back to /elan-ver restores exactly where the user left off.
+  useEffect(() => {
+    if (isEditMode || submitted) return;
+    saveDraft(form);
+  }, [form, isEditMode, submitted]);
 
   const set = <K extends keyof NewListingFormState>(key: K, value: NewListingFormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -177,6 +195,7 @@ export default function NewListing() {
 
   const handleReset = () => {
     setForm(initialNewListingForm);
+    clearDraft();
   };
 
   const handlePhotosChange = (photos: ListingPhoto[]) => {
@@ -211,6 +230,7 @@ export default function NewListing() {
       return;
     }
     // Mock creation — no backend. Real implementation would POST the form + upload images.
+    clearDraft();
     setSubmitted(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -254,6 +274,12 @@ export default function NewListing() {
               Sıfırla
             </button>
           </div>
+
+          {restoredFromDraft && (
+            <div className={styles.draftBanner}>
+              Əvvəlki dolgunuz bərpa edildi — davam edə bilərsiniz.
+            </div>
+          )}
 
           {/* Kateqoriya */}
           <div className={styles.categoryGrid}>

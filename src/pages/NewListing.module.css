@@ -32,6 +32,17 @@
   padding: 0;
 }
 
+.draftBanner {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-medium);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 500;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-6);
+}
+
 .resetBtn:hover {
   box-shadow: none;
   transform: none;
