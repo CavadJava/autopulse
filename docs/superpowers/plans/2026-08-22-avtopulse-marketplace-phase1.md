@@ -4,13 +4,13 @@
 
 **Goal:** Ship a working, end-to-end "mağazalar" (shops) slice for AutoPulse: a new Go backend + Postgres database serving 6 REST endpoints (shop list, shop detail, shop products, cookie-based shop login/me/logout), plus new AutoPulse frontend pages (`/mağazalar`, `/mağazalar/:name`, `/magaza-giris`, `/magazam`) that consume them.
 
-**Architecture:** A brand-new, standalone Go monolith (`avtopulse-backend`, separate GitHub repo) owns a new `avtopulse` Postgres database with an `avto444` schema (three tables: `shop`, `shop_products`, `shop_sessions`). It exposes JSON REST endpoints via `chi` + `pgx`. The existing AutoPulse React frontend gets a new, self-contained `src/api/shop.ts` + `src/pages/shop/*` layer that talks to this backend over `fetch` with `credentials: 'include'` — completely parallel to, and untouched by, the existing mock-data marketplace code.
+**Architecture:** A Go monolith living at `avtopulse-backend/` **inside the existing `autopulse` repo** (monorepo — decided mid-execution, superseding the original separate-repo plan; no new GitHub repo, no `gh repo create`) owns a new `avtopulse` Postgres database with an `avto444` schema (three tables: `shop`, `shop_products`, `shop_sessions`). It exposes JSON REST endpoints via `chi` + `pgx`. The existing AutoPulse React frontend gets a new, self-contained `src/api/shop.ts` + `src/pages/shop/*` layer that talks to this backend over `fetch` with `credentials: 'include'` — completely parallel to, and untouched by, the existing mock-data marketplace code.
 
 **Tech Stack:** Go 1.22+, `chi` (router), `pgx/v5` (Postgres driver, no ORM), `golang-migrate` or hand-rolled SQL migration runner, `golang.org/x/crypto/bcrypt`, PostgreSQL 15+, React 18 + TypeScript + CSS Modules (frontend, matching existing AutoPulse conventions), Vite.
 
 ## Global Constraints
 
-- Backend lives in a **new, separate GitHub repo**: `CavadJava/avtopulse-backend`.
+- Backend lives at `avtopulse-backend/` inside the existing `autopulse` repo (monorepo, not a separate GitHub repo — this supersedes the plan's original separate-repo decision per user direction mid-execution). All Go commands (`go build`, `go test`, `go run`) are run with `avtopulse-backend` as the working directory.
 - Database: `avtopulse` (new Postgres database on the existing 157.180.73.79 Postgres instance, NOT shared with java-distribution-workspace's Postgres).
 - Schema: `avto444` (all 3 tables live under this schema for this phase).
 - No subdomain routing anywhere — everything lives under `autopulse.157.180.73.79.sslip.io`.
@@ -25,35 +25,36 @@
 
 ---
 
-## Task 1: Scaffold the avtopulse-backend repo
+## Task 1: Scaffold the avtopulse-backend Go module — COMPLETE (monorepo revision)
 
-**Files:**
-- Create (new repo, local path `/Users/frontend/workspace/me-github/avtopulse-backend`):
-  - `go.mod`
-  - `cmd/server/main.go`
-  - `.gitignore`
-  - `README.md`
+> **Revision note:** originally planned as a separate GitHub repo with its own `gh repo create` + `git push`. Mid-execution, the user redirected this to live at `avtopulse-backend/` inside the existing `autopulse` repo instead — no separate repo, no separate remote. The code below was scaffolded, verified, then moved into this location; this section is left in place (checked off) as the historical record, superseded by the Global Constraints note above. Everything from Task 2 onward uses `avtopulse-backend/` as a subdirectory of this repo.
+
+**Files (as actually created, relative to the `autopulse` repo root):**
+- `avtopulse-backend/go.mod`
+- `avtopulse-backend/cmd/server/main.go`
+- `avtopulse-backend/README.md`
+- `.gitignore` (root) — extended with `avtopulse-backend/server`, `avtopulse-backend/*.log`, `avtopulse-backend/.env`
 
 **Interfaces:**
 - Produces: a `main()` that starts an HTTP server on `:8090` (chosen port for this service) with a `chi.Router`, a single `GET /healthz` route returning `200 OK` with body `ok`, and graceful shutdown on SIGINT/SIGTERM.
 
-- [ ] **Step 1: Create the GitHub repo and local directory**
+- [x] **Step 1 (revised): create the module directory inside the existing repo — no `gh repo create`, no separate `git init`**
 
 ```bash
-mkdir -p /Users/frontend/workspace/me-github/avtopulse-backend
-cd /Users/frontend/workspace/me-github/avtopulse-backend
-git init
-gh repo create CavadJava/avtopulse-backend --public --source=. --remote=origin
+mkdir -p avtopulse-backend
+cd avtopulse-backend
 ```
 
-- [ ] **Step 2: Initialize the Go module**
+- [x] **Step 2: Initialize the Go module**
 
 ```bash
 go mod init github.com/CavadJava/avtopulse-backend
 go get github.com/go-chi/chi/v5@latest
 ```
 
-- [ ] **Step 3: Write `cmd/server/main.go`**
+(Module path kept as `github.com/CavadJava/avtopulse-backend` even though the code no longer lives in a repo of that name — this is just a Go import-path string, not a real remote; changing it later is a mechanical rename if ever needed, not required for this phase.)
+
+- [x] **Step 3: Write `avtopulse-backend/cmd/server/main.go`**
 
 ```go
 package main
@@ -104,15 +105,16 @@ func main() {
 }
 ```
 
-- [ ] **Step 4: Write `.gitignore`**
+- [x] **Step 4 (revised): extend the repo's root `.gitignore` instead of writing a new one**
 
 ```
-/avtopulse-backend
-*.log
-.env
+# avtopulse-backend (Go monolith, lives in this repo as a subdirectory)
+avtopulse-backend/server
+avtopulse-backend/*.log
+avtopulse-backend/.env
 ```
 
-- [ ] **Step 5: Write a minimal `README.md`**
+- [x] **Step 5: Write a minimal `avtopulse-backend/README.md`**
 
 ```markdown
 # avtopulse-backend
@@ -126,9 +128,10 @@ Go monolith backend for AutoPulse's "Mağazalar" (shops) feature.
 Listens on :8090. GET /healthz for a liveness check.
 ```
 
-- [ ] **Step 6: Build and run it, verify healthz**
+- [x] **Step 6: Build and run it, verify healthz**
 
 ```bash
+cd avtopulse-backend
 go build ./cmd/server
 ./server &
 sleep 1
@@ -137,14 +140,13 @@ kill %1
 rm -f server
 ```
 
-Expected: `200`
+Expected: `200` — verified.
 
-- [ ] **Step 7: Commit and push**
+- [ ] **Step 7 (revised): commit as part of this repo (no separate push)**
 
 ```bash
-git add -A
-git commit -m "chore: scaffold avtopulse-backend with chi router and /healthz"
-git push -u origin main
+git add avtopulse-backend .gitignore
+git commit -m "chore: scaffold avtopulse-backend Go module with chi router and /healthz"
 ```
 
 ---
@@ -403,7 +405,6 @@ Expected: `PASS`
 ```bash
 git add -A
 git commit -m "feat: add Postgres schema, migrations, and migration runner"
-git push
 ```
 
 ---
@@ -764,7 +765,6 @@ Expected: all 5 tests `PASS` (handler is already written above, so this validate
 ```bash
 git add -A
 git commit -m "feat: shop repository + list/by-name/products handlers"
-git push
 ```
 
 ---
@@ -1231,7 +1231,6 @@ Expected: all 5 tests `PASS`
 ```bash
 git add -A
 git commit -m "feat: shop-owner login/me-products/logout with HttpOnly session cookie"
-git push
 ```
 
 ---
@@ -1391,7 +1390,6 @@ Expected: `/api/shops` returns `[{"id":1,"name":"avto444","title":"Avto 444"}]`;
 ```bash
 git add -A
 git commit -m "feat: wire shop + auth handlers into main.go with real Postgres config"
-git push
 ```
 
 ---
@@ -2357,12 +2355,12 @@ ssh -i ~/.ssh/youtube-remote-webrtc_ed25519 root@157.180.73.79 "sudo -u postgres
 
 Expected: the second command's output lists `avtopulse`, confirming it exists and is separate from any other project's database.
 
-- [ ] **Step 2: rsync the avtopulse-backend source to the server**
+- [ ] **Step 2: rsync the avtopulse-backend source (subdirectory of the autopulse repo) to the server**
 
 ```bash
-rsync -avz --exclude='.git' --exclude='avtopulse-backend' \
+rsync -avz --exclude='.git' --exclude='server' \
   -e "ssh -i ~/.ssh/youtube-remote-webrtc_ed25519" \
-  /Users/frontend/workspace/me-github/avtopulse-backend/ \
+  /Users/frontend/workspace/me-github/autopulse/avtopulse-backend/ \
   root@157.180.73.79:/opt/avtopulse-backend/
 ```
 
