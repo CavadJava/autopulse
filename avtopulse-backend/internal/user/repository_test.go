@@ -77,6 +77,36 @@ func (f *fakeRepo) AddProductImage(ctx context.Context, productID int64, minioUR
 	return &ProductImage{ID: int64(sira + 1), MinioURL: minioURL, S3URL: s3URL, Sira: sira}, nil
 }
 
+func (f *fakeRepo) ListPendingProducts(ctx context.Context) ([]Product, error) {
+	out := []Product{}
+	for _, p := range f.products {
+		if p.Status == "gozlemede" {
+			out = append(out, p)
+		}
+	}
+	return out, nil
+}
+
+func (f *fakeRepo) ApproveProduct(ctx context.Context, productID int64) error {
+	p, ok := f.products[productID]
+	if !ok {
+		return ErrNotFound
+	}
+	p.Status = "saytda"
+	f.products[productID] = p
+	return nil
+}
+
+func (f *fakeRepo) RejectProduct(ctx context.Context, productID int64) error {
+	p, ok := f.products[productID]
+	if !ok {
+		return ErrNotFound
+	}
+	p.Status = "legv_edilib"
+	f.products[productID] = p
+	return nil
+}
+
 func TestCreateProduct_StartsAsGozlemede(t *testing.T) {
 	repo := newFakeRepo()
 	p, err := repo.CreateProduct(context.Background(), 1, CreateProductInput{Marka: "Toyota", Title: "Test"})
