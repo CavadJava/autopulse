@@ -14,7 +14,7 @@ Bu sənəd yalnız **Faza 1**-i əhatə edir: minimal, işlək bir uçdan-uca z�
 **Daxildir:**
 - Yeni, müstəqil Go backend servisi (monolit, ayrıca repo)
 - Yeni PostgreSQL verilənlər bazası + `avto444` schema-sı
-- 4 REST API: 3 read-only (bütün mağazalar, mağaza məlumatı, mağazaya aid məhsullar) + 1 login (mağaza adı+parol)
+- 6 REST API: 3 read-only (bütün mağazalar, mağaza məlumatı, mağazaya aid məhsullar) + 3 cookie-based auth (login, öz məhsulları, logout)
 - Migration/seed script-i ilə `avto444` mağazasının (parolu daxil) və bir neçə nümunə məhsulun avtomatik yaradılması
 - Mövcud AutoPulse React tətbiqinə: yeni `/mağazalar` (mağaza siyahısı), `/mağazalar/:name` (tək mağaza vitrini), `/magaza-giris` (mağaza login formu) və `/magazam` (giriş etmiş mağaza sahibinin öz məhsullarını gördüyü səhifə) route-ları
 - Server üzərində deploy (yeni Go binary, yeni Postgres DB, Caddy konfiqurasiyası)
@@ -53,13 +53,14 @@ Frontend (mövcud autopulse repo, dəyişiklik):
   src/pages/shop/ShopFront.tsx  — '/mağazalar/:name' — tək mağazanın vitrini (başlıq/təsvir/iş saatları + məhsul kartları)
   src/pages/shop/ShopLogin.tsx  — '/magaza-giris' — mağaza adı + parol formu
   src/pages/shop/MyShop.tsx     — '/magazam' — giriş etmiş mağazanın öz məhsul siyahısı (yalnız görmə)
-  src/context/ShopAuthContext.tsx — token-i localStorage-da saxlayan sadə auth context (mövcud AuthContext-dən ayrı, istifadəçi login-inə qarışdırılmır)
   App.tsx-də: yeni 4 route əlavə olunur, header-ə 'Mağazalar' linki əlavə olunur
 ```
 
+Token `HttpOnly` cookie olduğu üçün frontend-də onu oxuyan/saxlayan ayrıca bir context lazım deyil — bütün `fetch` çağırışları `credentials: 'include'` ilə edilir, brauzer cookie-ni avtomatik göndərir. `/magazam` səhifəsi sadəcə `getMyShopProducts()` çağırır; 401 qayıdarsa `/magaza-giris`-ə yönləndirir (yəni "giriş olub-olmaması" sorğunun nəticəsindən müəyyənləşir, ayrıca `isLoggedIn` state saxlanılmır).
+
 ## API-lər (chi router, JSON, `internal/shop` + `internal/product` + `internal/auth`)
 
-Tələbdə açıq deyilən "2 API" (mağaza məlumatı, mağazaya aid məhsullar) qorunur; `/mağazalar` siyahı səhifəsi üçün "bütün mağazalar" endpoint-i, mağaza sahibinin girişi üçün isə bir login endpoint-i əlavə olunur:
+Tələbdə açıq deyilən "2 API" (mağaza məlumatı, mağazaya aid məhsullar) qorunur; `/mağazalar` siyahı səhifəsi üçün "bütün mağazalar" endpoint-i, mağaza sahibinin girişi üçün isə cookie-based login/me/logout endpoint-ləri əlavə olunur:
 
 1. **`GET /api/shops`** — açıq, autentifikasiyasız
    Cavab: `[{ id, name, title }]` — "Mağazalar" siyahı səhifəsi üçün yığcam siyahı (bu fazada cəmi `avto444` qayıdacaq).
@@ -74,14 +75,16 @@ Tələbdə açıq deyilən "2 API" (mağaza məlumatı, mağazaya aid məhsullar
 
 4. **`POST /api/shops/login`** — mağaza adı + parol
    Body: `{ name, password }`
-   Cavab (200): `{ token, shop: { id, name, title } }` — `token` `shop_sessions`-da saxlanılan opaque random string.
+   Cavab (200): `{ shop: { id, name, title } }` + `Set-Cookie: shop_session={token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800` (7 gün) başlığı — token cavab body-də qayıtmır, yalnız cookie ilə ötürülür.
    401 əgər ad/parol yanlışdırsa.
 
-5. **`GET /api/shops/me/products`** — `Authorization: Bearer {token}` başlığı tələb edir
-   Token `shop_sessions`-da tapılır → `shop_id` müəyyənləşir → o mağazanın məhsulları qaytarılır (məzmunca 3-cü endpoint-lə eynidir, sadəcə şəxsiyyət token-dən gəlir, URL-dəki `shopId`-dən yox).
-   401 əgər token yoxdursa/etibarsızdırsa/vaxtı keçibsə.
+5. **`GET /api/shops/me/products`** — `shop_session` cookie-si tələb edir (`credentials: 'include'` ilə fetch olunmalıdır)
+   Cookie-dəki token `shop_sessions`-da tapılır → `shop_id` müəyyənləşir → o mağazanın məhsulları qaytarılır (məzmunca 3-cü endpoint-lə eynidir, sadəcə şəxsiyyət cookie-dən gəlir, URL-dəki `shopId`-dən yox).
+   401 əgər cookie yoxdursa/token etibarsızdırsa/vaxtı keçibsə.
 
-1-3 açıq və autentifikasiyasızdır (mövcud vitrin üçün); 4-5 mağaza sahibinin öz girişi üçündür.
+6. **`POST /api/shops/logout`** — `shop_session` cookie-ni silmək üçün (`Set-Cookie: shop_session=; Max-Age=0`), sessiyanı `shop_sessions`-dan da silir.
+
+1-3 açıq və autentifikasiyasızdır (mövcud vitrin üçün); 4-6 mağaza sahibinin öz girişi üçündür və cookie-based sessiyaya əsaslanır (`localStorage`/`Authorization` başlığı yoxdur).
 
 ## Verilənlər bazası
 
@@ -119,9 +122,9 @@ Seed migration `avto444` sətrini (bilinən bir test parolunun bcrypt hash-i il�
 
 - `/mağazalar` — `getShops()` çağırır, qayıdan siyahını kart grid şəklində göstərir (hər kartda mağaza adı/başlığı, klikləyəndə `/mağazalar/:name`-ə keçir).
 - `/mağazalar/:name` — `getShopByName(name)` ilə mağaza məlumatını, sonra `getShopProducts(shop.id)` ilə məhsul siyahısını gətirir; başlıq/təsvir/iş saatları + məhsul kartları göstərilir.
-- `/magaza-giris` — sadə form (mağaza adı + parol) → `shopLogin(name, password)` çağırır, uğurlu olarsa qayıdan `token`-i `ShopAuthContext` `localStorage`-a yazır və `/magazam`-a yönləndirir; 401-də "ad və ya parol yanlışdır" mesajı göstərir.
-- `/magazam` — `ShopAuthContext`-dən token yoxdursa `/magaza-giris`-ə yönləndirir; token varsa `getMyShopProducts(token)` çağırıb nəticəni siyahı şəklində göstərir (yalnız görmə — əlavə/redaktə/sil düyməsi yoxdur).
-- `ShopAuthContext` mövcud `AuthContext` (adi istifadəçi login-i) ilə **qarışdırılmır** — ayrı, paralel, öz `localStorage` açarına (`autopulse.shopToken`) yazan kontekstdir.
+- `/magaza-giris` — sadə form (mağaza adı + parol) → `shopLogin(name, password)` çağırır (`credentials: 'include'` ilə), uğurlu olarsa backend `Set-Cookie` ilə `shop_session`-i özü qoyur, frontend sadəcə `/magazam`-a yönləndirir; 401-də "ad və ya parol yanlışdır" mesajı göstərir.
+- `/magazam` — `getMyShopProducts()` çağırır (`credentials: 'include'`); 401 qayıdarsa `/magaza-giris`-ə yönləndirir, uğurlu olarsa nəticəni siyahı şəklində göstərir (yalnız görmə — əlavə/redaktə/sil düyməsi yoxdur). Bir "Çıxış" düyməsi `shopLogout()` çağırıb `/magaza-giris`-ə qaytarır.
+- Bu axın mövcud `AuthContext` (adi istifadəçi login-i, `localStorage`-based) ilə **qarışdırılmır** — tamamilə ayrı, cookie-based bir mexanizmdir, frontend-də əlavə state/context saxlamağa ehtiyac yoxdur.
 - Bu, mövcud mock-data-based marketplace kodundan **tamamilə ayrı, paralel bir qatdır** — mövcud `/elanlar`, `/elan-ver` və s. heç bir şəkildə toxunulmur; yalnız header-ə "Mağazalar" adlı yeni bir naviqasiya linki əlavə olunur.
 - Backend base URL frontend-də env dəyişəni ilə konfiqurasiya olunur (məs. `VITE_AVTOPULSE_API_BASE`), local dev-də `localhost:PORT`-a, produksiyada real backend origininə işarə edəcək.
 
@@ -131,9 +134,10 @@ Seed migration `avto444` sətrini (bilinən bir test parolunun bcrypt hash-i il�
 - Yeni Go binary `avtopulse-backend` sistemd/systemctl altında işə salınacaq (dəqiq port implementasiya zamanı seçiləcək)
 - Yeni Postgres DB: `avtopulse` (mövcud Postgres instansında yeni database, java-distribution-workspace-in Postgres-i ilə paylaşılmır — ayrıca yoxlanılacaq)
 - Caddy: subdomain dəyişikliyi yoxdur — mövcud `autopulse.157.180.73.79.sslip.io` konfiqurasiyasına sadəcə `/api/*` (və ya ayrıca sub-path) → yeni Go backend-ə proxy qaydası əlavə olunur
+- Vacib: `/api/*` eyni `autopulse.157.180.73.79.sslip.io` origin-i altında proxy olunduğu üçün frontend və backend brauzer baxımından **eyni origin** sayılır — bu, `SameSite=Lax` cookie-nin problemsiz işləməsi üçün vacibdir (ayrıca CORS/cross-site cookie konfiqurasiyasına ehtiyac qalmır)
 
 ## Test və yoxlama
 
 - Backend: `go test ./...` (handler-lər üçün httptest, repository üçün real Postgres-ə qarşı ya da bir test schema-sı; login üçün həm düzgün, həm yanlış parol ssenarisi, token vaxtının keçməsi ssenarisi)
-- Manual: `curl` ilə bütün 5 endpoint-in düzgün JSON/status kod qaytardığının yoxlanması (login → token al → həmin token-lə `/api/shops/me/products` çağır)
+- Manual: `curl -c cookies.txt -b cookies.txt` ilə bütün 6 endpoint-in düzgün JSON/status kod qaytardığının yoxlanması (login → cookie yadda saxla → eyni cookie ilə `/api/shops/me/products` çağır → logout → cookie-nin artıq işləmədiyini yoxla)
 - Frontend: `autopulse.157.180.73.79.sslip.io/mağazalar`, `/mağazalar/avto444`, `/magaza-giris` (düzgün+yanlış parol) və giriş edildikdən sonra `/magazam`-ın real domendə düzgün işlədiyinin doğrulanması
