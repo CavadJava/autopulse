@@ -2,3 +2,8 @@ node_modules
 dist
 .DS_Store
 *.local
+
+# avtopulse-backend (Go monolith, lives in this repo as a subdirectory)
+avtopulse-backend/server
+avtopulse-backend/*.log
+avtopulse-backend/.env
