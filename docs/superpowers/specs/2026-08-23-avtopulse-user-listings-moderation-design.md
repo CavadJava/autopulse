@@ -10,7 +10,7 @@ Bu sənəd əvvəlki `2026-08-23-avtopulse-personal-listings-design.md` sənədi
 Sistemdə üç iştirakçı olacaq, tam ayrı domenlərdə:
 - **Mağaza (shop)** — mövcud, artıq tam işlək sistem (`internal/shop`, `shop_session` cookie). Bu spesin hədəfi deyil, dəyişməz qalır. Mağaza sahibi limitsiz və dinamik şəkildə elan yerləşdirə/redaktə edə/ləğv edə bilər — **moderasiyasız**, birbaşa `saytda` statusu ilə (Faza 3/4-də artıq tikilib).
 - **İstifadəçi (user)** — YENİ, bu spesin əsas hədəfi. Fərdi istifadəçi telefon nömrəsi ilə qeydiyyatdan keçir/daxil olur, elan yerləşdirir, elanı **moderasiyadan keçir**.
-- **Superadmin** — YENİ. Yalnız istifadəçi elanlarını (`user_products`) təsdiqləyir/ləğv edir. Mağaza elanlarına toxunmur.
+- **Superadmin** — YENİ. İstifadəçi elanlarını (`user_products`) təsdiqləyir/rədd edir (moderasiya). Əlavə olaraq, mağaza elanlarına (`shop_products`) da baxa bilər və istəsə onları ləğv edə bilər — mağaza elanları moderasiyasız qalır (superadmin təsdiqi tələb olunmur), amma superadmin nəzarət/müdaxilə hüququna malikdir.
 
 **İstifadəçi (user) ilə mağaza (shop) cədvəlləri VƏ autentifikasiyaları tam ayrıdır** — heç bir ortaq cədvəl, heç bir ortaq cookie yoxdur. Hər ikisində "cookie anlayışı" var, amma fərqli cookie adları ilə (`shop_session` vs `user_session`), fərqli sessiya cədvəllərində saxlanılır.
 
@@ -20,14 +20,15 @@ Sistemdə üç iştirakçı olacaq, tam ayrı domenlərdə:
 - Yeni Go paketləri: `internal/user` (istifadəçi hesabı + elan CRUD) və `internal/admin` (superadmin moderasiya)
 - İstifadəçi qeydiyyatı/girişi: telefon + sabit test-kodu (`1234`) OTP axını, real SMS inteqrasiyası yoxdur
 - İstifadəçi elan CRUD-u: yarat (→ `gözləmədə`), redaktə et, ləğv et (→ `legv_edilib`)
-- Superadmin: ayrı, sadə env-based giriş (`ADMIN_USERNAME`/`ADMIN_PASSWORD`), `gözləmədə` elanları siyahılayır, təsdiq/rədd edir
+- Superadmin: ayrı, sadə env-based giriş (`ADMIN_USERNAME`/`ADMIN_PASSWORD`), `gözləmədə` istifadəçi elanlarını siyahılayır, təsdiq/rədd edir
+- Superadmin: bütün mağaza elanlarına (`shop_products`, statusundan asılı olmayaraq) baxış imkanı + istəyə görə mövcud soft-delete mexanizmi ilə ləğv etmə imkanı (mağaza sahibinin özünün "Sil" düyməsi ilə eyni backend əməliyyatı — `status='legv_edilib'`)
 - "Mənim elanlarım" (istifadəçi tərəfi) — bütün statuslar (gözləmədə/saytda/ləğv edilib) göstərilir, hər elan öz statusunda özünü tapa bilməlidir
 - Açıq bazar lenti (`GET /api/listings`) — `user_products` və `shop_products`-dan yalnız `saytda` statuslu elanları birləşdirir
 - Şəkil upload — mövcud `storage.Client.UploadDual` təkrar istifadə olunur, `user/{userId}/product/{productId}/...` path prefiksi ilə
 
 **Xaricində:**
 - Real SMS inteqrasiyası (gələcək fazaya saxlanılır)
-- Mağaza (shop) tərəfinin moderasiyası — mağaza elanları olduğu kimi moderasiyasız qalır, bu spesin hədəfi deyil
+- Mağaza (shop) elanlarının admin-təsdiq axını — mağaza elanları olduğu kimi moderasiyasız qalır (yaradılan kimi birbaşa `saytda`); superadmin-in mağaza elanına baxış/ləğv hüququ isə DAXİLDİR (yuxarıya bax) — fərq budur ki, mağaza elanı ÖNCƏDƏN təsdiq tələb etmir, superadmin YALNIZ SONRADAN (lazım gələrsə) ləğv edə bilər
 - "Reklam et" (VIP/promote) — frontend-only kosmetik davranış olaraq qalır, real backend-ə bağlanmır
 - Biznes hesab tipi (əvvəlki spesdə var idi) — istifadəçi bu spesdə yalnız fərdi (telefon-əsaslı) istifadəçidən danışdı, biznes-hesab konsepti bu spesə daxil edilmir (mağaza artıq "biznes"in qarşılığıdır)
 
@@ -106,9 +107,11 @@ Ləğv edilmiş elanı bərpa etmək üçün ayrıca "bərpa" düyməsi yoxdur (
 11. `GET /api/admin/products/pending` — `status='gozlemede'` olan bütün `user_products`
 12. `POST /api/admin/products/{id}/approve` — `status='saytda'`-ya keçirir
 13. `POST /api/admin/products/{id}/reject` — `status='legv_edilib'`-ə keçirir
+14. `GET /api/admin/shop-products` — bütün `shop_products` (statusundan asılı olmayaraq, bütün mağazalar üzrə) — superadmin baxış üçün
+15. `POST /api/admin/shop-products/{id}/cancel` — mövcud `shop.Repository.DeleteProduct` (soft-delete) çağırır, mağaza sahibinin özünün "Sil" düyməsi ilə eyni əməliyyat — superadmin ownership yoxlaması olmadan istənilən mağazanın istənilən elanını ləğv edə bilər
 
 **Açıq bazar lenti:**
-14. `GET /api/listings` — autentifikasiyasız, `user_products` (status='saytda') və `shop_products` (status='saytda') birləşdirilmiş siyahısı, hər elementdə mənbəni ayırd etmək üçün bir sahə (məs. `source: 'user' | 'shop'`)
+16. `GET /api/listings` — autentifikasiyasız, `user_products` (status='saytda') və `shop_products` (status='saytda') birləşdirilmiş siyahısı, hər elementdə mənbəni ayırd etmək üçün bir sahə (məs. `source: 'user' | 'shop'`)
 
 ### Go strukturu
 
@@ -116,9 +119,9 @@ Ləğv edilmiş elanı bərpa etmək üçün ayrıca "bərpa" düyməsi yoxdur (
 - `internal/user/repository.go` — `Repository` interfeysi: `FindOrCreateByPhone`, `ListMyProducts(userID)`, `ListPublicProducts` (yalnız saytda), `CreateProduct`, `UpdateProduct` (status-preserving/reset məntiqi ilə), `DeleteProduct` (soft), `GetProductUserID`, `AddProductImage`
 - `internal/user/session.go` — mövcud `auth.SessionStore`-un eyni forması, `user_session` cədvəlinə yazır
 - `internal/user/handler.go` — `userHandlers` struct, adlandırılmış metodlar: `RequestOTP`, `VerifyOTP`, `Logout`, `MeProducts`, `CreateProduct`, `UpdateProduct`, `DeleteProduct`, `UploadProductImages` — ownership-check nümunəsi `shop.UploadProductImages`-dəki ilə eyni struktur
-- `internal/admin/handler.go` — `adminHandlers` struct, adlandırılmış metodlar: `Login`, `Logout`, `PendingProducts`, `ApproveProduct`, `RejectProduct` — sadə env-based müqayisə, ownership-check yoxdur (superadmin hər şeyi görür)
+- `internal/admin/handler.go` — `adminHandlers` struct, adlandırılmış metodlar: `Login`, `Logout`, `PendingProducts`, `ApproveProduct`, `RejectProduct`, `ListShopProducts`, `CancelShopProduct` — sadə env-based müqayisə, ownership-check yoxdur (superadmin hər şeyi görür/idarə edir). `adminHandlers` struct-ı `user.Repository`-dən əlavə `shop.Repository`-ni də alır (`ListShopProducts` mövcud `shop.Repository`-nin bütün mağazalar üzrə status-filtrsiz bir siyahılama metodunu — yeni `ListAllProducts(ctx) ([]Product, error)` — çağırır; `CancelShopProduct` mövcud `shop.Repository.DeleteProduct(ctx, productID)`-i birbaşa çağırır, heç bir yeni mağaza-tərəfli kod yazılmır)
 
-`cmd/server/main.go`-a bu iki yeni handler-in route-ları əlavə olunur, mövcud `storage.Client` instance (dual MinIO+S3) `internal/user`-ə də ötürülür.
+`cmd/server/main.go`-a bu iki yeni handler-in route-ları əlavə olunur, mövcud `storage.Client` instance (dual MinIO+S3) `internal/user`-ə də ötürülür, mövcud `shop.Repository` instance-ı isə `internal/admin`-ə də ötürülür (mağaza görüş/ləğv üçün).
 
 ## Frontend
 
@@ -126,11 +129,11 @@ Ləğv edilmiş elanı bərpa etmək üçün ayrıca "bərpa" düyməsi yoxdur (
 - `Login.tsx` / `LoginVerify.tsx`: sahələr dəyişmir (fərdi tab: telefon+OTP), submit-lər real API-a bağlanır
 - `NewListing.tsx`: `handleSubmit` real `createListing`/`updateListing` + (varsa) şəkil upload çağırır
 - `KabinetElanlarim.tsx`: real `getMyListings()`-dən bütün statuslar göstərilir — hər status öz bölməsində/etiketi ilə göstərilməlidir ki, istifadəçi "gözləmədə" olan elanını da tapa bilsin (mövcud `/magazam`-dakı tab modelinə bənzər)
-- **Yeni: sadə superadmin panel** (`/admin`) — login formu + `gözləmədə` elanların siyahısı + Təsdiqlə/Rədd Et düymələri
+- **Yeni: sadə superadmin panel** (`/admin`) — login formu + 2 bölmə/tab: (1) `gözləmədə` istifadəçi elanları + Təsdiqlə/Rədd Et düymələri, (2) bütün mağaza elanları (statusu ilə birlikdə göstərilir) + "Ləğv et" düyməsi hər elanın yanında
 - Açıq bazar lenti (`getListings()` istifadə edən yerlər) — yeni birləşdirilmiş `/api/listings` endpoint-inə keçir
 
 ## Test və yoxlama
 
-- Backend: `internal/user` və `internal/admin` üçün httptest (OTP uğurlu/səhv kod, ownership 404, status-keçid məntiqi — yarat→gözləmədə, admin-təsdiq→saytda, admin-rədd→legv_edilib, istifadəçi-redaktə-legv_edilib-üzərində→gözləmədə)
+- Backend: `internal/user` və `internal/admin` üçün httptest (OTP uğurlu/səhv kod, ownership 404, status-keçid məntiqi — yarat→gözləmədə, admin-təsdiq→saytda, admin-rədd→legv_edilib, istifadəçi-redaktə-legv_edilib-üzərində→gözləmədə, superadmin-mağaza-ləğv→legv_edilib)
 - Frontend: `npx tsc -b --noEmit`, `npm run build`, korrupsiya scan
 - Manual/live: bir dəfəlik test istifadəçisi (sınaq telefon nömrəsi) yaradıb real elan yarat (gözləmədə statusunda), superadmin kimi daxil olub təsdiqlə (saytda-ya keçdiyini yoxla), sonra istifadəçi kimi ləğv et (legv_edilib), sonra redaktə edib yenidən göndər (gözləmədə-yə qayıtdığını yoxla) — mövcud `avto444` mağaza datasına (10+ real məhsul) toxunmadan
