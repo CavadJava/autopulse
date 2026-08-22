@@ -298,6 +298,125 @@ const docTemplate = `{
                 }
             }
         },
+        "/me/products/{id}": {
+            "put": {
+                "description": "Requires a valid shop_session cookie. The product must belong to the authenticated shop.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Update an existing product owned by the logged-in shop",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated product details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.updateProductRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/shop.Product"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid product id or request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "product not found or not owned by this shop",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Requires a valid shop_session cookie. Deletes the product and all its images.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Delete a product owned by the logged-in shop",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "invalid product id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "product not found or not owned by this shop",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/me/products/{id}/images": {
             "post": {
                 "description": "Requires a valid shop_session cookie. The product must belong to the authenticated shop.",
@@ -351,6 +470,69 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "product not found or not owned by this shop",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/me/products/{id}/images/{imageId}": {
+            "delete": {
+                "description": "Requires a valid shop_session cookie. The image's product must belong to the authenticated shop.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Delete a single image from a product owned by the logged-in shop",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Image id",
+                        "name": "imageId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "invalid product or image id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "product or image not found, or not owned by this shop",
                         "schema": {
                             "type": "string"
                         }
@@ -470,6 +652,41 @@ const docTemplate = `{
                 }
             }
         },
+        "auth.updateProductRequest": {
+            "type": "object",
+            "properties": {
+                "ban": {
+                    "type": "string"
+                },
+                "details": {
+                    "type": "string"
+                },
+                "il": {
+                    "type": "integer"
+                },
+                "marka": {
+                    "type": "string"
+                },
+                "model": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "qiymet": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "yanacaq": {
+                    "type": "string"
+                },
+                "yurus": {
+                    "type": "integer"
+                }
+            }
+        },
         "shop.Product": {
             "type": "object",
             "properties": {
@@ -520,11 +737,14 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "minioUrl": {
+                    "type": "string"
+                },
+                "s3Url": {
+                    "type": "string"
+                },
                 "sira": {
                     "type": "integer"
-                },
-                "url": {
-                    "type": "string"
                 }
             }
         },

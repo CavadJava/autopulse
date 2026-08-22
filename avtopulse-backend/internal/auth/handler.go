@@ -40,7 +40,10 @@ func NewHandler(shopRepo shop.Repository, sessions SessionStore, storageClient s
 	r.Post("/login", h.Login)
 	r.Get("/me/products", h.MeProducts)
 	r.Post("/me/products", h.CreateProduct)
+	r.Put("/me/products/{id}", h.UpdateProduct)
+	r.Delete("/me/products/{id}", h.DeleteProduct)
 	r.Post("/me/products/{id}/images", h.UploadProductImages)
+	r.Delete("/me/products/{id}/images/{imageId}", h.DeleteProductImage)
 	r.Post("/me/logo", h.UploadLogo)
 	r.Post("/logout", h.Logout)
 
@@ -271,14 +274,14 @@ func (h *authHandlers) UploadProductImages(w http.ResponseWriter, req *http.Requ
 		}
 		ext := filepath.Ext(fh.Filename)
 		objectPath := fmt.Sprintf("magaza/%d/product/%d/%s%s", shopID, productID, uuidV4(), ext)
-		url, err := h.storage.Upload(req.Context(), objectPath, f, fh.Size, fh.Header.Get("Content-Type"))
+		minioURL, s3URL, err := h.storage.UploadDual(req.Context(), objectPath, f, fh.Size, fh.Header.Get("Content-Type"))
 		f.Close()
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
 
-		img, err := h.shopRepo.AddProductImage(req.Context(), productID, url, i)
+		img, err := h.shopRepo.AddProductImage(req.Context(), productID, minioURL, s3URL, i)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
@@ -321,18 +324,189 @@ func (h *authHandlers) UploadLogo(w http.ResponseWriter, req *http.Request) {
 
 	ext := filepath.Ext(fh.Filename)
 	objectPath := fmt.Sprintf("magaza/%d/logo/%s%s", shopID, uuidV4(), ext)
-	url, err := h.storage.Upload(req.Context(), objectPath, f, fh.Size, fh.Header.Get("Content-Type"))
+	minioURL, _, err := h.storage.UploadDual(req.Context(), objectPath, f, fh.Size, fh.Header.Get("Content-Type"))
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
-	if err := h.shopRepo.SetShopLogo(req.Context(), shopID, url); err != nil {
+	if err := h.shopRepo.SetShopLogo(req.Context(), shopID, minioURL); err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"logoUrl": url})
+	writeJSON(w, http.StatusOK, map[string]string{"logoUrl": minioURL})
+}
+
+type updateProductRequest struct {
+	Name    string `json:"name"`
+	Title   string `json:"title"`
+	Details string `json:"details"`
+	Marka   string `json:"marka"`
+	Model   string `json:"model"`
+	Il      int    `json:"il"`
+	Qiymet  int    `json:"qiymet"`
+	Yurus   int    `json:"yurus"`
+	Yanacaq string `json:"yanacaq"`
+	Ban     string `json:"ban"`
+}
+
+// UpdateProduct godoc
+// @Summary      Update an existing product owned by the logged-in shop
+// @Description  Requires a valid shop_session cookie. The product must belong to the authenticated shop.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        id    path      int                    true  "Product id"
+// @Param        body  body      updateProductRequest   true  "Updated product details"
+// @Success      200   {object}  shop.Product
+// @Failure      400   {string}  string  "invalid product id or request body"
+// @Failure      401   {string}  string  "unauthorized"
+// @Failure      404   {string}  string  "product not found or not owned by this shop"
+// @Failure      500   {string}  string  "internal error"
+// @Router       /me/products/{id} [put]
+func (h *authHandlers) UpdateProduct(w http.ResponseWriter, req *http.Request) {
+	shopID, err := requireSession(req, h.sessions)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	productID, err := strconv.ParseInt(chi.URLParam(req, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid product id", http.StatusBadRequest)
+		return
+	}
+
+	ownerShopID, err := h.shopRepo.GetProductShopID(req.Context(), productID)
+	if errors.Is(err, shop.ErrNotFound) || ownerShopID != shopID {
+		http.Error(w, "product not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	var body updateProductRequest
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	product, err := h.shopRepo.UpdateProduct(req.Context(), productID, shop.CreateProductInput{
+		Name: body.Name, Title: body.Title, Details: body.Details,
+		Marka: body.Marka, Model: body.Model, Il: body.Il,
+		Qiymet: body.Qiymet, Yurus: body.Yurus, Yanacaq: body.Yanacaq, Ban: body.Ban,
+	})
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, product)
+}
+
+// DeleteProduct godoc
+// @Summary      Delete a product owned by the logged-in shop
+// @Description  Requires a valid shop_session cookie. Deletes the product and all its images.
+// @Tags         auth
+// @Produce      json
+// @Param        id  path  int  true  "Product id"
+// @Success      200  {object}  map[string]bool
+// @Failure      400  {string}  string  "invalid product id"
+// @Failure      401  {string}  string  "unauthorized"
+// @Failure      404  {string}  string  "product not found or not owned by this shop"
+// @Failure      500  {string}  string  "internal error"
+// @Router       /me/products/{id} [delete]
+func (h *authHandlers) DeleteProduct(w http.ResponseWriter, req *http.Request) {
+	shopID, err := requireSession(req, h.sessions)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	productID, err := strconv.ParseInt(chi.URLParam(req, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid product id", http.StatusBadRequest)
+		return
+	}
+
+	ownerShopID, err := h.shopRepo.GetProductShopID(req.Context(), productID)
+	if errors.Is(err, shop.ErrNotFound) || ownerShopID != shopID {
+		http.Error(w, "product not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := h.shopRepo.DeleteProduct(req.Context(), productID); err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]bool{"deleted": true})
+}
+
+// DeleteProductImage godoc
+// @Summary      Delete a single image from a product owned by the logged-in shop
+// @Description  Requires a valid shop_session cookie. The image's product must belong to the authenticated shop.
+// @Tags         auth
+// @Produce      json
+// @Param        id       path  int  true  "Product id"
+// @Param        imageId  path  int  true  "Image id"
+// @Success      200      {object}  map[string]bool
+// @Failure      400      {string}  string  "invalid product or image id"
+// @Failure      401      {string}  string  "unauthorized"
+// @Failure      404      {string}  string  "product or image not found, or not owned by this shop"
+// @Failure      500      {string}  string  "internal error"
+// @Router       /me/products/{id}/images/{imageId} [delete]
+func (h *authHandlers) DeleteProductImage(w http.ResponseWriter, req *http.Request) {
+	shopID, err := requireSession(req, h.sessions)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	productID, err := strconv.ParseInt(chi.URLParam(req, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid product id", http.StatusBadRequest)
+		return
+	}
+	imageID, err := strconv.ParseInt(chi.URLParam(req, "imageId"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid image id", http.StatusBadRequest)
+		return
+	}
+
+	ownerShopID, err := h.shopRepo.GetProductShopID(req.Context(), productID)
+	if errors.Is(err, shop.ErrNotFound) || ownerShopID != shopID {
+		http.Error(w, "product not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	imageProductID, err := h.shopRepo.GetImageProductID(req.Context(), imageID)
+	if errors.Is(err, shop.ErrNotFound) || imageProductID != productID {
+		http.Error(w, "image not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := h.shopRepo.DeleteProductImage(req.Context(), imageID); err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]bool{"deleted": true})
 }
 
 func uuidV4() string {
