@@ -133,11 +133,10 @@
         },
         "/logout": {
             "post": {
-                "description": "Deletes the server-side session and clears the shop_session cookie. Returns 500 (and leaves the cookie/session intact) if server-side deletion fails.",
                 "tags": [
-                    "auth"
+                    "user"
                 ],
-                "summary": "Log out the current shop session",
+                "summary": "Log out the current user session",
                 "responses": {
                     "200": {
                         "description": "ok",
@@ -209,21 +208,21 @@
         },
         "/me/products": {
             "get": {
-                "description": "Requires a valid shop_session cookie (set by /login).",
+                "description": "Requires a valid user_session cookie.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "user"
                 ],
-                "summary": "List the logged-in shop's own products",
+                "summary": "List the logged-in user's own listings, any status",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/shop.Product"
+                                "$ref": "#/definitions/user.Product"
                             }
                         }
                     },
@@ -242,7 +241,7 @@
                 }
             },
             "post": {
-                "description": "Requires a valid shop_session cookie. Creates a shop_products row owned by the authenticated shop.",
+                "description": "Requires a valid user_session cookie. New listings start in 'gozlemede' (pending moderation).",
                 "consumes": [
                     "application/json"
                 ],
@@ -250,17 +249,17 @@
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "user"
                 ],
-                "summary": "Create a new product for the logged-in shop",
+                "summary": "Create a new listing for the logged-in user",
                 "parameters": [
                     {
-                        "description": "New product details",
+                        "description": "New listing details",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.createProductRequest"
+                            "$ref": "#/definitions/user.createProductRequest"
                         }
                     }
                 ],
@@ -268,7 +267,7 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/shop.Product"
+                            "$ref": "#/definitions/user.Product"
                         }
                     },
                     "400": {
@@ -294,7 +293,7 @@
         },
         "/me/products/{id}": {
             "put": {
-                "description": "Requires a valid shop_session cookie. The product must belong to the authenticated shop.",
+                "description": "Requires a valid user_session cookie. The listing must belong to the authenticated user. Editing a legv_edilib listing sends it back to gozlemede for re-moderation.",
                 "consumes": [
                     "application/json"
                 ],
@@ -302,9 +301,9 @@
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "user"
                 ],
-                "summary": "Update an existing product owned by the logged-in shop",
+                "summary": "Update a listing owned by the logged-in user",
                 "parameters": [
                     {
                         "type": "integer",
@@ -314,12 +313,12 @@
                         "required": true
                     },
                     {
-                        "description": "Updated product details",
+                        "description": "Updated listing details",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.updateProductRequest"
+                            "$ref": "#/definitions/user.createProductRequest"
                         }
                     }
                 ],
@@ -327,7 +326,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/shop.Product"
+                            "$ref": "#/definitions/user.Product"
                         }
                     },
                     "400": {
@@ -343,7 +342,7 @@
                         }
                     },
                     "404": {
-                        "description": "product not found or not owned by this shop",
+                        "description": "listing not found or not owned by this user",
                         "schema": {
                             "type": "string"
                         }
@@ -357,14 +356,14 @@
                 }
             },
             "delete": {
-                "description": "Requires a valid shop_session cookie. Deletes the product and all its images.",
+                "description": "Requires a valid user_session cookie. Sets status to legv_edilib — does not remove the row.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "user"
                 ],
-                "summary": "Delete a product owned by the logged-in shop",
+                "summary": "Cancel (soft-delete) a listing owned by the logged-in user",
                 "parameters": [
                     {
                         "type": "integer",
@@ -397,7 +396,7 @@
                         }
                     },
                     "404": {
-                        "description": "product not found or not owned by this shop",
+                        "description": "listing not found or not owned by this user",
                         "schema": {
                             "type": "string"
                         }
@@ -413,7 +412,7 @@
         },
         "/me/products/{id}/images": {
             "post": {
-                "description": "Requires a valid shop_session cookie. The product must belong to the authenticated shop.",
+                "description": "Requires a valid user_session cookie. The listing must belong to the authenticated user.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -421,9 +420,9 @@
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "user"
                 ],
-                "summary": "Upload one or more images for a product",
+                "summary": "Upload one or more images for a listing",
                 "parameters": [
                     {
                         "type": "integer",
@@ -446,7 +445,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/shop.ProductImage"
+                                "$ref": "#/definitions/user.ProductImage"
                             }
                         }
                     },
@@ -463,7 +462,7 @@
                         }
                     },
                     "404": {
-                        "description": "product not found or not owned by this shop",
+                        "description": "listing not found or not owned by this user",
                         "schema": {
                             "type": "string"
                         }
@@ -596,6 +595,321 @@
                 }
             }
         },
+        "/otp/request": {
+            "post": {
+                "description": "Always succeeds — no real SMS is sent in this environment; the test code is a fixed value.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Request an OTP code for phone-based login",
+                "parameters": [
+                    {
+                        "description": "Phone number",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.otpRequestBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/otp/verify": {
+            "post": {
+                "description": "Test code is a fixed value (\"1234\") — no real SMS/OTP provider. Creates a new user account automatically on first login. Sets a user_session HttpOnly cookie on success.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Verify an OTP code and log in (or auto-register) by phone",
+                "parameters": [
+                    {
+                        "description": "Phone number and OTP code",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.otpVerifyBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/user.otpVerifyResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "invalid code",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/pending": {
+            "get": {
+                "description": "Requires a valid admin_session cookie.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "List all user listings pending moderation",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/user.Product"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/{id}/approve": {
+            "post": {
+                "description": "Requires a valid admin_session cookie. Sets the listing's status to saytda.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Approve a pending user listing",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "invalid product id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/{id}/reject": {
+            "post": {
+                "description": "Requires a valid admin_session cookie. Sets the listing's status to legv_edilib.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Reject a pending user listing",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "invalid product id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/shop-products": {
+            "get": {
+                "description": "Requires a valid admin_session cookie. Superadmin oversight — not scoped to any single shop.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "List every shop product across all shops, any status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/shop.Product"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/shop-products/{id}/cancel": {
+            "post": {
+                "description": "Requires a valid admin_session cookie. Uses the same soft-delete as the shop owner's own \"Sil\" button — no ownership check, since superadmin acts across all shops.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Cancel any shop's product (superadmin override)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "invalid product id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/{shopId}/products": {
             "get": {
                 "description": "Returns all products belonging to the given shop id.",
@@ -648,6 +962,17 @@
         }
     },
     "definitions": {
+        "admin.loginRequest": {
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "auth.createProductRequest": {
             "type": "object",
             "properties": {
@@ -838,6 +1163,143 @@
                 },
                 "title": {
                     "type": "string"
+                }
+            }
+        },
+        "user.Product": {
+            "type": "object",
+            "properties": {
+                "ban": {
+                    "type": "string"
+                },
+                "details": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "il": {
+                    "type": "integer"
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/user.ProductImage"
+                    }
+                },
+                "marka": {
+                    "type": "string"
+                },
+                "model": {
+                    "type": "string"
+                },
+                "qiymet": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "integer"
+                },
+                "yanacaq": {
+                    "type": "string"
+                },
+                "yurus": {
+                    "type": "integer"
+                }
+            }
+        },
+        "user.ProductImage": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "minioUrl": {
+                    "type": "string"
+                },
+                "s3Url": {
+                    "type": "string"
+                },
+                "sira": {
+                    "type": "integer"
+                }
+            }
+        },
+        "user.User": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                }
+            }
+        },
+        "user.createProductRequest": {
+            "type": "object",
+            "properties": {
+                "ban": {
+                    "type": "string"
+                },
+                "details": {
+                    "type": "string"
+                },
+                "il": {
+                    "type": "integer"
+                },
+                "marka": {
+                    "type": "string"
+                },
+                "model": {
+                    "type": "string"
+                },
+                "qiymet": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "yanacaq": {
+                    "type": "string"
+                },
+                "yurus": {
+                    "type": "integer"
+                }
+            }
+        },
+        "user.otpRequestBody": {
+            "type": "object",
+            "properties": {
+                "phone": {
+                    "type": "string"
+                }
+            }
+        },
+        "user.otpVerifyBody": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                }
+            }
+        },
+        "user.otpVerifyResponse": {
+            "type": "object",
+            "properties": {
+                "user": {
+                    "$ref": "#/definitions/user.User"
                 }
             }
         }

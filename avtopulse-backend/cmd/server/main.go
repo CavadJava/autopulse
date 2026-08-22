@@ -11,10 +11,12 @@ import (
 	"time"
 
 	_ "github.com/CavadJava/avtopulse-backend/docs"
+	"github.com/CavadJava/avtopulse-backend/internal/admin"
 	"github.com/CavadJava/avtopulse-backend/internal/auth"
 	"github.com/CavadJava/avtopulse-backend/internal/db"
 	"github.com/CavadJava/avtopulse-backend/internal/shop"
 	"github.com/CavadJava/avtopulse-backend/internal/storage"
+	"github.com/CavadJava/avtopulse-backend/internal/user"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
@@ -49,6 +51,15 @@ func main() {
 
 	shopRepo := shop.NewRepository(pool)
 	sessions := auth.NewSessionStore(pool)
+
+	userRepo := user.NewRepository(pool)
+	userSessions := user.NewSessionStore(pool)
+
+	adminUsername := os.Getenv("ADMIN_USERNAME")
+	adminPassword := os.Getenv("ADMIN_PASSWORD")
+	if adminUsername == "" || adminPassword == "" {
+		log.Fatal("ADMIN_USERNAME and ADMIN_PASSWORD env vars are required")
+	}
 
 	minioEndpoint := os.Getenv("AVTOPULSE_MINIO_ENDPOINT")
 	minioAccessKey := os.Getenv("AVTOPULSE_MINIO_ACCESS_KEY")
@@ -129,6 +140,55 @@ func main() {
 	})
 
 	r.Mount("/api/shops", shop.NewHandler(shopRepo))
+
+	userHandler := user.NewHandler(userRepo, userSessions, storageClient)
+	r.Post("/api/users/otp/request", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/users", userHandler).ServeHTTP(w, req)
+	})
+	r.Post("/api/users/otp/verify", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/users", userHandler).ServeHTTP(w, req)
+	})
+	r.Post("/api/users/logout", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/users", userHandler).ServeHTTP(w, req)
+	})
+	r.Get("/api/users/me/products", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/users", userHandler).ServeHTTP(w, req)
+	})
+	r.Post("/api/users/me/products", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/users", userHandler).ServeHTTP(w, req)
+	})
+	r.Put("/api/users/me/products/{id}", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/users", userHandler).ServeHTTP(w, req)
+	})
+	r.Delete("/api/users/me/products/{id}", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/users", userHandler).ServeHTTP(w, req)
+	})
+	r.Post("/api/users/me/products/{id}/images", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/users", userHandler).ServeHTTP(w, req)
+	})
+
+	adminHandler := admin.NewHandler(userRepo, shopRepo, adminUsername, adminPassword)
+	r.Post("/api/admin/login", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/admin", adminHandler).ServeHTTP(w, req)
+	})
+	r.Post("/api/admin/logout", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/admin", adminHandler).ServeHTTP(w, req)
+	})
+	r.Get("/api/admin/products/pending", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/admin", adminHandler).ServeHTTP(w, req)
+	})
+	r.Post("/api/admin/products/{id}/approve", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/admin", adminHandler).ServeHTTP(w, req)
+	})
+	r.Post("/api/admin/products/{id}/reject", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/admin", adminHandler).ServeHTTP(w, req)
+	})
+	r.Get("/api/admin/shop-products", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/admin", adminHandler).ServeHTTP(w, req)
+	})
+	r.Post("/api/admin/shop-products/{id}/cancel", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/admin", adminHandler).ServeHTTP(w, req)
+	})
 
 	addr := ":" + port
 	srv := &http.Server{Addr: addr, Handler: r}
