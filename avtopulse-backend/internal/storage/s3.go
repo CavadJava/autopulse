@@ -42,3 +42,8 @@ func (c *s3Client) Upload(ctx context.Context, path string, data io.Reader, size
 	}
 	return fmt.Sprintf("https://%s.s3.amazonaws.com/%s", c.bucket, path), nil
 }
+
+func (c *s3Client) UploadDual(ctx context.Context, path string, data io.Reader, size int64, contentType string) (string, string, error) {
+	url, err := c.Upload(ctx, path, data, size, contentType)
+	return url, "", err
+}
