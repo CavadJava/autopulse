@@ -9,6 +9,11 @@
   font-size: 15px;
 }
 
+.productsError {
+  color: var(--error);
+  font-size: 15px;
+}
+
 .hero {
   display: flex;
   align-items: center;

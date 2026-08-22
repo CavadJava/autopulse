@@ -10,17 +10,23 @@ export default function ShopFront() {
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [productsError, setProductsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!name) return;
     (async () => {
       setLoading(true);
       setError(null);
+      setProductsError(null);
       try {
         const shopData = await getShopByName(name);
         setShop(shopData);
-        const productData = await getShopProducts(shopData.id);
-        setProducts(productData);
+        try {
+          const productData = await getShopProducts(shopData.id);
+          setProducts(productData);
+        } catch {
+          setProductsError('Məhsullar yüklənərkən xəta baş verdi.');
+        }
       } catch (err) {
         if (err instanceof ShopNotFoundError) {
           setError('Mağaza tapılmadı.');
@@ -68,7 +74,9 @@ export default function ShopFront() {
 
       <h2 className={styles.sectionTitle}>Məhsullar</h2>
 
-      {products.length === 0 ? (
+      {productsError ? (
+        <p className={styles.productsError}>{productsError}</p>
+      ) : products.length === 0 ? (
         <p className={styles.status}>Bu mağazada hələ məhsul yoxdur.</p>
       ) : (
         <div className={styles.grid}>
