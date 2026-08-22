@@ -27,15 +27,16 @@ Sistemdə üç iştirakçı olacaq, tam ayrı domenlərdə:
 - Şəkil upload — mövcud `storage.Client.UploadDual` təkrar istifadə olunur, `user/{userId}/product/{productId}/...` path prefiksi ilə
 - **Profil, statistika, aktiv-elan-limiti, kart CRUD, balans artırma — həm istifadəçi, həm mağaza tərəfi üçün paralel struktur** (ətraflı aşağıda, "Data model" və "Backend" bölmələrində)
 - **Elanların avtomatik müddət bitməsi** (`saytda` → 30 gün sonra `muddeti_basa_catmis`) — həm `user_products`, həm `shop_products` üçün
+- Mağaza (shop) elanlarının admin-təsdiq axını — mağaza elanları olduğu kimi moderasiyasız qalır (yaradılan kimi birbaşa `saytda`); superadmin-in mağaza elanına baxış/ləğv hüququ isə DAXİLDİR (yuxarıya bax) — fərq budur ki, mağaza elanı ÖNCƏDƏN təsdiq tələb etmir, superadmin YALNIZ SONRADAN (lazım gələrsə) ləğv edə bilər
+
 
 **Xaricində:**
 - Real SMS inteqrasiyası (gələcək fazaya saxlanılır)
-- Mağaza (shop) elanlarının admin-təsdiq axını — mağaza elanları olduğu kimi moderasiyasız qalır (yaradılan kimi birbaşa `saytda`); superadmin-in mağaza elanına baxış/ləğv hüququ isə DAXİLDİR (yuxarıya bax) — fərq budur ki, mağaza elanı ÖNCƏDƏN təsdiq tələb etmir, superadmin YALNIZ SONRADAN (lazım gələrsə) ləğv edə bilər
 - "Reklam et" (VIP/promote) — frontend-only kosmetik davranış olaraq qalır, real backend-ə bağlanmır
 - Biznes hesab tipi (əvvəlki spesdə var idi) — istifadəçi bu spesdə yalnız fərdi (telefon-əsaslı) istifadəçidən danışdı, biznes-hesab konsepti bu spesə daxil edilmir (mağaza artıq "biznes"in qarşılığıdır)
 - **Real bank/ödəniş provideri inteqrasiyası** — kart CRUD-u və balans artırma tamamilə mock/DB-qeydi səviyyəsindədir (son 4 rəqəm, müddət, sahibin adı saxlanılır; real kart nömrəsi/CVV heç vaxt saxlanılmır; balans artırma real pul köçürməsi etmir, sadəcə `balance` sütununu artırır) — real Stripe/Payriff və s. inteqrasiyası tamamilə ayrı, gələcək bir layihədir
-- **Avtomatik müddət-bitmə üçün ayrıca cron/worker prosesi** — "lazy expiry" yanaşması istifadə olunur (aşağıya bax), ayrıca fon prosesi qurulmur
 - Elan limitinin ödənişlə artırılması (dinamik/pullu limit artımı) — limit sabit, `.env`-based ədəddir bu mərhələdə
+- Ayrıca xarici cron/systemd-timer prosesi — müddət-bitmə yoxlaması Go serverin öz daxilində, prosesin ömrü boyu işləyən bir background goroutine ilə həll olunur (aşağıya bax), xarici planlaşdırıcıya ehtiyac yoxdur
 
 ## Data model
 
@@ -129,7 +130,14 @@ legv_edilib → (istifadəçi elanını redaktə edib yenidən göndərir) → g
 
 Ləğv edilmiş bir **istifadəçi** elanını bərpa etmək üçün ayrıca "bərpa" düyməsi yoxdur (mağaza sistemindən fərqli olaraq) — istifadəçi formu yenidən doldurub göndərməlidir, bu da yenidən moderasiya tələb edir. Bu, istifadəçinin öz sözü ilə təsdiqlənib: "müştəri yenidən elan doldurmalıdır və sorğu göndərməlidir." **Mağaza** elanları üçün mövcud "Bərpa et" (Faza 4) mexanizmi olduğu kimi qalır — dəyişmir.
 
-**Müddət bitmə mexanizmi ("lazy expiry"):** ayrıca cron/worker prosesi qurulmur. Əvəzinə, `expires_at < now()` və `status = 'saytda'` olan sətirlər hər dəfə müvafiq `ListProducts`/`ListPublicProducts`/`ListMyProducts` sorğusu icra olunanda avtomatik `status = 'muddeti_basa_catmis'`-ə keçirilir (sorğudan əvvəl bir `UPDATE ... WHERE expires_at < now() AND status = 'saytda'` addımı ilə). Bu, sadəlik üçün seçilib — real zaman dəqiqliyi tələb olunmur, sadəcə "kimsə həmin cədvələ baxanda" statusun düzəlməsi kifayətdir.
+**Müddət bitmə mexanizmi (real-vaxt background ticker):** `cmd/server/main.go`-da server başlayanda bir background goroutine işə salınır — `time.NewTicker(5 * time.Minute)` ilə hər 5 dəqiqədə bir (konfiqurasiya edilə bilən, `.env`-dəki `EXPIRY_CHECK_INTERVAL`) iki sadə SQL sorğusu icra olunur:
+
+```sql
+UPDATE avto444.user_products  SET status = 'muddeti_basa_catmis' WHERE status = 'saytda' AND expires_at < now();
+UPDATE avto444.shop_products  SET status = 'muddeti_basa_catmis' WHERE status = 'saytda' AND expires_at < now();
+```
+
+Bu, real-vaxt yaxınlaşmasıdır — sorğu gözləmədən, prosesin işlədiyi müddətdə statuslar öz-özünə (ən çox 5 dəqiqə gecikmə ilə) düzəlir. Xarici cron/systemd-timer lazım deyil, hər şey Go serverin öz prosesi daxilində, `context.Context`-lə düzgün dayandırılan (server `SIGTERM` alanda ticker də dayanır) bir goroutine-də işləyir. Bu, əvvəlki dizaynda planlaşdırılan "lazy expiry" (yalnız sorğu zamanı yoxlama) yanaşmasını əvəz edir — istifadəçinin özünün tələbi ilə.
 
 ## Backend
 
@@ -174,14 +182,14 @@ Ləğv edilmiş bir **istifadəçi** elanını bərpa etmək üçün ayrıca "b�
 ### Go strukturu
 
 - `internal/user/model.go` — `User{ID, Name, Phone, Balance}`, `UserProduct{ID, UserID, Marka, Model, Il, Qiymet, Yurus, Yanacaq, Ban, Title, Details, Status, ExpiresAt, ViewCount, ContactCount, Images []UserProductImage}`, `UserProductImage{ID, MinioURL, S3URL, Sira}`, `CreateUserProductInput`, `UserCard{ID, Last4, Expiry, HolderName}`
-- `internal/user/repository.go` — `Repository` interfeysi: `FindOrCreateByPhone`, `ListMyProducts(userID)` (lazy-expiry `UPDATE` daxil), `ListPublicProducts` (yalnız saytda, lazy-expiry daxil), `CreateProduct` (aktiv-limit yoxlaması ilə), `UpdateProduct` (status-preserving/reset məntiqi ilə), `DeleteProduct` (soft), `GetProductUserID`, `AddProductImage`, `IncrementViewCount`, `IncrementContactCount`, `UpdateProfile`, `GetStats(userID)`, `ListCards`, `AddCard`, `UpdateCard`, `DeleteCard`, `TopUpBalance`
+- `internal/user/repository.go` — `Repository` interfeysi: `FindOrCreateByPhone`, `ListMyProducts(userID)`, `ListPublicProducts` (yalnız saytda), `CreateProduct` (aktiv-limit yoxlaması ilə), `UpdateProduct` (status-preserving/reset məntiqi ilə), `DeleteProduct` (soft), `GetProductUserID`, `AddProductImage`, `IncrementViewCount`, `IncrementContactCount`, `UpdateProfile`, `GetStats(userID)`, `ListCards`, `AddCard`, `UpdateCard`, `DeleteCard`, `TopUpBalance`, `ExpireOverdueProducts(ctx) error` (background ticker-in çağırdığı, yuxarıdakı `UPDATE` sorğusunu icra edən metod)
 - `internal/user/session.go` — mövcud `auth.SessionStore`-un eyni forması, `user_session` cədvəlinə yazır
 - `internal/user/handler.go` — `userHandlers` struct, adlandırılmış metodlar: `RequestOTP`, `VerifyOTP`, `Logout`, `MeProducts`, `CreateProduct`, `UpdateProduct`, `DeleteProduct`, `UploadProductImages`, `UpdateProfile`, `MeStats`, `ListCards`, `AddCard`, `UpdateCard`, `DeleteCard`, `TopUpBalance` — ownership-check nümunəsi `shop.UploadProductImages`-dəki ilə eyni struktur
-- `internal/shop/` (mövcud) — `Repository` interfeysinə eyni əlavələr: `UpdateProfile`, `GetStats`, `ListCards`, `AddCard`, `UpdateCard`, `DeleteCard`, `TopUpBalance`, `IncrementViewCount`, `IncrementContactCount`; `ListProducts`/`ListPublicProducts`-a lazy-expiry `UPDATE` addımı əlavə olunur; `authHandlers`-ə (mövcud `internal/auth/handler.go`) paralel adlandırılmış metodlar əlavə olunur: `UpdateProfile`, `MeStats`, `ListCards`, `AddCard`, `UpdateCard`, `DeleteCard`, `TopUpBalance`
+- `internal/shop/` (mövcud) — `Repository` interfeysinə eyni əlavələr: `UpdateProfile`, `GetStats`, `ListCards`, `AddCard`, `UpdateCard`, `DeleteCard`, `TopUpBalance`, `IncrementViewCount`, `IncrementContactCount`, `ExpireOverdueProducts(ctx) error`; `authHandlers`-ə (mövcud `internal/auth/handler.go`) paralel adlandırılmış metodlar əlavə olunur: `UpdateProfile`, `MeStats`, `ListCards`, `AddCard`, `UpdateCard`, `DeleteCard`, `TopUpBalance`
 - `internal/admin/handler.go` — `adminHandlers` struct, adlandırılmış metodlar: `Login`, `Logout`, `PendingProducts`, `ApproveProduct`, `RejectProduct`, `ListShopProducts`, `CancelShopProduct` — sadə env-based müqayisə, ownership-check yoxdur (superadmin hər şeyi görür/idarə edir). `adminHandlers` struct-ı `user.Repository`-dən əlavə `shop.Repository`-ni də alır (`ListShopProducts` mövcud `shop.Repository`-nin bütün mağazalar üzrə status-filtrsiz bir siyahılama metodunu — yeni `ListAllProducts(ctx) ([]Product, error)` — çağırır; `CancelShopProduct` mövcud `shop.Repository.DeleteProduct(ctx, productID)`-i birbaşa çağırır, heç bir yeni mağaza-tərəfli kod yazılmır)
 - `internal/listings/` (yeni, kiçik) — yalnız ictimai birləşdirilmiş lent üçün: `handler.go` ilə `GET /api/listings`, `GET /api/listings/{source}/{id}`, `POST /api/listings/{source}/{id}/contact` — `source` parametrinə görə ya `user.Repository`, ya `shop.Repository`-ni çağırır
 
-`cmd/server/main.go`-a bu yeni handler-lərin route-ları əlavə olunur, mövcud `storage.Client` instance (dual MinIO+S3) `internal/user`-ə də ötürülür, mövcud `shop.Repository` instance-ı isə `internal/admin` və `internal/listings`-ə də ötürülür.
+`cmd/server/main.go`-a bu yeni handler-lərin route-ları əlavə olunur, mövcud `storage.Client` instance (dual MinIO+S3) `internal/user`-ə də ötürülür, mövcud `shop.Repository` instance-ı isə `internal/admin` və `internal/listings`-ə də ötürülür. Server başlayanda iki `ExpireOverdueProducts` çağırışını (user + shop) hər `EXPIRY_CHECK_INTERVAL` (default 5 dəqiqə) bir dəfə icra edən bir background goroutine işə salınır, `context.Context` vasitəsilə server `Shutdown`-u ilə düzgün dayandırılır.
 
 ## Frontend
 
@@ -206,6 +214,6 @@ Ləğv edilmiş bir **istifadəçi** elanını bərpa etmək üçün ayrıca "b�
 
 ## Test və yoxlama
 
-- Backend: `internal/user`, `internal/admin`, `internal/listings` üçün httptest (OTP uğurlu/səhv kod, ownership 404, status-keçid məntiqi — yarat→gözləmədə, admin-təsdiq→saytda+expires_at təyini, admin-rədd→legv_edilib, istifadəçi-redaktə-legv_edilib-üzərində→gözləmədə, superadmin-mağaza-ləğv→legv_edilib, lazy-expiry-nin `saytda`+keçmiş-`expires_at`-i `muddeti_basa_catmis`-ə keçirdiyi, aktiv-limit aşılanda 403, kart CRUD-un ownership-check-i, balans artırmanın düzgün toplandığı)
+- Backend: `internal/user`, `internal/admin`, `internal/listings` üçün httptest (OTP uğurlu/səhv kod, ownership 404, status-keçid məntiqi — yarat→gözləmədə, admin-təsdiq→saytda+expires_at təyini, admin-rədd→legv_edilib, istifadəçi-redaktə-legv_edilib-üzərində→gözləmədə, superadmin-mağaza-ləğv→legv_edilib, `ExpireOverdueProducts`-un `saytda`+keçmiş-`expires_at`-i `muddeti_basa_catmis`-ə keçirdiyi, aktiv-limit aşılanda 403, kart CRUD-un ownership-check-i, balans artırmanın düzgün toplandığı)
 - Frontend: `npx tsc -b --noEmit`, `npm run build`, korrupsiya scan
 - Manual/live: bir dəfəlik test istifadəçisi (sınaq telefon nömrəsi) yaradıb real elan yarat (gözləmədə statusunda), superadmin kimi daxil olub təsdiqlə (saytda-ya keçdiyini yoxla), sonra istifadəçi kimi ləğv et (legv_edilib), sonra redaktə edib yenidən göndər (gözləmədə-yə qayıtdığını yoxla), profil yenilə, kart əlavə et, balans artır, statistika səhifəsində baxış/əlaqə saylarının göründüyünü yoxla — mövcud `avto444` mağaza datasına (10+ real məhsul) toxunmadan
