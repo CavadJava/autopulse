@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import LoginVerify from './pages/LoginVerify';
 import NewListing from './pages/NewListing';
 import Compare from './pages/Compare';
+import ShopList from './pages/shop/ShopList';
 import KabinetLayout from './pages/kabinet/KabinetLayout';
 import KabinetOverview from './pages/kabinet/KabinetOverview';
 import KabinetElanlarim from './pages/kabinet/KabinetElanlarim';
@@ -39,6 +40,7 @@ export default function App() {
             <Route path="/elan-ver" element={<NewListing />} />
             <Route path="/elan-ver/:id" element={<NewListing />} />
             <Route path="/muqayise" element={<Compare />} />
+            <Route path="/magazalar" element={<ShopList />} />
             <Route path="/kabinet" element={<KabinetLayout />}>
               <Route index element={<KabinetOverview />} />
               <Route path="elanlarim" element={<KabinetElanlarim />} />

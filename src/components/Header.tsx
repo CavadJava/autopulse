@@ -30,6 +30,7 @@ export default function Header() {
         <nav className={styles.nav}>
           <div className={styles.links}>
             <Link to="/elanlar">Elanlar</Link>
+            <Link to="/magazalar">Mağazalar</Link>
             <Link to="/qiymetler">Qiymətlər</Link>
             <Link to="/business">Biznes üçün</Link>
           </div>
