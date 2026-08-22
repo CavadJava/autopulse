@@ -1394,6 +1394,199 @@ git commit -m "feat: wire shop + auth handlers into main.go with real Postgres c
 
 ---
 
+## Task 5.5: Swagger/OpenAPI documentation for the 6 shop endpoints
+
+> Added mid-execution per explicit user request ("go-da swagger de elave edersen" — "also add swagger in Go"), after Task 5 completed and while Task 8 was in flight. Numbered 5.5 (not renumbered into the main sequence) to avoid disturbing every later task's cross-references to "Task 6/7/8/9/10" — this task's dependency is Task 5 (a wired, running `main.go`) and it produces no interface any later task consumes, so its position is safe.
+
+**Files:**
+- Modify: `avtopulse-backend/cmd/server/main.go`
+- Modify: `avtopulse-backend/internal/shop/handler.go` (add swag annotation comments above each route registration — no logic change)
+- Modify: `avtopulse-backend/internal/auth/handler.go` (same — annotation comments only)
+- Create: `avtopulse-backend/docs/docs.go`, `avtopulse-backend/docs/swagger.json`, `avtopulse-backend/docs/swagger.yaml` (all three are generated output from the `swag` CLI — do not hand-write them)
+- Modify: `avtopulse-backend/go.mod`, `avtopulse-backend/go.sum` (new deps)
+
+**Interfaces:**
+- Consumes: the 6 already-wired routes from Task 5 (no behavior change to any of them).
+- Produces: a live, browsable Swagger UI at `GET /swagger/index.html` once the server is running, documenting all 6 endpoints (list shops, get shop by name, list shop products, login, me/products, logout) with their request/response shapes and status codes.
+
+- [ ] **Step 1: Install swaggo/swag (the CLI + the runtime packages)**
+
+```bash
+cd avtopulse-backend
+go install github.com/swaggo/swag/cmd/swag@latest
+go get github.com/swaggo/http-swagger/v2
+go get github.com/swaggo/swag
+```
+
+(`go install` puts the `swag` binary in `$(go env GOPATH)/bin` — make sure that's on `PATH`, or invoke it as `$(go env GOPATH)/bin/swag` in the steps below if `swag` isn't found directly.)
+
+- [ ] **Step 2: Add package-level API metadata annotations to `main.go`**
+
+Add this comment block directly above the `func main()` line in `avtopulse-backend/cmd/server/main.go` (do not change anything else in the file yet — that's Step 5):
+
+```go
+// @title AutoPulse Mağazalar API
+// @version 1.0
+// @description Backend API for AutoPulse's shop/mağaza listings — public shop/product browsing plus a simple cookie-based shop-owner login.
+// @host localhost:8090
+// @BasePath /api/shops
+```
+
+- [ ] **Step 3: Annotate the 3 public routes in `internal/shop/handler.go`**
+
+Add a swag doc comment directly above each `r.Get(...)` call inside `NewHandler`. The brief's exact wording:
+
+Above `r.Get("/", ...)`:
+
+```go
+	// ListShops godoc
+	// @Summary      List all shops
+	// @Description  Returns a lightweight summary of every shop (id, name, title).
+	// @Tags         shops
+	// @Produce      json
+	// @Success      200  {array}  ShopSummary
+	// @Failure      500  {string} string "internal error"
+	// @Router       / [get]
+```
+
+Above `r.Get("/by-name/{name}", ...)`:
+
+```go
+	// GetShopByName godoc
+	// @Summary      Get a shop by its name
+	// @Description  Returns full shop details for the given name (the shop's slug).
+	// @Tags         shops
+	// @Produce      json
+	// @Param        name  path      string  true  "Shop name/slug"
+	// @Success      200   {object}  Shop
+	// @Failure      404   {string}  string  "shop not found"
+	// @Failure      500   {string}  string  "internal error"
+	// @Router       /by-name/{name} [get]
+```
+
+Above `r.Get("/{shopId}/products", ...)`:
+
+```go
+	// ListProducts godoc
+	// @Summary      List a shop's products
+	// @Description  Returns all products belonging to the given shop id.
+	// @Tags         shops
+	// @Produce      json
+	// @Param        shopId  path      int  true  "Shop id"
+	// @Success      200     {array}   Product
+	// @Failure      400     {string}  string  "invalid shopId"
+	// @Failure      404     {string}  string  "shop not found"
+	// @Failure      500     {string}  string  "internal error"
+	// @Router       /{shopId}/products [get]
+```
+
+These are pure comments — do not alter the function bodies, route paths, or handler logic in this file.
+
+- [ ] **Step 4: Annotate the 3 auth routes in `internal/auth/handler.go`**
+
+Above `r.Post("/login", ...)`:
+
+```go
+	// Login godoc
+	// @Summary      Shop owner login
+	// @Description  Authenticates a shop by name+password and sets an HttpOnly shop_session cookie on success.
+	// @Tags         auth
+	// @Accept       json
+	// @Produce      json
+	// @Param        body  body      loginRequest  true  "Shop name and password"
+	// @Success      200   {object}  loginResponse
+	// @Failure      400   {string}  string  "invalid request body"
+	// @Failure      401   {string}  string  "invalid name or password"
+	// @Failure      500   {string}  string  "internal error"
+	// @Router       /login [post]
+```
+
+Above `r.Get("/me/products", ...)`:
+
+```go
+	// MeProducts godoc
+	// @Summary      List the logged-in shop's own products
+	// @Description  Requires a valid shop_session cookie (set by /login).
+	// @Tags         auth
+	// @Produce      json
+	// @Success      200  {array}   shop.Product
+	// @Failure      401  {string}  string  "unauthorized"
+	// @Failure      500  {string}  string  "internal error"
+	// @Router       /me/products [get]
+```
+
+Above `r.Post("/logout", ...)`:
+
+```go
+	// Logout godoc
+	// @Summary      Log out the current shop session
+	// @Description  Deletes the server-side session and clears the shop_session cookie. Returns 500 (and leaves the cookie/session intact) if server-side deletion fails.
+	// @Tags         auth
+	// @Success      200  {string}  string  "ok"
+	// @Failure      500  {string}  string  "internal error"
+	// @Router       /logout [post]
+```
+
+Again, comments only — no logic changes. These annotations use relative paths (`/login`, `/me/products`, `/logout`) because `swag` combines them with the `@BasePath` from Step 2; this matches how the routes are actually mounted (see Task 5's `http.StripPrefix` note) without needing to duplicate that mounting detail here.
+
+- [ ] **Step 5: Generate the swagger docs and wire the UI route into `main.go`**
+
+```bash
+cd avtopulse-backend
+$(go env GOPATH)/bin/swag init -g cmd/server/main.go -o docs
+```
+
+Expected: creates `avtopulse-backend/docs/docs.go`, `docs/swagger.json`, `docs/swagger.yaml` with no errors. If `swag init` reports "cannot find type definition" for `ShopSummary`/`Shop`/`Product`/`loginRequest`/`loginResponse`, that means one of the annotation blocks in Steps 3-4 isn't directly above the correct route registration line — re-check placement (the annotation must be the comment block immediately preceding the `r.Get(...)`/`r.Post(...)` line it documents, inside the same function).
+
+Then add the docs import and a `/swagger/*` route to `main.go`. Add this import (with the other imports):
+
+```go
+	_ "github.com/CavadJava/avtopulse-backend/docs"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
+```
+
+And this route registration, placed right after the `/healthz` route registration in `main.go`:
+
+```go
+	r.Get("/swagger/*", httpSwagger.WrapHandler)
+```
+
+- [ ] **Step 6: Build and manually verify the Swagger UI is reachable**
+
+```bash
+cd avtopulse-backend
+go build ./cmd/server
+export AVTOPULSE_DSN="postgres://localhost:5432/avtopulse?sslmode=disable"
+./server &
+sleep 1
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8090/swagger/index.html
+curl -s http://localhost:8090/swagger/doc.json | head -c 200
+echo
+kill %1
+rm -f server
+```
+
+Expected: first curl returns `200`; second curl's output starts with a JSON object containing `"swagger"` or `"openapi"` and `"AutoPulse Mağazalar API"` somewhere in the first 200 characters (confirming the generated spec is being served, not a 404 page).
+
+- [ ] **Step 7: Run the full test suite to confirm the annotation comments didn't break anything**
+
+```bash
+cd avtopulse-backend
+go build ./...
+go test ./... -v
+```
+
+Expected: identical pass results to Task 5's final state — comments-only changes to handler.go files must not affect any existing test.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add avtopulse-backend
+git commit -m "docs: add Swagger/OpenAPI documentation for all 6 shop endpoints"
+```
+
+---
+
 ## Task 6: Frontend API client (`src/api/shop.ts`)
 
 **Files:**
