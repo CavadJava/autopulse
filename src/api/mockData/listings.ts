@@ -1,8 +1,13 @@
 import type { Listing } from '../../types';
 
-// Curated Unsplash car photography. Each pool has 15 shots so, combined with a
-// step of 4 per listing below (gcd(4,15)=1), all 12 listings get a distinct
-// 5-photo window with no two listings sharing the exact same set.
+// Curated Unsplash car photography. Every URL in all 4 pools below was
+// individually downloaded and visually verified (not guessed) to actually
+// match its category — an earlier attempt fabricated IDs / reused exterior
+// photos with a fake query-string suffix, which silently produced 404s and
+// wrong-category images since Unsplash ignores unrecognized query params.
+// Each pool has 15 shots so, combined with a step of 4 per listing below
+// (gcd(4,15)=1), all 12 listings get a distinct 5-photo window with no two
+// listings sharing the exact same set.
 const CAR_PHOTOS = [
   'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=80',
   'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80',
@@ -12,72 +17,73 @@ const CAR_PHOTOS = [
   'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&q=80',
   'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?w=800&q=80',
   'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=800&q=80',
-  'https://images.unsplash.com/photo-1494905998402-395d579af36f?w=800&q=80',
-  'https://images.unsplash.com/photo-1511919884226-fd3cad34687c?w=800&q=80',
-  'https://images.unsplash.com/photo-1502877338535-766e1452684a?w=800&q=80',
-  'https://images.unsplash.com/photo-1542362567-b07e54358753?w=800&q=80',
-  'https://images.unsplash.com/photo-1568605117276-5aed155ccf7c?w=800&q=80',
-  'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=800&q=80',
-  'https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=800&q=80',
+  'https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=800&q=80',
+  'https://images.unsplash.com/photo-1605806678127-c5b0769d499f?w=800&q=80',
+  'https://images.unsplash.com/photo-1561299593-7633f311838a?w=800&q=80',
+  'https://images.unsplash.com/photo-1607500421926-218d0bbcda63?w=800&q=80',
+  'https://images.unsplash.com/photo-1758384076382-21f6587e1048?w=800&q=80',
+  'https://images.unsplash.com/photo-1748514338092-943ecca0cdc9?w=800&q=80',
+  'https://images.unsplash.com/photo-1755288348835-dc6c29852299?w=800&q=80',
 ];
 
-// Real interior shots (dashboard/seats/steering wheel), separate from the
-// exterior pool above, so the Interior tab shows genuine cabin photography
-// instead of reusing exterior shots.
+// Real interior/cabin shots (dashboard, steering wheel, seats, console) —
+// verified distinct from the exterior pool above.
 const INTERIOR_PHOTOS = [
-  'https://images.unsplash.com/photo-1583267746897-2cf415887172?w=800&q=80',
-  'https://images.unsplash.com/photo-1541348263662-e068662d82af?w=800&q=80',
-  'https://images.unsplash.com/photo-1544829099-b9a0c07fad1a?w=800&q=80',
-  'https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&q=80',
-  'https://images.unsplash.com/photo-1600661653561-629509216228?w=800&q=80',
-  'https://images.unsplash.com/photo-1619405399517-d7fce0f13302?w=800&q=80',
-  'https://images.unsplash.com/photo-1552519507-828c6c2f2b7e?w=800&q=80',
-  'https://images.unsplash.com/photo-1592853625597-7d17d8a5a541?w=800&q=80',
-  'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=800&q=80&i=1',
-  'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=80&i=1',
-  'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&q=80&i=1',
-  'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&q=80&i=1',
-  'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&q=80&i=1',
-  'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?w=800&q=80&i=1',
-  'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=80&i=1',
+  'https://images.unsplash.com/photo-1710866380940-7e0c7aa925b0?w=800&q=80',
+  'https://images.unsplash.com/photo-1736482582949-da714b927791?w=800&q=80',
+  'https://images.unsplash.com/photo-1696238670344-eb2e92114e81?w=800&q=80',
+  'https://images.unsplash.com/photo-1693164373231-8005638fcee1?w=800&q=80',
+  'https://images.unsplash.com/photo-1644091067090-4fde9574ffb0?w=800&q=80',
+  'https://images.unsplash.com/photo-1693324199178-eb6414b0a688?w=800&q=80',
+  'https://images.unsplash.com/photo-1713712150258-bf649a6cf0c5?w=800&q=80',
+  'https://images.unsplash.com/photo-1758228655476-6b51e2303a0e?w=800&q=80',
+  'https://images.unsplash.com/photo-1609842465593-c64fdfcd013c?w=800&q=80',
+  'https://images.unsplash.com/photo-1683907993207-7e0abe4f9009?w=800&q=80',
+  'https://images.unsplash.com/photo-1756239772779-79576e5ee78e?w=800&q=80',
+  'https://images.unsplash.com/photo-1652860316277-370ca5b1b1df?w=800&q=80',
+  'https://images.unsplash.com/photo-1654616112164-ab149ff8d612?w=800&q=80',
+  'https://images.unsplash.com/photo-1760161339261-56487b766a17?w=800&q=80',
+  'https://images.unsplash.com/photo-1736890316510-c2d6a1ca021c?w=800&q=80',
 ];
 
-// Close-up feature/detail shots (wheels, lights, badges) for the Key features tab.
+// Close-up feature/detail shots (wheels, headlights, badges, sensors) for the
+// Key features tab — real detail photography, not exterior shots relabeled.
 const FEATURE_PHOTOS = [
-  'https://images.unsplash.com/photo-1568605117276-5aed155ccf7c?w=800&q=80&f=1',
-  'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=800&q=80&f=1',
-  'https://images.unsplash.com/photo-1494905998402-395d579af36f?w=800&q=80&f=1',
-  'https://images.unsplash.com/photo-1517672651691-24622a91b550?w=800&q=80',
-  'https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=800&q=80&f=1',
-  'https://images.unsplash.com/photo-1622185135505-2d795003994a?w=800&q=80',
-  'https://images.unsplash.com/photo-1547038577-da80abbc4f19?w=800&q=80',
-  'https://images.unsplash.com/photo-1601362840469-51e4d8d58785?w=800&q=80',
-  'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?w=800&q=80&f=1',
-  'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&q=80&f=1',
-  'https://images.unsplash.com/photo-1511919884226-fd3cad34687c?w=800&q=80&f=1',
-  'https://images.unsplash.com/photo-1502877338535-766e1452684a?w=800&q=80&f=1',
-  'https://images.unsplash.com/photo-1542362567-b07e54358753?w=800&q=80&f=1',
-  'https://images.unsplash.com/photo-1583267746897-2cf415887172?w=800&q=80&f=1',
-  'https://images.unsplash.com/photo-1541348263662-e068662d82af?w=800&q=80&f=1',
+  'https://images.unsplash.com/photo-1761040100208-07f603acc83f?w=800&q=80',
+  'https://images.unsplash.com/photo-1759704823047-b7585ebc9485?w=800&q=80',
+  'https://images.unsplash.com/photo-1741366175071-3604c86ec475?w=800&q=80',
+  'https://images.unsplash.com/photo-1686343981730-9f9087c1b471?w=800&q=80',
+  'https://images.unsplash.com/photo-1738603160282-ed7183ab6ddc?w=800&q=80',
+  'https://images.unsplash.com/photo-1768341396286-a6322d588111?w=800&q=80',
+  'https://images.unsplash.com/photo-1749043140503-da3546679d54?w=800&q=80',
+  'https://images.unsplash.com/photo-1758901466605-05275864983f?w=800&q=80',
+  'https://images.unsplash.com/photo-1616867752721-6ed993d337be?w=800&q=80',
+  'https://images.unsplash.com/photo-1753030148904-16130157a3e5?w=800&q=80',
+  'https://images.unsplash.com/photo-1691706268935-79f076368283?w=800&q=80',
+  'https://images.unsplash.com/photo-1770834807387-820280f8270b?w=800&q=80',
+  'https://images.unsplash.com/photo-1759189901164-900e0afac895?w=800&q=80',
+  'https://images.unsplash.com/photo-1680961228986-6ace9aa02271?w=800&q=80',
+  'https://images.unsplash.com/photo-1533564567040-2667eb706318?w=800&q=80',
 ];
 
-// Side/door-profile shots for the Doors tab.
+// Side/door-profile shots for the Doors tab — real profile photography
+// showing the car's side and door lines, not a re-suffixed exterior shot.
 const DOOR_PHOTOS = [
-  'https://images.unsplash.com/photo-1502877338535-766e1452684a?w=800&q=80&d=1',
-  'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=800&q=80&d=1',
-  'https://images.unsplash.com/photo-1542362567-b07e54358753?w=800&q=80&d=1',
-  'https://images.unsplash.com/photo-1601362840469-51e4d8d58785?w=800&q=80&d=1',
-  'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=80&d=1',
-  'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80&d=1',
-  'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&q=80&d=1',
-  'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&q=80&d=1',
-  'https://images.unsplash.com/photo-1552519507-27fb0e0b6d9e?w=800&q=80',
-  'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=800&q=80&d=1',
-  'https://images.unsplash.com/photo-1568605117276-5aed155ccf7c?w=800&q=80&d=1',
-  'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=80&d=1',
-  'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80&d=2',
-  'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?w=800&q=80&d=1',
-  'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=800&q=80&d=2',
+  'https://images.unsplash.com/photo-1752959812835-ac52e704f777?w=800&q=80',
+  'https://images.unsplash.com/photo-1655903414934-360ad38e7c30?w=800&q=80',
+  'https://images.unsplash.com/photo-1665326278305-7415490e33a6?w=800&q=80',
+  'https://images.unsplash.com/photo-1736635929179-47f7ce422284?w=800&q=80',
+  'https://images.unsplash.com/photo-1685069165844-5e070b0afca0?w=800&q=80',
+  'https://images.unsplash.com/photo-1667551181687-e3eb9babf037?w=800&q=80',
+  'https://images.unsplash.com/photo-1748091677506-6d7147d3b688?w=800&q=80',
+  'https://images.unsplash.com/photo-1641326505400-8a86340ecc54?w=800&q=80',
+  'https://images.unsplash.com/photo-1714348938110-d3692bc3716a?w=800&q=80',
+  'https://images.unsplash.com/photo-1689917098288-43f8c7b139e1?w=800&q=80',
+  'https://images.unsplash.com/photo-1643860020708-09362894247d?w=800&q=80',
+  'https://images.unsplash.com/photo-1747188174987-0f0e184a92c4?w=800&q=80',
+  'https://images.unsplash.com/photo-1685783230651-fbc5382054e1?w=800&q=80',
+  'https://images.unsplash.com/photo-1547535503-2782c30eeb42?w=800&q=80',
+  'https://images.unsplash.com/photo-1650535517973-1139e7feb023?w=800&q=80',
 ];
 
 // Every listing below gets exactly 5 distinct photos per tab, sliced from a
