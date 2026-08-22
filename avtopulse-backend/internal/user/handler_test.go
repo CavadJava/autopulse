@@ -75,6 +75,36 @@ func (f *fakeUserRepo) AddProductImage(ctx context.Context, productID int64, min
 	return &ProductImage{ID: int64(sira + 1), MinioURL: minioURL, S3URL: s3URL, Sira: sira}, nil
 }
 
+func (f *fakeUserRepo) ListPendingProducts(ctx context.Context) ([]Product, error) {
+	out := []Product{}
+	for _, p := range f.products {
+		if p.Status == "gozlemede" {
+			out = append(out, p)
+		}
+	}
+	return out, nil
+}
+
+func (f *fakeUserRepo) ApproveProduct(ctx context.Context, productID int64) error {
+	p, ok := f.products[productID]
+	if !ok {
+		return ErrNotFound
+	}
+	p.Status = "saytda"
+	f.products[productID] = p
+	return nil
+}
+
+func (f *fakeUserRepo) RejectProduct(ctx context.Context, productID int64) error {
+	p, ok := f.products[productID]
+	if !ok {
+		return ErrNotFound
+	}
+	p.Status = "legv_edilib"
+	f.products[productID] = p
+	return nil
+}
+
 type fakeStorageClient struct{}
 
 func (f *fakeStorageClient) Upload(ctx context.Context, path string, data io.Reader, size int64, contentType string) (string, error) {

@@ -25,6 +25,7 @@ type Repository interface {
 	RestoreProduct(ctx context.Context, productID int64) error
 	GetImageProductID(ctx context.Context, imageID int64) (int64, error)
 	DeleteProductImage(ctx context.Context, imageID int64) error
+	ListAllProducts(ctx context.Context) ([]Product, error)
 }
 
 type pgRepository struct {
@@ -257,4 +258,40 @@ func (r *pgRepository) GetImageProductID(ctx context.Context, imageID int64) (in
 func (r *pgRepository) DeleteProductImage(ctx context.Context, imageID int64) error {
 	_, err := r.pool.Exec(ctx, `DELETE FROM avto444.shop_product_images WHERE id = $1`, imageID)
 	return err
+}
+
+func (r *pgRepository) ListAllProducts(ctx context.Context) ([]Product, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT id, name, title, COALESCE(details, ''),
+		        COALESCE(marka, ''), COALESCE(model, ''), COALESCE(il, 0),
+		        COALESCE(qiymet, 0), COALESCE(yurus, 0), COALESCE(yanacaq, ''), COALESCE(ban, ''), status
+		 FROM avto444.shop_products ORDER BY id`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []Product{}
+	for rows.Next() {
+		var p Product
+		if err := rows.Scan(&p.ID, &p.Name, &p.Title, &p.Details,
+			&p.Marka, &p.Model, &p.Il, &p.Qiymet, &p.Yurus, &p.Yanacaq, &p.Ban, &p.Status); err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	for i := range out {
+		images, err := r.listProductImages(ctx, out[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		out[i].Images = images
+	}
+
+	return out, nil
 }
