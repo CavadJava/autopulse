@@ -1,9 +1,9 @@
 .panel {
-  width: 300px;
+  width: 290px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  padding: var(--space-7);
+  padding: var(--space-6);
   height: fit-content;
   position: sticky;
   top: 92px;
@@ -37,7 +37,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-5);
 }
 
 .clearBtn {
@@ -85,14 +85,14 @@
 }
 
 .section {
-  border-bottom: 1px solid var(--border);
-  padding-bottom: var(--space-5);
-  margin-bottom: var(--space-5);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-3);
 }
 
 .section:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
   margin-bottom: 0;
 }
 
@@ -101,10 +101,10 @@
   background: transparent;
   color: var(--text-primary);
   border: none;
-  padding: var(--space-2) 0;
+  padding: 0;
   text-align: left;
   font-weight: 700;
-  font-size: 15px;
+  font-size: 14.5px;
   cursor: pointer;
   transition: color 0.15s ease;
   display: flex;
@@ -145,8 +145,10 @@
 .options {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
+  gap: 2px;
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
 }
 
 .option,
@@ -156,26 +158,25 @@
   gap: var(--space-3);
   width: 100%;
   text-align: left;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 500;
   color: var(--text-secondary);
-  background: var(--bg-elevated);
-  border: 1.5px solid transparent;
-  border-radius: var(--radius-md);
-  padding: 12px 14px;
-  transition: all 0.15s ease;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 9px 8px;
+  transition: all 0.12s ease;
 }
 
 .option:hover {
   box-shadow: none;
   transform: none;
-  border-color: var(--accent-medium);
+  background: var(--bg-primary);
   color: var(--text-primary);
 }
 
 .optionActive {
   background: var(--accent-soft);
-  border-color: var(--accent);
   color: var(--accent);
   font-weight: 700;
 }
@@ -183,20 +184,21 @@
 .optionActive:hover {
   box-shadow: none;
   transform: none;
+  background: var(--accent-soft);
 }
 
 .checkbox,
 .checkboxActive {
   flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
   border: 1.5px solid var(--border-strong);
   background: var(--bg-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   color: #fff;
 }
@@ -210,7 +212,9 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin-top: var(--space-4);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
 }
 
 .rangeSep {
@@ -221,11 +225,11 @@
 .rangeInputs input {
   flex: 1;
   min-width: 0;
-  padding: 12px 14px;
-  font-size: 14px;
-  background: var(--bg-elevated);
+  padding: 10px 12px;
+  font-size: 13.5px;
+  background: var(--bg-primary);
   border: 1.5px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   color: var(--text-primary);
 }
 
