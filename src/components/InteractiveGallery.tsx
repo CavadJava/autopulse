@@ -12,16 +12,25 @@ const TABS: { key: GalleryTab; label: string; icon: string }[] = [
 ];
 
 // Hotspot positions tuned to where those parts actually sit on a typical
-// 3/4-front car photo (like our mock shots): background/skyline off to the
-// sides, windshield/mirror upper-mid, wheel/rocker-panel lower, front bumper
-// centered low — instead of arbitrary evenly-spread percentages.
-const HOTSPOT_POSITIONS = [
+// 3/4-front exterior car photo (like our mock shots): background/skyline off
+// to the sides, windshield/A-pillar upper-mid, rear wheel/rocker lower,
+// front bumper centered low — instead of an arbitrary even grid.
+const EXTERIOR_HOTSPOTS = [
   { top: '62%', left: '8%' }, // background, driver's side
   { top: '18%', left: '46%' }, // skyline behind the roofline
   { top: '36%', left: '70%' }, // windshield / A-pillar
   { top: '61%', left: '84%' }, // rear wheel / rocker panel
   { top: '70%', left: '51%' }, // front bumper / grille
   { top: '26%', left: '16%' }, // background, passenger's side
+];
+
+// Interior shots are usually dash-forward, so hotspots cluster around the
+// steering wheel / dash / seats instead of spreading to the photo edges.
+const INTERIOR_HOTSPOTS = [
+  { top: '55%', left: '30%' }, // steering wheel
+  { top: '35%', left: '55%' }, // dashboard / infotainment
+  { top: '65%', left: '68%' }, // front seat
+  { top: '30%', left: '20%' }, // instrument cluster
 ];
 
 const MIN_ZOOM = 1;
@@ -45,10 +54,21 @@ export default function InteractiveGallery({ listing }: InteractiveGalleryProps)
   );
   const [dragging, setDragging] = useState(false);
 
-  const hotspots = listing.təchizat.slice(0, HOTSPOT_POSITIONS.length).map((label, idx) => ({
-    label,
-    ...HOTSPOT_POSITIONS[idx],
-  }));
+  const exteriorHotspots = listing.təchizat
+    .slice(0, EXTERIOR_HOTSPOTS.length)
+    .map((label, idx) => ({ label, ...EXTERIOR_HOTSPOTS[idx] }));
+
+  // Interior photo: prefer a second shot if the listing has one, otherwise
+  // reuse the primary shot rather than showing nothing.
+  const interiorImage = listing.şəkillər[1] ?? listing.şəkillər[0];
+  const interiorLabels = ['Sükan', 'Mərkəzi ekran', 'Ön oturacaq', 'Cihaz paneli'];
+  const interiorHotspots = interiorLabels
+    .slice(0, INTERIOR_HOTSPOTS.length)
+    .map((label, idx) => ({ label, ...INTERIOR_HOTSPOTS[idx] }));
+
+  const stageImage = activeTab === 'interior' ? interiorImage : listing.şəkillər[selectedImage];
+  const activeHotspots = activeTab === 'interior' ? interiorHotspots : exteriorHotspots;
+  const showHotspots = (activeTab === 'exterior' || activeTab === 'interior') && zoom === 1;
 
   const clampPan = (next: { x: number; y: number }, z: number) => {
     if (z <= 1 || !stageRef.current) return { x: 0, y: 0 };
@@ -63,6 +83,13 @@ export default function InteractiveGallery({ listing }: InteractiveGalleryProps)
 
   const selectImage = (idx: number) => {
     setSelectedImage(idx);
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+
+  const selectTab = (tab: GalleryTab) => {
+    setActiveTab(tab);
+    setActiveHotspot(null);
     setZoom(1);
     setPan({ x: 0, y: 0 });
   };
@@ -104,71 +131,101 @@ export default function InteractiveGallery({ listing }: InteractiveGalleryProps)
 
   return (
     <div className={styles.gallery}>
-      <div
-        ref={stageRef}
-        className={styles.stage}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={endDrag}
-        onMouseLeave={endDrag}
-      >
-        <img
-          src={listing.şəkillər[selectedImage]}
-          alt={`${listing.marka} ${listing.model}`}
-          className={dragging ? styles.dragging : undefined}
-          style={{
-            transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
-            cursor: zoom > 1 ? (dragging ? 'grabbing' : 'grab') : 'default',
-          }}
-          draggable={false}
-        />
+      {(activeTab === 'exterior' || activeTab === 'interior') && (
+        <div
+          ref={stageRef}
+          className={styles.stage}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={endDrag}
+          onMouseLeave={endDrag}
+        >
+          <img
+            src={stageImage}
+            alt={`${listing.marka} ${listing.model} — ${activeTab === 'interior' ? 'interior' : 'exterior'}`}
+            className={dragging ? styles.dragging : undefined}
+            style={{
+              transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+              cursor: zoom > 1 ? (dragging ? 'grabbing' : 'grab') : 'default',
+            }}
+            draggable={false}
+          />
 
-        {activeTab === 'exterior' &&
-          zoom === 1 &&
-          hotspots.map((h, idx) => (
+          {showHotspots &&
+            activeHotspots.map((h, idx) => (
+              <button
+                key={h.label}
+                type="button"
+                className={`${styles.hotspot} ${activeHotspot === idx ? styles.hotspotActive : ''}`}
+                style={{ top: h.top, left: h.left }}
+                onClick={() => setActiveHotspot(activeHotspot === idx ? null : idx)}
+              >
+                <span className={styles.hotspotDot} />
+                {activeHotspot === idx && <span className={styles.hotspotLabel}>{h.label}</span>}
+              </button>
+            ))}
+
+          <div className={styles.zoomControls}>
             <button
-              key={h.label}
               type="button"
-              className={`${styles.hotspot} ${activeHotspot === idx ? styles.hotspotActive : ''}`}
-              style={{ top: h.top, left: h.left }}
-              onClick={() => setActiveHotspot(activeHotspot === idx ? null : idx)}
+              aria-label="Yaxınlaşdır"
+              onClick={zoomIn}
+              disabled={zoom >= MAX_ZOOM}
             >
-              <span className={styles.hotspotDot} />
-              {activeHotspot === idx && <span className={styles.hotspotLabel}>{h.label}</span>}
+              +
             </button>
-          ))}
+            <button
+              type="button"
+              aria-label="Uzaqlaşdır"
+              onClick={zoomOut}
+              disabled={zoom <= MIN_ZOOM}
+            >
+              −
+            </button>
+          </div>
 
-        <div className={styles.zoomControls}>
-          <button
-            type="button"
-            aria-label="Yaxınlaşdır"
-            onClick={zoomIn}
-            disabled={zoom >= MAX_ZOOM}
-          >
-            +
-          </button>
-          <button
-            type="button"
-            aria-label="Uzaqlaşdır"
-            onClick={zoomOut}
-            disabled={zoom <= MIN_ZOOM}
-          >
-            −
-          </button>
+          {zoom > 1 && <div className={styles.zoomBadge}>{Math.round(zoom * 100)}%</div>}
         </div>
+      )}
 
-        {zoom > 1 && <div className={styles.zoomBadge}>{Math.round(zoom * 100)}%</div>}
-      </div>
+      {activeTab === 'features' && (
+        <div className={styles.featuresPanel}>
+          {listing.təchizat.length > 0 ? (
+            <div className={styles.featuresGrid}>
+              {listing.təchizat.map((item) => (
+                <span key={item} className={styles.featurePill}>
+                  ✓ {item}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className={styles.featuresEmpty}>Əlavə təchizat qeyd olunmayıb.</p>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'doors' && (
+        <div className={styles.doorsPanel}>
+          <div className={styles.doorsCar}>
+            <div className={styles.doorsRoof} />
+            {Array.from({ length: listing.yerlərSayı >= 5 ? 4 : 2 }).map((_, idx) => (
+              <div key={idx} className={styles.doorSlot}>
+                <span className={styles.doorIcon}>🚪</span>
+              </div>
+            ))}
+          </div>
+          <p className={styles.doorsCaption}>
+            {listing.yerlərSayı >= 5 ? '4 qapı' : '2 qapı'} · {listing.yerlərSayı} yerlik
+          </p>
+        </div>
+      )}
 
       <div className={styles.tabRow}>
         {TABS.map((tab) => (
           <button
             key={tab.key}
             className={activeTab === tab.key ? styles.tabActive : styles.tab}
-            onClick={() => {
-              setActiveTab(tab.key);
-              setActiveHotspot(null);
-            }}
+            onClick={() => selectTab(tab.key)}
           >
             {tab.icon} {tab.label}
           </button>
@@ -180,8 +237,11 @@ export default function InteractiveGallery({ listing }: InteractiveGalleryProps)
           <button
             key={idx}
             type="button"
-            className={selectedImage === idx ? styles.thumbActive : styles.thumb}
-            onClick={() => selectImage(idx)}
+            className={selectedImage === idx && activeTab === 'exterior' ? styles.thumbActive : styles.thumb}
+            onClick={() => {
+              selectImage(idx);
+              if (activeTab !== 'exterior') selectTab('exterior');
+            }}
           >
             <img src={img} alt={`Şəkil ${idx + 1}`} />
             {idx === listing.şəkillər.length - 1 && (
