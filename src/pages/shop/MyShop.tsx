@@ -9,6 +9,7 @@ import {
   updateShopProduct,
   deleteShopProduct,
   deleteProductImage,
+  restoreShopProduct,
   ShopUnauthorizedError,
 } from '../../api/shop';
 import type { ShopProduct } from '../../api/shop';
@@ -54,6 +55,8 @@ export default function MyShop() {
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<'hamisi' | 'saytda' | 'legv_edilib'>('hamisi');
+  const [restoringProductId, setRestoringProductId] = useState<number | null>(null);
 
   const loadProducts = async () => {
     setLoading(true);
@@ -228,6 +231,22 @@ export default function MyShop() {
     }
   };
 
+  const handleRestoreProduct = async (productId: number) => {
+    setRestoringProductId(productId);
+    try {
+      await restoreShopProduct(productId);
+      await loadProducts();
+    } catch (err) {
+      if (err instanceof ShopUnauthorizedError) {
+        navigate('/magaza-giris');
+        return;
+      }
+      setNotice('Məhsul bərpa edilərkən xəta baş verdi.');
+    } finally {
+      setRestoringProductId(null);
+    }
+  };
+
   const handleDeleteImage = async (productId: number, imageId: number) => {
     try {
       await deleteProductImage(productId, imageId);
@@ -259,6 +278,11 @@ export default function MyShop() {
       setLogoUploading(false);
     }
   };
+
+  const visibleProducts = products.filter((product) => {
+    if (activeTab === 'hamisi') return true;
+    return product.status === activeTab;
+  });
 
   if (loading) {
     return (
@@ -379,15 +403,36 @@ export default function MyShop() {
         </form>
       )}
 
+      <div className={styles.tabBar}>
+        <button
+          className={activeTab === 'hamisi' ? styles.tabActive : styles.tab}
+          onClick={() => setActiveTab('hamisi')}
+        >
+          Bütün elanlar ({products.length})
+        </button>
+        <button
+          className={activeTab === 'saytda' ? styles.tabActive : styles.tab}
+          onClick={() => setActiveTab('saytda')}
+        >
+          Saytda ({products.filter((p) => p.status === 'saytda').length})
+        </button>
+        <button
+          className={activeTab === 'legv_edilib' ? styles.tabActive : styles.tab}
+          onClick={() => setActiveTab('legv_edilib')}
+        >
+          Ləğv edilib ({products.filter((p) => p.status === 'legv_edilib').length})
+        </button>
+      </div>
+
       {error && <p className={styles.status}>{error}</p>}
 
-      {!error && products.length === 0 && (
-        <p className={styles.status}>Hələ heç bir məhsulunuz yoxdur.</p>
+      {!error && visibleProducts.length === 0 && (
+        <p className={styles.status}>Bu bölmədə heç bir məhsul yoxdur.</p>
       )}
 
-      {!error && products.length > 0 && (
+      {!error && visibleProducts.length > 0 && (
         <div className={styles.grid}>
-          {products.map((product) => (
+          {visibleProducts.map((product) => (
             <div key={product.id} className={styles.productCard}>
               {editingProductId === product.id ? (
                 <form onSubmit={handleUpdateProduct} className={styles.form}>
@@ -509,17 +554,30 @@ export default function MyShop() {
                   )}
                   <div className={styles.productTitle}>{product.title}</div>
                   {product.details && <div className={styles.productDetails}>{product.details}</div>}
+                  {product.status === 'legv_edilib' && (
+                    <div className={styles.statusBadge}>Ləğv edilib</div>
+                  )}
                   <div className={styles.productActions}>
                     <button className={styles.editBtn} onClick={() => startEdit(product)}>
                       ✎ Redaktə et
                     </button>
-                    <button
-                      className={styles.deleteBtn}
-                      onClick={() => handleDeleteProduct(product.id)}
-                      disabled={deletingProductId === product.id}
-                    >
-                      {deletingProductId === product.id ? 'Silinir...' : '🗑 Sil'}
-                    </button>
+                    {product.status === 'legv_edilib' ? (
+                      <button
+                        className={styles.restoreBtn}
+                        onClick={() => handleRestoreProduct(product.id)}
+                        disabled={restoringProductId === product.id}
+                      >
+                        {restoringProductId === product.id ? 'Bərpa olunur...' : '↺ Bərpa et'}
+                      </button>
+                    ) : (
+                      <button
+                        className={styles.deleteBtn}
+                        onClick={() => handleDeleteProduct(product.id)}
+                        disabled={deletingProductId === product.id}
+                      >
+                        {deletingProductId === product.id ? 'Silinir...' : '🗑 Sil'}
+                      </button>
+                    )}
                   </div>
                 </>
               )}
