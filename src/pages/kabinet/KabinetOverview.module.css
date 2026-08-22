@@ -1,7 +1,97 @@
-.title {
-  font-size: 22px;
+.sectionTitle {
+  font-size: 15px;
   font-weight: 700;
-  margin-bottom: var(--space-6);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--space-5);
+}
+
+/* ===== Hero ===== */
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  background: linear-gradient(120deg, var(--accent-soft), var(--bg-secondary) 60%);
+  border: 1px solid var(--accent-medium);
+  border-radius: var(--radius-xl);
+  padding: var(--space-7);
+  margin-bottom: var(--space-8);
+  flex-wrap: wrap;
+}
+
+.heroLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.avatar {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-medium));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 800;
+  font-family: var(--font-display);
+  box-shadow: 0 6px 18px var(--accent-soft);
+}
+
+.heroGreeting {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.heroName {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  margin: 2px 0 var(--space-3);
+}
+
+.heroMeta {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.planBadge,
+.planBadgePlan {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 100px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.planBadgePlan {
+  background: var(--gold-soft);
+  border-color: var(--gold-solidish);
+  color: var(--gold);
+}
+
+.newListingBtn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  font-size: 14px;
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+}
+
+.newListingBtn:hover {
+  box-shadow: 0 8px 22px var(--accent-soft);
+  transform: translateY(-1px);
 }
 
 .statsGrid {
@@ -12,9 +102,28 @@
 }
 
 .statCard {
+  position: relative;
   border-radius: var(--radius-lg);
   padding: var(--space-6);
   color: var(--text-primary);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.statGlow {
+  position: absolute;
+  top: -40%;
+  right: -20%;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--accent-soft), transparent 70%);
+  pointer-events: none;
 }
 
 .balanceCard {
@@ -48,6 +157,12 @@
   font-family: var(--font-display);
   font-size: 26px;
   font-weight: 700;
+}
+
+.currency {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .topUpBtn {
@@ -86,6 +201,51 @@
   margin-top: 2px;
 }
 
+/* ===== Quota ===== */
+.quotaCard {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  margin-bottom: var(--space-8);
+}
+
+.quotaHeader {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.quotaFraction {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.quotaBar {
+  height: 8px;
+  border-radius: 100px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.quotaBarFill {
+  height: 100%;
+  border-radius: 100px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-medium));
+  transition: width 0.4s ease;
+}
+
+.quotaHint {
+  margin-top: var(--space-3);
+  font-size: 12.5px;
+  color: var(--gold);
+  font-weight: 600;
+}
+
 .historySection h2 {
   font-size: 16px;
   font-weight: 700;
@@ -94,19 +254,26 @@
   border-bottom: 1px solid var(--border);
 }
 
-.empty {
+.emptyState {
   text-align: center;
+  padding: var(--space-10) 0;
+}
+
+.emptyIcon {
+  font-size: 40px;
+  margin-bottom: var(--space-4);
+  opacity: 0.8;
+}
+
+.empty {
   font-size: 15px;
   color: var(--text-primary);
-  margin-top: var(--space-10);
 }
 
 .emptySub {
-  text-align: center;
   font-size: 13px;
   color: var(--text-secondary);
   margin-top: var(--space-1);
-  margin-bottom: var(--space-10);
 }
 
 .modalOverlay {
@@ -213,5 +380,14 @@
 @media (max-width: 900px) {
   .statsGrid {
     grid-template-columns: 1fr;
+  }
+
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .newListingBtn {
+    width: 100%;
   }
 }

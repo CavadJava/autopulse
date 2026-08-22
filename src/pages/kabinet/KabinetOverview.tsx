@@ -6,6 +6,19 @@ import styles from './KabinetOverview.module.css';
 
 const TOPUP_PRESETS = [12, 20, 50];
 
+const PLAN_LABEL: Record<string, string> = {
+  free: 'Pulsuz',
+  business: 'Biznes',
+};
+
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 6) return 'Gecəniz xeyrə qalsın';
+  if (h < 12) return 'Sabahınız xeyir';
+  if (h < 18) return 'Gününüz xeyir';
+  return 'Axşamınız xeyir';
+}
+
 export default function KabinetOverview() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
@@ -26,15 +39,42 @@ export default function KabinetOverview() {
     }
   };
 
+  const initial = user.ad?.trim().charAt(0).toUpperCase() || 'A';
+  const quotaUsed = Math.min(user.elanlarSayı, user.məhdudiyyət);
+  const quotaPct = user.məhdudiyyət > 0 ? Math.round((quotaUsed / user.məhdudiyyət) * 100) : 0;
+
   return (
     <div>
-      <h1 className={styles.title}>Ümumi statistika</h1>
+      {/* Hero */}
+      <div className={styles.hero}>
+        <div className={styles.heroLeft}>
+          <div className={styles.avatar}>{initial}</div>
+          <div>
+            <div className={styles.heroGreeting}>{greeting()},</div>
+            <h1 className={styles.heroName}>{user.ad}</h1>
+            <div className={styles.heroMeta}>
+              <span className={styles.planBadge}>
+                {user.hesabTipi === 'biznes' ? '🏢' : '👤'} {user.hesabTipi === 'biznes' ? 'Biznes hesab' : 'Fərdi hesab'}
+              </span>
+              <span className={styles.planBadgePlan}>
+                ✨ {PLAN_LABEL[user.subscriptionPlan] ?? user.subscriptionPlan} plan
+              </span>
+            </div>
+          </div>
+        </div>
+        <button className={styles.newListingBtn} onClick={() => navigate('/elan-ver')}>
+          + Yeni elan yerləşdir
+        </button>
+      </div>
+
+      <h2 className={styles.sectionTitle}>Ümumi statistika</h2>
 
       <div className={styles.statsGrid}>
         <div className={`${styles.statCard} ${styles.balanceCard}`}>
-          <div className={styles.statLabel}>Şəxsi hesab</div>
+          <div className={styles.statGlow} />
+          <div className={styles.statLabel}>💰 Şəxsi hesab</div>
           <div className={styles.balanceRow}>
-            <div className={styles.balanceValue}>{user.balans.toFixed(2)} AZN</div>
+            <div className={styles.balanceValue}>{user.balans.toFixed(2)} <span className={styles.currency}>AZN</span></div>
             <button className={styles.topUpBtn} onClick={() => setModalOpen(true)}>
               Artır
             </button>
@@ -42,7 +82,8 @@ export default function KabinetOverview() {
         </div>
 
         <div className={`${styles.statCard} ${styles.paidCard}`}>
-          <div className={styles.statLabel}>Ödənişli elan balansı</div>
+          <div className={styles.statGlow} />
+          <div className={styles.statLabel}>🚀 Ödənişli elan balansı</div>
           <div className={styles.balanceRow}>
             <div className={styles.balanceValue}>0</div>
             <button className={styles.placeAdBtn} onClick={() => navigate('/qiymetler')}>
@@ -52,7 +93,7 @@ export default function KabinetOverview() {
         </div>
 
         <div className={`${styles.statCard} ${styles.summaryCard}`}>
-          <div className={styles.statLabel}>Elanların statistikası</div>
+          <div className={styles.statLabel}>📈 Elanların statistikası</div>
           <div className={styles.summaryGrid}>
             <div>
               <div className={styles.summaryValue}>{user.elanlarSayı}</div>
@@ -70,10 +111,31 @@ export default function KabinetOverview() {
         </div>
       </div>
 
+      {/* Quota */}
+      <div className={styles.quotaCard}>
+        <div className={styles.quotaHeader}>
+          <span>Aktiv elan limiti</span>
+          <span className={styles.quotaFraction}>
+            {quotaUsed} / {user.məhdudiyyət}
+          </span>
+        </div>
+        <div className={styles.quotaBar}>
+          <div className={styles.quotaBarFill} style={{ width: `${quotaPct}%` }} />
+        </div>
+        {quotaPct >= 80 && (
+          <p className={styles.quotaHint}>
+            Limitiniz dolmaq üzrədir — daha çox elan yerləşdirmək üçün planınızı yüksəldin.
+          </p>
+        )}
+      </div>
+
       <section className={styles.historySection}>
         <h2>Əməliyyat tarixçəsi</h2>
-        <p className={styles.empty}>Hal hazırda sizin əməliyyatınız yoxdur.</p>
-        <p className={styles.emptySub}>Burda sizin ödəniş tarixçəniz göstəriləcək.</p>
+        <div className={styles.emptyState}>
+          <div className={styles.emptyIcon}>🧾</div>
+          <p className={styles.empty}>Hal hazırda sizin əməliyyatınız yoxdur.</p>
+          <p className={styles.emptySub}>Burda sizin ödəniş tarixçəniz göstəriləcək.</p>
+        </div>
       </section>
 
       {modalOpen && (
