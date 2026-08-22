@@ -58,7 +58,11 @@ export default function ShopFront() {
   return (
     <div className={styles.page}>
       <div className={styles.hero}>
-        <div className={styles.heroIcon}>🏪</div>
+        {shop.logoUrl ? (
+          <img src={shop.logoUrl} alt={shop.title} className={styles.heroLogo} />
+        ) : (
+          <div className={styles.heroIcon}>🏪</div>
+        )}
         <div>
           <h1 className={styles.title}>{shop.title}</h1>
           <p className={styles.name}>@{shop.name}</p>
@@ -82,6 +86,13 @@ export default function ShopFront() {
         <div className={styles.grid}>
           {products.map((product) => (
             <div key={product.id} className={styles.productCard}>
+              {product.images?.[0] && (
+                <img
+                  src={product.images[0].url}
+                  alt={product.title}
+                  className={styles.productImage}
+                />
+              )}
               <div className={styles.productTitle}>{product.title}</div>
               {product.details && <div className={styles.productDetails}>{product.details}</div>}
             </div>
