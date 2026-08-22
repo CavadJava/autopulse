@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/CavadJava/avtopulse-backend/internal/shop"
@@ -42,6 +43,10 @@ func NewHandler(shopRepo shop.Repository, sessions SessionStore) http.Handler {
 		}
 
 		hash, err := shopRepo.GetPasswordHash(req.Context(), s.ID)
+		if errors.Is(err, shop.ErrNotFound) {
+			http.Error(w, "invalid name or password", http.StatusUnauthorized)
+			return
+		}
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
@@ -91,7 +96,11 @@ func NewHandler(shopRepo shop.Repository, sessions SessionStore) http.Handler {
 	r.Post("/logout", func(w http.ResponseWriter, req *http.Request) {
 		cookie, err := req.Cookie(cookieName)
 		if err == nil {
-			sessions.Delete(req.Context(), cookie.Value)
+			if delErr := sessions.Delete(req.Context(), cookie.Value); delErr != nil {
+				log.Printf("auth: failed to delete session: %v", delErr)
+				http.Error(w, "internal error", http.StatusInternalServerError)
+				return
+			}
 		}
 		http.SetCookie(w, &http.Cookie{
 			Name:     cookieName,
