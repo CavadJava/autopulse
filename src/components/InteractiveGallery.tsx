@@ -79,6 +79,18 @@ export default function InteractiveGallery({ listing }: InteractiveGalleryProps)
   const photoCount = listing.şəkillər.length;
   const showNavArrows = activeTab === 'exterior' && photoCount > 1 && !spinMode;
 
+  // Per-tab thumbnail strips. There's no dedicated interior/features/doors
+  // photo set in the mock data, so each tab reuses the listing's own photos
+  // in a different order/offset — enough to make each tab feel like it has
+  // its own gallery instead of literally the same strip everywhere.
+  const thumbnailsByTab: Record<GalleryTab, string[]> = {
+    exterior: listing.şəkillər,
+    interior: [...listing.şəkillər].reverse(),
+    features: listing.şəkillər.length > 1 ? [listing.şəkillər[1], ...listing.şəkillər] : listing.şəkillər,
+    doors: listing.şəkillər,
+  };
+  const activeThumbnails = thumbnailsByTab[activeTab];
+
   const clampPan = (next: { x: number; y: number }, z: number) => {
     if (z <= 1 || !stageRef.current) return { x: 0, y: 0 };
     const { width, height } = stageRef.current.getBoundingClientRect();
@@ -315,24 +327,32 @@ export default function InteractiveGallery({ listing }: InteractiveGalleryProps)
       </div>
 
       <div className={styles.thumbnails}>
-        {listing.şəkillər.map((img, idx) => (
-          <button
-            key={idx}
-            type="button"
-            className={selectedImage === idx && activeTab === 'exterior' ? styles.thumbActive : styles.thumb}
-            onClick={() => {
-              selectImage(idx);
-              if (activeTab !== 'exterior') selectTab('exterior');
-            }}
-          >
-            <img src={img} alt={`Şəkil ${idx + 1}`} />
-            {idx === listing.şəkillər.length - 1 && (
-              <span className={styles.photoCountBadge}>
-                🖼 {listing.şəkillər.length} şəkil
-              </span>
-            )}
-          </button>
-        ))}
+        {activeThumbnails.map((img, idx) => {
+          const originalIdx = listing.şəkillər.indexOf(img);
+          const isActive = activeTab === 'exterior' && selectedImage === originalIdx;
+          return (
+            <button
+              key={`${activeTab}-${idx}`}
+              type="button"
+              className={isActive ? styles.thumbActive : styles.thumb}
+              onClick={() => {
+                if (activeTab === 'exterior') {
+                  selectImage(originalIdx);
+                } else {
+                  selectTab('exterior');
+                  selectImage(originalIdx);
+                }
+              }}
+            >
+              <img src={img} alt={`Şəkil ${idx + 1}`} />
+              {idx === activeThumbnails.length - 1 && (
+                <span className={styles.photoCountBadge}>
+                  🖼 {activeThumbnails.length} şəkil
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
