@@ -40,6 +40,7 @@ export interface ShopProduct {
   yurus: number;
   yanacaq: string;
   ban: string;
+  status: string;
   images: ProductImage[];
 }
 
@@ -212,6 +213,22 @@ export async function deleteShopProduct(id: number): Promise<void> {
   }
   if (!res.ok) {
     throw new Error(`deleteShopProduct failed: ${res.status}`);
+  }
+}
+
+export async function restoreShopProduct(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/shops/me/products/${id}/restore`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  if (res.status === 401) {
+    throw new ShopUnauthorizedError('Not logged in');
+  }
+  if (res.status === 404) {
+    throw new ShopNotFoundError(`Product not found: ${id}`);
+  }
+  if (!res.ok) {
+    throw new Error(`restoreShopProduct failed: ${res.status}`);
   }
 }
 

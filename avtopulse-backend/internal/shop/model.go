@@ -35,6 +35,7 @@ type Product struct {
 	Yurus   int    `json:"yurus"`
 	Yanacaq string `json:"yanacaq"`
 	Ban     string `json:"ban"`
+	Status  string `json:"status"`
 
 	Images []ProductImage `json:"images"`
 }

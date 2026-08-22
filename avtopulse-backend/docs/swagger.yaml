@@ -80,6 +80,8 @@ definitions:
         type: string
       qiymet:
         type: integer
+      status:
+        type: string
       title:
         type: string
       yanacaq:
@@ -522,6 +524,44 @@ paths:
           schema:
             type: string
       summary: Delete a single image from a product owned by the logged-in shop
+      tags:
+      - auth
+  /me/products/{id}/restore:
+    post:
+      description: Requires a valid shop_session cookie. The product must belong to
+        the authenticated shop.
+      parameters:
+      - description: Product id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: invalid product id
+          schema:
+            type: string
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "404":
+          description: product not found or not owned by this shop
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Restore a cancelled (ləğv edilib) product back to saytda
       tags:
       - auth
 swagger: "2.0"
