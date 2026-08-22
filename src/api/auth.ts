@@ -79,46 +79,47 @@ export async function loginBusiness(payload: BusinessLoginPayload): Promise<User
   return buildBiznesUser(payload);
 }
 
-const mockUserListingsByAccount: Record<AccountKind, UserListing[]> = {
-  fərdi: [
-    {
-      id: 'ul-1',
-      listingId: '1',
-      başlıq: 'BMW 5 Series, 2021',
-      qiymət: 42500,
-      şəkil: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=400&q=80',
-      status: 'saytda',
-      tarix: '2026-08-17T21:12:00Z',
-      vipTier: 'standart',
-    },
-    {
-      id: 'ul-2',
-      listingId: '2',
-      başlıq: 'Mercedes E200, 2020',
-      qiymət: 51000,
-      şəkil: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400&q=80',
-      status: 'imtina_olunub',
-      tarix: '2026-08-04T15:53:00Z',
-      vipTier: 'standart',
-    },
-  ],
-  biznes: [
-    {
-      id: 'ul-3',
-      listingId: '5',
-      başlıq: 'Audi A6, 2022',
-      qiymət: 68000,
-      şəkil: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=400&q=80',
-      status: 'saytda',
-      tarix: '2026-08-16T08:00:00Z',
-      vipTier: 'premium_vip',
-    },
-  ],
-};
+// A physical person (fərdi) is the same underlying user regardless of which
+// account mode they're currently viewing the site in — a biznes account is
+// still that person, so "Mənim elanlarım" shows every elan they own, not a
+// split-by-account-type subset. All mock elanlar therefore live in one
+// shared list, independent of AccountKind.
+const mockUserListings: UserListing[] = [
+  {
+    id: 'ul-1',
+    listingId: '1',
+    başlıq: 'BMW 5 Series, 2021',
+    qiymət: 42500,
+    şəkil: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=400&q=80',
+    status: 'saytda',
+    tarix: '2026-08-17T21:12:00Z',
+    vipTier: 'standart',
+  },
+  {
+    id: 'ul-2',
+    listingId: '2',
+    başlıq: 'Mercedes E200, 2020',
+    qiymət: 51000,
+    şəkil: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400&q=80',
+    status: 'imtina_olunub',
+    tarix: '2026-08-04T15:53:00Z',
+    vipTier: 'standart',
+  },
+  {
+    id: 'ul-3',
+    listingId: '5',
+    başlıq: 'Audi A6, 2022',
+    qiymət: 68000,
+    şəkil: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=400&q=80',
+    status: 'saytda',
+    tarix: '2026-08-16T08:00:00Z',
+    vipTier: 'premium_vip',
+  },
+];
 
-export async function getMyListings(hesabTipi: AccountKind): Promise<UserListing[]> {
+export async function getMyListings(_hesabTipi: AccountKind): Promise<UserListing[]> {
   await new Promise((resolve) => setTimeout(resolve, 300));
-  return mockUserListingsByAccount[hesabTipi];
+  return mockUserListings;
 }
 
 export async function getMyCards(): Promise<SavedCard[]> {
@@ -135,20 +136,19 @@ export async function topUpBalance(_amount: number): Promise<{ success: true }> 
 // new tier badge sticks for the rest of the session. Balance itself is deducted by
 // the caller via AuthContext (single source of truth for the logged-in user object).
 export async function promoteListing(
-  hesabTipi: AccountKind,
+  _hesabTipi: AccountKind,
   listingId: string,
   tier: PromoTier
 ): Promise<UserListing> {
   await new Promise((resolve) => setTimeout(resolve, 600));
-  const listings = mockUserListingsByAccount[hesabTipi];
-  const idx = listings.findIndex((l) => l.listingId === listingId);
+  const idx = mockUserListings.findIndex((l) => l.listingId === listingId);
   if (idx === -1) {
     throw new Error('Elan tapılmadı.');
   }
   const nextVipTier = promoTierToVipTier(tier);
-  listings[idx] = { ...listings[idx], vipTier: nextVipTier };
+  mockUserListings[idx] = { ...mockUserListings[idx], vipTier: nextVipTier };
   await updateListing(listingId, { vipTier: nextVipTier }).catch(() => {
     // Listing may not exist in mockListings (e.g. seeded only as a UserListing) — non-fatal.
   });
-  return listings[idx];
+  return mockUserListings[idx];
 }
