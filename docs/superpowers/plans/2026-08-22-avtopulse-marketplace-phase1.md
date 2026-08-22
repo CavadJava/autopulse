@@ -19,6 +19,7 @@
 - Passwords are stored as bcrypt hashes only — never plaintext.
 - Product CRUD UI, real production-grade auth hardening (refresh tokens, rate limiting), multi-user-per-shop permissions, and shop self-signup are explicitly OUT of scope for this phase — do not build them.
 - Frontend must not touch or modify any existing mock-data marketplace code (`/elanlar`, `/elan-ver`, `src/api/mockData/*`, etc.) — the shop feature is a fully parallel, additive layer.
+- The existing AutoPulse user login (`src/context/AuthContext.tsx`, `/giris`, `/giris/kod`) MUST NOT be touched or modified in any way. Shop login (`/magaza-giris`, `/magazam`) is a completely separate, additive flow that a regular AutoPulse user never has to go through and that never calls into `AuthContext`. Only the frontend (never the regular signed-in user's own session/token) talks to the Go backend, and only from the new `src/api/shop.ts`/`src/pages/shop/*` files — no existing page or component gains a new dependency on the Go backend.
 - Every backend task must end with `go build ./...` and `go test ./...` passing. Every frontend task must end with `npx tsc --noEmit` and `npm run build` passing, plus the standing corruption scan (`grep -rn 'Ɛ\|Ɔ'` across touched files) before any commit, per this project's established practice.
 - Follow the existing AutoPulse deploy workflow for the frontend half: `git commit` → `git push origin main` → `bash deploy/deploy.sh` from `/Users/frontend/workspace/me-github/autopulse`, then a live `curl` verification.
 
