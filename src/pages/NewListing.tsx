@@ -954,11 +954,11 @@ export default function NewListing() {
               ))}
             </div>
             {isLastStep ? (
-              <button type="submit" className={styles.navNextBtn} disabled={!canGoNext || saving}>
+              <button type="submit" className={styles.navNextBtn} disabled={saving}>
                 {saving ? 'Yadda saxlanılır...' : isEditMode ? 'Dəyişiklikləri yadda saxla' : 'Elan yerləşdir'}
               </button>
             ) : (
-              <button type="button" className={styles.navNextBtn} onClick={goNext} disabled={!canGoNext}>
+              <button type="button" className={styles.navNextBtn} onClick={goNext}>
                 İrəli ›
               </button>
             )}
