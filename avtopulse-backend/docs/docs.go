@@ -201,10 +201,11 @@ const docTemplate = `{
         },
         "/logout": {
             "post": {
+                "description": "Deletes the server-side session and clears the shop_session cookie. Returns 500 (and leaves the cookie/session intact) if server-side deletion fails.",
                 "tags": [
-                    "user"
+                    "auth"
                 ],
-                "summary": "Log out the current user session",
+                "summary": "Log out the current shop session",
                 "responses": {
                     "200": {
                         "description": "ok",
@@ -276,21 +277,21 @@ const docTemplate = `{
         },
         "/me/products": {
             "get": {
-                "description": "Requires a valid user_session cookie.",
+                "description": "Requires a valid shop_session cookie (set by /login).",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "user"
+                    "auth"
                 ],
-                "summary": "List the logged-in user's own listings, any status",
+                "summary": "List the logged-in shop's own products",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/user.Product"
+                                "$ref": "#/definitions/shop.Product"
                             }
                         }
                     },
@@ -309,7 +310,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Requires a valid user_session cookie. New listings start in 'gozlemede' (pending moderation).",
+                "description": "Requires a valid shop_session cookie. Creates a shop_products row owned by the authenticated shop.",
                 "consumes": [
                     "application/json"
                 ],
@@ -317,17 +318,17 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "user"
+                    "auth"
                 ],
-                "summary": "Create a new listing for the logged-in user",
+                "summary": "Create a new product for the logged-in shop",
                 "parameters": [
                     {
-                        "description": "New listing details",
+                        "description": "New product details",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/user.createProductRequest"
+                            "$ref": "#/definitions/auth.createProductRequest"
                         }
                     }
                 ],
@@ -335,7 +336,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/user.Product"
+                            "$ref": "#/definitions/shop.Product"
                         }
                     },
                     "400": {
@@ -361,7 +362,7 @@ const docTemplate = `{
         },
         "/me/products/{id}": {
             "put": {
-                "description": "Requires a valid user_session cookie. The listing must belong to the authenticated user. Editing a legv_edilib listing sends it back to gozlemede for re-moderation.",
+                "description": "Requires a valid shop_session cookie. The product must belong to the authenticated shop.",
                 "consumes": [
                     "application/json"
                 ],
@@ -369,9 +370,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "user"
+                    "auth"
                 ],
-                "summary": "Update a listing owned by the logged-in user",
+                "summary": "Update an existing product owned by the logged-in shop",
                 "parameters": [
                     {
                         "type": "integer",
@@ -381,12 +382,12 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Updated listing details",
+                        "description": "Updated product details",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/user.createProductRequest"
+                            "$ref": "#/definitions/auth.updateProductRequest"
                         }
                     }
                 ],
@@ -394,7 +395,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/user.Product"
+                            "$ref": "#/definitions/shop.Product"
                         }
                     },
                     "400": {
@@ -410,7 +411,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "listing not found or not owned by this user",
+                        "description": "product not found or not owned by this shop",
                         "schema": {
                             "type": "string"
                         }
@@ -424,14 +425,14 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Requires a valid user_session cookie. Sets status to legv_edilib — does not remove the row.",
+                "description": "Requires a valid shop_session cookie. Deletes the product and all its images.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "user"
+                    "auth"
                 ],
-                "summary": "Cancel (soft-delete) a listing owned by the logged-in user",
+                "summary": "Delete a product owned by the logged-in shop",
                 "parameters": [
                     {
                         "type": "integer",
@@ -464,7 +465,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "listing not found or not owned by this user",
+                        "description": "product not found or not owned by this shop",
                         "schema": {
                             "type": "string"
                         }
@@ -480,7 +481,7 @@ const docTemplate = `{
         },
         "/me/products/{id}/images": {
             "post": {
-                "description": "Requires a valid user_session cookie. The listing must belong to the authenticated user.",
+                "description": "Requires a valid shop_session cookie. The product must belong to the authenticated shop.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -488,9 +489,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "user"
+                    "auth"
                 ],
-                "summary": "Upload one or more images for a listing",
+                "summary": "Upload one or more images for a product",
                 "parameters": [
                     {
                         "type": "integer",
@@ -513,7 +514,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/user.ProductImage"
+                                "$ref": "#/definitions/shop.ProductImage"
                             }
                         }
                     },
@@ -530,7 +531,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "listing not found or not owned by this user",
+                        "description": "product not found or not owned by this shop",
                         "schema": {
                             "type": "string"
                         }
@@ -965,6 +966,298 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/logout": {
+            "post": {
+                "tags": [
+                    "user"
+                ],
+                "summary": "Log out the current user session",
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/me/products": {
+            "get": {
+                "description": "Requires a valid user_session cookie.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "List the logged-in user's own listings, any status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/user.Product"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Requires a valid user_session cookie. New listings start in 'gozlemede' (pending moderation).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Create a new listing for the logged-in user",
+                "parameters": [
+                    {
+                        "description": "New listing details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.createProductRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/user.Product"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/me/products/{id}": {
+            "put": {
+                "description": "Requires a valid user_session cookie. The listing must belong to the authenticated user. Editing a legv_edilib listing sends it back to gozlemede for re-moderation.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Update a listing owned by the logged-in user",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated listing details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.createProductRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/user.Product"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid product id or request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "listing not found or not owned by this user",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Requires a valid user_session cookie. Sets status to legv_edilib — does not remove the row.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Cancel (soft-delete) a listing owned by the logged-in user",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "invalid product id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "listing not found or not owned by this user",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/me/products/{id}/images": {
+            "post": {
+                "description": "Requires a valid user_session cookie. The listing must belong to the authenticated user.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Upload one or more images for a listing",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "One or more image files",
+                        "name": "images",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/user.ProductImage"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "invalid product id or no files",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "listing not found or not owned by this user",
                         "schema": {
                             "type": "string"
                         }

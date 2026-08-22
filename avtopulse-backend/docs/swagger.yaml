@@ -387,6 +387,9 @@ paths:
       - auth
   /logout:
     post:
+      description: Deletes the server-side session and clears the shop_session cookie.
+        Returns 500 (and leaves the cookie/session intact) if server-side deletion
+        fails.
       responses:
         "200":
           description: ok
@@ -396,9 +399,9 @@ paths:
           description: internal error
           schema:
             type: string
-      summary: Log out the current user session
+      summary: Log out the current shop session
       tags:
-      - user
+      - auth
   /me/logo:
     post:
       consumes:
@@ -436,7 +439,7 @@ paths:
       - auth
   /me/products:
     get:
-      description: Requires a valid user_session cookie.
+      description: Requires a valid shop_session cookie (set by /login).
       produces:
       - application/json
       responses:
@@ -444,7 +447,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/user.Product'
+              $ref: '#/definitions/shop.Product'
             type: array
         "401":
           description: unauthorized
@@ -454,28 +457,28 @@ paths:
           description: internal error
           schema:
             type: string
-      summary: List the logged-in user's own listings, any status
+      summary: List the logged-in shop's own products
       tags:
-      - user
+      - auth
     post:
       consumes:
       - application/json
-      description: Requires a valid user_session cookie. New listings start in 'gozlemede'
-        (pending moderation).
+      description: Requires a valid shop_session cookie. Creates a shop_products row
+        owned by the authenticated shop.
       parameters:
-      - description: New listing details
+      - description: New product details
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/user.createProductRequest'
+          $ref: '#/definitions/auth.createProductRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/user.Product'
+            $ref: '#/definitions/shop.Product'
         "400":
           description: invalid request body
           schema:
@@ -488,13 +491,13 @@ paths:
           description: internal error
           schema:
             type: string
-      summary: Create a new listing for the logged-in user
+      summary: Create a new product for the logged-in shop
       tags:
-      - user
+      - auth
   /me/products/{id}:
     delete:
-      description: Requires a valid user_session cookie. Sets status to legv_edilib
-        — does not remove the row.
+      description: Requires a valid shop_session cookie. Deletes the product and all
+        its images.
       parameters:
       - description: Product id
         in: path
@@ -519,41 +522,40 @@ paths:
           schema:
             type: string
         "404":
-          description: listing not found or not owned by this user
+          description: product not found or not owned by this shop
           schema:
             type: string
         "500":
           description: internal error
           schema:
             type: string
-      summary: Cancel (soft-delete) a listing owned by the logged-in user
+      summary: Delete a product owned by the logged-in shop
       tags:
-      - user
+      - auth
     put:
       consumes:
       - application/json
-      description: Requires a valid user_session cookie. The listing must belong to
-        the authenticated user. Editing a legv_edilib listing sends it back to gozlemede
-        for re-moderation.
+      description: Requires a valid shop_session cookie. The product must belong to
+        the authenticated shop.
       parameters:
       - description: Product id
         in: path
         name: id
         required: true
         type: integer
-      - description: Updated listing details
+      - description: Updated product details
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/user.createProductRequest'
+          $ref: '#/definitions/auth.updateProductRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/user.Product'
+            $ref: '#/definitions/shop.Product'
         "400":
           description: invalid product id or request body
           schema:
@@ -563,22 +565,22 @@ paths:
           schema:
             type: string
         "404":
-          description: listing not found or not owned by this user
+          description: product not found or not owned by this shop
           schema:
             type: string
         "500":
           description: internal error
           schema:
             type: string
-      summary: Update a listing owned by the logged-in user
+      summary: Update an existing product owned by the logged-in shop
       tags:
-      - user
+      - auth
   /me/products/{id}/images:
     post:
       consumes:
       - multipart/form-data
-      description: Requires a valid user_session cookie. The listing must belong to
-        the authenticated user.
+      description: Requires a valid shop_session cookie. The product must belong to
+        the authenticated shop.
       parameters:
       - description: Product id
         in: path
@@ -597,7 +599,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/user.ProductImage'
+              $ref: '#/definitions/shop.ProductImage'
             type: array
         "400":
           description: invalid product id or no files
@@ -608,16 +610,16 @@ paths:
           schema:
             type: string
         "404":
-          description: listing not found or not owned by this user
+          description: product not found or not owned by this shop
           schema:
             type: string
         "500":
           description: internal error
           schema:
             type: string
-      summary: Upload one or more images for a listing
+      summary: Upload one or more images for a product
       tags:
-      - user
+      - auth
   /me/products/{id}/images/{imageId}:
     delete:
       description: Requires a valid shop_session cookie. The image's product must
@@ -914,4 +916,202 @@ paths:
       summary: Cancel any shop's product (superadmin override)
       tags:
       - admin
+  /users/logout:
+    post:
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Log out the current user session
+      tags:
+      - user
+  /users/me/products:
+    get:
+      description: Requires a valid user_session cookie.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/user.Product'
+            type: array
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: List the logged-in user's own listings, any status
+      tags:
+      - user
+    post:
+      consumes:
+      - application/json
+      description: Requires a valid user_session cookie. New listings start in 'gozlemede'
+        (pending moderation).
+      parameters:
+      - description: New listing details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/user.createProductRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/user.Product'
+        "400":
+          description: invalid request body
+          schema:
+            type: string
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Create a new listing for the logged-in user
+      tags:
+      - user
+  /users/me/products/{id}:
+    delete:
+      description: Requires a valid user_session cookie. Sets status to legv_edilib
+        — does not remove the row.
+      parameters:
+      - description: Product id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: invalid product id
+          schema:
+            type: string
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "404":
+          description: listing not found or not owned by this user
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Cancel (soft-delete) a listing owned by the logged-in user
+      tags:
+      - user
+    put:
+      consumes:
+      - application/json
+      description: Requires a valid user_session cookie. The listing must belong to
+        the authenticated user. Editing a legv_edilib listing sends it back to gozlemede
+        for re-moderation.
+      parameters:
+      - description: Product id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated listing details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/user.createProductRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.Product'
+        "400":
+          description: invalid product id or request body
+          schema:
+            type: string
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "404":
+          description: listing not found or not owned by this user
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Update a listing owned by the logged-in user
+      tags:
+      - user
+  /users/me/products/{id}/images:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Requires a valid user_session cookie. The listing must belong to
+        the authenticated user.
+      parameters:
+      - description: Product id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: One or more image files
+        in: formData
+        name: images
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/user.ProductImage'
+            type: array
+        "400":
+          description: invalid product id or no files
+          schema:
+            type: string
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "404":
+          description: listing not found or not owned by this user
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Upload one or more images for a listing
+      tags:
+      - user
 swagger: "2.0"

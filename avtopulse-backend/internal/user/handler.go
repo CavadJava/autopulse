@@ -128,7 +128,7 @@ func (h *userHandlers) VerifyOTP(w http.ResponseWriter, req *http.Request) {
 // @Tags         user
 // @Success      200  {string}  string  "ok"
 // @Failure      500  {string}  string  "internal error"
-// @Router       /logout [post]
+// @Router       /users/logout [post]
 func (h *userHandlers) Logout(w http.ResponseWriter, req *http.Request) {
 	cookie, err := req.Cookie(cookieName)
 	if err == nil {
@@ -158,7 +158,7 @@ func (h *userHandlers) Logout(w http.ResponseWriter, req *http.Request) {
 // @Success      200  {array}   Product
 // @Failure      401  {string}  string  "unauthorized"
 // @Failure      500  {string}  string  "internal error"
-// @Router       /me/products [get]
+// @Router       /users/me/products [get]
 func (h *userHandlers) MeProducts(w http.ResponseWriter, req *http.Request) {
 	userID, err := requireSession(req, h.sessions)
 	if err != nil {
@@ -197,7 +197,7 @@ type createProductRequest struct {
 // @Failure      400   {string}  string  "invalid request body"
 // @Failure      401   {string}  string  "unauthorized"
 // @Failure      500   {string}  string  "internal error"
-// @Router       /me/products [post]
+// @Router       /users/me/products [post]
 func (h *userHandlers) CreateProduct(w http.ResponseWriter, req *http.Request) {
 	userID, err := requireSession(req, h.sessions)
 	if err != nil {
@@ -236,7 +236,7 @@ func (h *userHandlers) CreateProduct(w http.ResponseWriter, req *http.Request) {
 // @Failure      401   {string}  string  "unauthorized"
 // @Failure      404   {string}  string  "listing not found or not owned by this user"
 // @Failure      500   {string}  string  "internal error"
-// @Router       /me/products/{id} [put]
+// @Router       /users/me/products/{id} [put]
 func (h *userHandlers) UpdateProduct(w http.ResponseWriter, req *http.Request) {
 	userID, err := requireSession(req, h.sessions)
 	if err != nil {
@@ -289,7 +289,7 @@ func (h *userHandlers) UpdateProduct(w http.ResponseWriter, req *http.Request) {
 // @Failure      401  {string}  string  "unauthorized"
 // @Failure      404  {string}  string  "listing not found or not owned by this user"
 // @Failure      500  {string}  string  "internal error"
-// @Router       /me/products/{id} [delete]
+// @Router       /users/me/products/{id} [delete]
 func (h *userHandlers) DeleteProduct(w http.ResponseWriter, req *http.Request) {
 	userID, err := requireSession(req, h.sessions)
 	if err != nil {
@@ -334,7 +334,7 @@ func (h *userHandlers) DeleteProduct(w http.ResponseWriter, req *http.Request) {
 // @Failure      401     {string}  string  "unauthorized"
 // @Failure      404     {string}  string  "listing not found or not owned by this user"
 // @Failure      500     {string}  string  "internal error"
-// @Router       /me/products/{id}/images [post]
+// @Router       /users/me/products/{id}/images [post]
 func (h *userHandlers) UploadProductImages(w http.ResponseWriter, req *http.Request) {
 	userID, err := requireSession(req, h.sessions)
 	if err != nil {
