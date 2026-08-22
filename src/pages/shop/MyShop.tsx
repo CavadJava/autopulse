@@ -6,6 +6,9 @@ import {
   createShopProduct,
   uploadProductImages,
   uploadShopLogo,
+  updateShopProduct,
+  deleteShopProduct,
+  deleteProductImage,
   ShopUnauthorizedError,
 } from '../../api/shop';
 import type { ShopProduct } from '../../api/shop';
@@ -44,6 +47,13 @@ export default function MyShop() {
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
+
+  const [editingProductId, setEditingProductId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState(EMPTY_FORM);
+  const [editImageFiles, setEditImageFiles] = useState<File[]>([]);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
 
   const loadProducts = async () => {
     setLoading(true);
@@ -127,6 +137,107 @@ export default function MyShop() {
       setFormError('Məhsul yaradılarkən xəta baş verdi.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const startEdit = (product: ShopProduct) => {
+    setEditingProductId(product.id);
+    setEditForm({
+      name: product.name,
+      title: product.title,
+      details: product.details,
+      marka: product.marka,
+      model: product.model,
+      il: String(product.il || ''),
+      qiymet: String(product.qiymet || ''),
+      yurus: String(product.yurus || ''),
+      yanacaq: product.yanacaq,
+      ban: product.ban,
+    });
+    setEditImageFiles([]);
+    setEditError(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingProductId(null);
+    setEditForm(EMPTY_FORM);
+    setEditImageFiles([]);
+    setEditError(null);
+  };
+
+  const handleUpdateProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingProductId === null) return;
+    setEditError(null);
+    if (!editForm.name.trim() || !editForm.title.trim()) {
+      setEditError('Ad və başlıq tələb olunur.');
+      return;
+    }
+    setEditSaving(true);
+    try {
+      await updateShopProduct(editingProductId, {
+        name: editForm.name,
+        title: editForm.title,
+        details: editForm.details,
+        marka: editForm.marka,
+        model: editForm.model,
+        il: editForm.il ? parseInt(editForm.il, 10) : 0,
+        qiymet: editForm.qiymet ? parseInt(editForm.qiymet, 10) : 0,
+        yurus: editForm.yurus ? parseInt(editForm.yurus, 10) : 0,
+        yanacaq: editForm.yanacaq,
+        ban: editForm.ban,
+      });
+      if (editImageFiles.length > 0) {
+        try {
+          await uploadProductImages(editingProductId, editImageFiles);
+        } catch (err) {
+          if (err instanceof ShopUnauthorizedError) {
+            navigate('/magaza-giris');
+            return;
+          }
+          setNotice('Məhsul yeniləndi, amma yeni şəkillər yüklənmədi.');
+        }
+      }
+      cancelEdit();
+      await loadProducts();
+    } catch (err) {
+      if (err instanceof ShopUnauthorizedError) {
+        navigate('/magaza-giris');
+        return;
+      }
+      setEditError('Məhsul yenilənərkən xəta baş verdi.');
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const handleDeleteProduct = async (productId: number) => {
+    if (!window.confirm('Bu məhsulu silmək istədiyinizə əminsiniz?')) return;
+    setDeletingProductId(productId);
+    try {
+      await deleteShopProduct(productId);
+      await loadProducts();
+    } catch (err) {
+      if (err instanceof ShopUnauthorizedError) {
+        navigate('/magaza-giris');
+        return;
+      }
+      setNotice('Məhsul silinərkən xəta baş verdi.');
+    } finally {
+      setDeletingProductId(null);
+    }
+  };
+
+  const handleDeleteImage = async (productId: number, imageId: number) => {
+    try {
+      await deleteProductImage(productId, imageId);
+      await loadProducts();
+    } catch (err) {
+      if (err instanceof ShopUnauthorizedError) {
+        navigate('/magaza-giris');
+        return;
+      }
+      setNotice('Şəkil silinərkən xəta baş verdi.');
     }
   };
 
@@ -278,15 +389,140 @@ export default function MyShop() {
         <div className={styles.grid}>
           {products.map((product) => (
             <div key={product.id} className={styles.productCard}>
-              {product.images?.[0] && (
-                <img
-                  src={product.images[0].url}
-                  alt={product.title}
-                  className={styles.productImage}
-                />
+              {editingProductId === product.id ? (
+                <form onSubmit={handleUpdateProduct} className={styles.form}>
+                  <input
+                    className={styles.input}
+                    placeholder="Ad (slug)"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  />
+                  <input
+                    className={styles.input}
+                    placeholder="Başlıq"
+                    value={editForm.title}
+                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                  />
+                  <input
+                    className={styles.input}
+                    placeholder="Marka"
+                    value={editForm.marka}
+                    onChange={(e) => setEditForm({ ...editForm, marka: e.target.value })}
+                  />
+                  <input
+                    className={styles.input}
+                    placeholder="Model"
+                    value={editForm.model}
+                    onChange={(e) => setEditForm({ ...editForm, model: e.target.value })}
+                  />
+                  <input
+                    className={styles.input}
+                    type="number"
+                    placeholder="İl"
+                    value={editForm.il}
+                    onChange={(e) => setEditForm({ ...editForm, il: e.target.value })}
+                  />
+                  <input
+                    className={styles.input}
+                    type="number"
+                    placeholder="Qiymət (AZN)"
+                    value={editForm.qiymet}
+                    onChange={(e) => setEditForm({ ...editForm, qiymet: e.target.value })}
+                  />
+                  <input
+                    className={styles.input}
+                    type="number"
+                    placeholder="Yürüş (km)"
+                    value={editForm.yurus}
+                    onChange={(e) => setEditForm({ ...editForm, yurus: e.target.value })}
+                  />
+                  <input
+                    className={styles.input}
+                    placeholder="Yanacaq"
+                    value={editForm.yanacaq}
+                    onChange={(e) => setEditForm({ ...editForm, yanacaq: e.target.value })}
+                  />
+                  <input
+                    className={styles.input}
+                    placeholder="Ban növü"
+                    value={editForm.ban}
+                    onChange={(e) => setEditForm({ ...editForm, ban: e.target.value })}
+                  />
+                  <textarea
+                    className={styles.textarea}
+                    placeholder="Təsvir"
+                    value={editForm.details}
+                    onChange={(e) => setEditForm({ ...editForm, details: e.target.value })}
+                  />
+
+                  {product.images && product.images.length > 0 && (
+                    <div className={styles.imageManageGrid}>
+                      {product.images.map((img) => (
+                        <div key={img.id} className={styles.imageManageItem}>
+                          <img src={img.minioUrl} alt="" className={styles.imageManageThumb} />
+                          <div className={styles.storageLabels}>
+                            <span className={styles.storageLabel}>MinIO</span>
+                            {img.s3Url && <span className={styles.storageLabel}>AWS S3</span>}
+                          </div>
+                          <button
+                            type="button"
+                            className={styles.imageDeleteBtn}
+                            onClick={() => handleDeleteImage(product.id, img.id)}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => setEditImageFiles(Array.from(e.target.files ?? []))}
+                  />
+                  {editError && <p className={styles.formError}>{editError}</p>}
+                  <div className={styles.editActions}>
+                    <button className={styles.submitBtn} type="submit" disabled={editSaving}>
+                      {editSaving ? 'Yenilənir...' : 'Yadda saxla'}
+                    </button>
+                    <button type="button" className={styles.cancelBtn} onClick={cancelEdit}>
+                      Ləğv et
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  {product.images?.[0] && (
+                    <img
+                      src={product.images[0].minioUrl}
+                      alt={product.title}
+                      className={styles.productImage}
+                    />
+                  )}
+                  {product.images && product.images.length > 0 && (
+                    <div className={styles.storageLabels}>
+                      <span className={styles.storageLabel}>MinIO</span>
+                      {product.images[0].s3Url && <span className={styles.storageLabel}>AWS S3</span>}
+                    </div>
+                  )}
+                  <div className={styles.productTitle}>{product.title}</div>
+                  {product.details && <div className={styles.productDetails}>{product.details}</div>}
+                  <div className={styles.productActions}>
+                    <button className={styles.editBtn} onClick={() => startEdit(product)}>
+                      ✎ Redaktə et
+                    </button>
+                    <button
+                      className={styles.deleteBtn}
+                      onClick={() => handleDeleteProduct(product.id)}
+                      disabled={deletingProductId === product.id}
+                    >
+                      {deletingProductId === product.id ? 'Silinir...' : '🗑 Sil'}
+                    </button>
+                  </div>
+                </>
               )}
-              <div className={styles.productTitle}>{product.title}</div>
-              {product.details && <div className={styles.productDetails}>{product.details}</div>}
             </div>
           ))}
         </div>
