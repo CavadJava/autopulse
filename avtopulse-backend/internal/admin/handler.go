@@ -165,7 +165,7 @@ func (h *adminHandlers) requireAdmin(next http.HandlerFunc) http.HandlerFunc {
 // @Success      200  {array}   user.Product
 // @Failure      401  {string}  string  "unauthorized"
 // @Failure      500  {string}  string  "internal error"
-// @Router       /products/pending [get]
+// @Router       /admin/products/pending [get]
 func (h *adminHandlers) PendingProducts(w http.ResponseWriter, req *http.Request) {
 	products, err := h.userRepo.ListPendingProducts(req.Context())
 	if err != nil {
@@ -185,7 +185,7 @@ func (h *adminHandlers) PendingProducts(w http.ResponseWriter, req *http.Request
 // @Failure      400  {string}  string  "invalid product id"
 // @Failure      401  {string}  string  "unauthorized"
 // @Failure      500  {string}  string  "internal error"
-// @Router       /products/{id}/approve [post]
+// @Router       /admin/products/{id}/approve [post]
 func (h *adminHandlers) ApproveProduct(w http.ResponseWriter, req *http.Request) {
 	productID, err := strconv.ParseInt(chi.URLParam(req, "id"), 10, 64)
 	if err != nil {
@@ -209,7 +209,7 @@ func (h *adminHandlers) ApproveProduct(w http.ResponseWriter, req *http.Request)
 // @Failure      400  {string}  string  "invalid product id"
 // @Failure      401  {string}  string  "unauthorized"
 // @Failure      500  {string}  string  "internal error"
-// @Router       /products/{id}/reject [post]
+// @Router       /admin/products/{id}/reject [post]
 func (h *adminHandlers) RejectProduct(w http.ResponseWriter, req *http.Request) {
 	productID, err := strconv.ParseInt(chi.URLParam(req, "id"), 10, 64)
 	if err != nil {
@@ -231,7 +231,7 @@ func (h *adminHandlers) RejectProduct(w http.ResponseWriter, req *http.Request) 
 // @Success      200  {array}   shop.Product
 // @Failure      401  {string}  string  "unauthorized"
 // @Failure      500  {string}  string  "internal error"
-// @Router       /shop-products [get]
+// @Router       /admin/shop-products [get]
 func (h *adminHandlers) ListShopProducts(w http.ResponseWriter, req *http.Request) {
 	products, err := h.shopRepo.ListAllProducts(req.Context())
 	if err != nil {
@@ -251,7 +251,7 @@ func (h *adminHandlers) ListShopProducts(w http.ResponseWriter, req *http.Reques
 // @Failure      400  {string}  string  "invalid product id"
 // @Failure      401  {string}  string  "unauthorized"
 // @Failure      500  {string}  string  "internal error"
-// @Router       /shop-products/{id}/cancel [post]
+// @Router       /admin/shop-products/{id}/cancel [post]
 func (h *adminHandlers) CancelShopProduct(w http.ResponseWriter, req *http.Request) {
 	productID, err := strconv.ParseInt(chi.URLParam(req, "id"), 10, 64)
 	if err != nil {

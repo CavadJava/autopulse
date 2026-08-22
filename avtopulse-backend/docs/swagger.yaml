@@ -323,6 +323,156 @@ paths:
       summary: Log out the current superadmin session
       tags:
       - admin
+  /admin/products/{id}/approve:
+    post:
+      description: Requires a valid admin_session cookie. Sets the listing's status
+        to saytda.
+      parameters:
+      - description: Product id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: invalid product id
+          schema:
+            type: string
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Approve a pending user listing
+      tags:
+      - admin
+  /admin/products/{id}/reject:
+    post:
+      description: Requires a valid admin_session cookie. Sets the listing's status
+        to legv_edilib.
+      parameters:
+      - description: Product id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: invalid product id
+          schema:
+            type: string
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Reject a pending user listing
+      tags:
+      - admin
+  /admin/products/pending:
+    get:
+      description: Requires a valid admin_session cookie.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/user.Product'
+            type: array
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: List all user listings pending moderation
+      tags:
+      - admin
+  /admin/shop-products:
+    get:
+      description: Requires a valid admin_session cookie. Superadmin oversight — not
+        scoped to any single shop.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/shop.Product'
+            type: array
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: List every shop product across all shops, any status
+      tags:
+      - admin
+  /admin/shop-products/{id}/cancel:
+    post:
+      description: Requires a valid admin_session cookie. Uses the same soft-delete
+        as the shop owner's own "Sil" button — no ownership check, since superadmin
+        acts across all shops.
+      parameters:
+      - description: Product id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: invalid product id
+          schema:
+            type: string
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Cancel any shop's product (superadmin override)
+      tags:
+      - admin
   /by-name/{name}:
     get:
       description: Returns full shop details for the given name (the shop's slug).
@@ -701,221 +851,6 @@ paths:
       summary: Restore a cancelled (ləğv edilib) product back to saytda
       tags:
       - auth
-  /otp/request:
-    post:
-      consumes:
-      - application/json
-      description: Always succeeds — no real SMS is sent in this environment; the
-        test code is a fixed value.
-      parameters:
-      - description: Phone number
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/user.otpRequestBody'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: boolean
-            type: object
-        "400":
-          description: invalid request body
-          schema:
-            type: string
-      summary: Request an OTP code for phone-based login
-      tags:
-      - user
-  /otp/verify:
-    post:
-      consumes:
-      - application/json
-      description: Test code is a fixed value ("1234") — no real SMS/OTP provider.
-        Creates a new user account automatically on first login. Sets a user_session
-        HttpOnly cookie on success.
-      parameters:
-      - description: Phone number and OTP code
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/user.otpVerifyBody'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/user.otpVerifyResponse'
-        "400":
-          description: invalid request body
-          schema:
-            type: string
-        "401":
-          description: invalid code
-          schema:
-            type: string
-        "500":
-          description: internal error
-          schema:
-            type: string
-      summary: Verify an OTP code and log in (or auto-register) by phone
-      tags:
-      - user
-  /products/{id}/approve:
-    post:
-      description: Requires a valid admin_session cookie. Sets the listing's status
-        to saytda.
-      parameters:
-      - description: Product id
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: boolean
-            type: object
-        "400":
-          description: invalid product id
-          schema:
-            type: string
-        "401":
-          description: unauthorized
-          schema:
-            type: string
-        "500":
-          description: internal error
-          schema:
-            type: string
-      summary: Approve a pending user listing
-      tags:
-      - admin
-  /products/{id}/reject:
-    post:
-      description: Requires a valid admin_session cookie. Sets the listing's status
-        to legv_edilib.
-      parameters:
-      - description: Product id
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: boolean
-            type: object
-        "400":
-          description: invalid product id
-          schema:
-            type: string
-        "401":
-          description: unauthorized
-          schema:
-            type: string
-        "500":
-          description: internal error
-          schema:
-            type: string
-      summary: Reject a pending user listing
-      tags:
-      - admin
-  /products/pending:
-    get:
-      description: Requires a valid admin_session cookie.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/user.Product'
-            type: array
-        "401":
-          description: unauthorized
-          schema:
-            type: string
-        "500":
-          description: internal error
-          schema:
-            type: string
-      summary: List all user listings pending moderation
-      tags:
-      - admin
-  /shop-products:
-    get:
-      description: Requires a valid admin_session cookie. Superadmin oversight — not
-        scoped to any single shop.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/shop.Product'
-            type: array
-        "401":
-          description: unauthorized
-          schema:
-            type: string
-        "500":
-          description: internal error
-          schema:
-            type: string
-      summary: List every shop product across all shops, any status
-      tags:
-      - admin
-  /shop-products/{id}/cancel:
-    post:
-      description: Requires a valid admin_session cookie. Uses the same soft-delete
-        as the shop owner's own "Sil" button — no ownership check, since superadmin
-        acts across all shops.
-      parameters:
-      - description: Product id
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: boolean
-            type: object
-        "400":
-          description: invalid product id
-          schema:
-            type: string
-        "401":
-          description: unauthorized
-          schema:
-            type: string
-        "500":
-          description: internal error
-          schema:
-            type: string
-      summary: Cancel any shop's product (superadmin override)
-      tags:
-      - admin
   /users/logout:
     post:
       responses:
@@ -1112,6 +1047,71 @@ paths:
           schema:
             type: string
       summary: Upload one or more images for a listing
+      tags:
+      - user
+  /users/otp/request:
+    post:
+      consumes:
+      - application/json
+      description: Always succeeds — no real SMS is sent in this environment; the
+        test code is a fixed value.
+      parameters:
+      - description: Phone number
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/user.otpRequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: invalid request body
+          schema:
+            type: string
+      summary: Request an OTP code for phone-based login
+      tags:
+      - user
+  /users/otp/verify:
+    post:
+      consumes:
+      - application/json
+      description: Test code is a fixed value ("1234") — no real SMS/OTP provider.
+        Creates a new user account automatically on first login. Sets a user_session
+        HttpOnly cookie on success.
+      parameters:
+      - description: Phone number and OTP code
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/user.otpVerifyBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.otpVerifyResponse'
+        "400":
+          description: invalid request body
+          schema:
+            type: string
+        "401":
+          description: invalid code
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Verify an OTP code and log in (or auto-register) by phone
       tags:
       - user
 swagger: "2.0"

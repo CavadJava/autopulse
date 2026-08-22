@@ -52,7 +52,7 @@ type otpRequestBody struct {
 // @Param        body  body      otpRequestBody  true  "Phone number"
 // @Success      200   {object}  map[string]bool
 // @Failure      400   {string}  string  "invalid request body"
-// @Router       /otp/request [post]
+// @Router       /users/otp/request [post]
 func (h *userHandlers) RequestOTP(w http.ResponseWriter, req *http.Request) {
 	var body otpRequestBody
 	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
@@ -86,7 +86,7 @@ type otpVerifyResponse struct {
 // @Failure      400   {string}  string  "invalid request body"
 // @Failure      401   {string}  string  "invalid code"
 // @Failure      500   {string}  string  "internal error"
-// @Router       /otp/verify [post]
+// @Router       /users/otp/verify [post]
 func (h *userHandlers) VerifyOTP(w http.ResponseWriter, req *http.Request) {
 	var body otpVerifyBody
 	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
