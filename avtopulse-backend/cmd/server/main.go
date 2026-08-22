@@ -112,6 +112,15 @@ func main() {
 	r.Post("/api/shops/me/products/{id}/images", func(w http.ResponseWriter, req *http.Request) {
 		http.StripPrefix("/api/shops", authHandler).ServeHTTP(w, req)
 	})
+	r.Put("/api/shops/me/products/{id}", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/shops", authHandler).ServeHTTP(w, req)
+	})
+	r.Delete("/api/shops/me/products/{id}", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/shops", authHandler).ServeHTTP(w, req)
+	})
+	r.Delete("/api/shops/me/products/{id}/images/{imageId}", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/shops", authHandler).ServeHTTP(w, req)
+	})
 	r.Post("/api/shops/me/logo", func(w http.ResponseWriter, req *http.Request) {
 		http.StripPrefix("/api/shops", authHandler).ServeHTTP(w, req)
 	})

@@ -13,7 +13,8 @@ export interface ShopSummary {
 
 export interface ProductImage {
   id: number;
-  url: string;
+  minioUrl: string;
+  s3Url: string;
   sira: number;
 }
 
@@ -60,7 +61,7 @@ export class ShopLoginError extends Error {}
 export class ShopUnauthorizedError extends Error {}
 
 export async function getShops(): Promise<ShopSummary[]> {
-  const res = await fetch(`${API_BASE}/api/shops`);
+  const res = await fetch(`${API_BASE}/api/shops`, { cache: 'no-store' });
   if (!res.ok) {
     throw new Error(`getShops failed: ${res.status}`);
   }
@@ -68,7 +69,7 @@ export async function getShops(): Promise<ShopSummary[]> {
 }
 
 export async function getShopByName(name: string): Promise<Shop> {
-  const res = await fetch(`${API_BASE}/api/shops/by-name/${encodeURIComponent(name)}`);
+  const res = await fetch(`${API_BASE}/api/shops/by-name/${encodeURIComponent(name)}`, { cache: 'no-store' });
   if (res.status === 404) {
     throw new ShopNotFoundError(`Shop not found: ${name}`);
   }
@@ -79,7 +80,7 @@ export async function getShopByName(name: string): Promise<Shop> {
 }
 
 export async function getShopProducts(shopId: number): Promise<ShopProduct[]> {
-  const res = await fetch(`${API_BASE}/api/shops/${shopId}/products`);
+  const res = await fetch(`${API_BASE}/api/shops/${shopId}/products`, { cache: 'no-store' });
   if (res.status === 404) {
     throw new ShopNotFoundError(`Shop not found: ${shopId}`);
   }
@@ -109,6 +110,7 @@ export async function shopLogin(name: string, password: string): Promise<ShopSum
 export async function getMyShopProducts(): Promise<ShopProduct[]> {
   const res = await fetch(`${API_BASE}/api/shops/me/products`, {
     credentials: 'include',
+    cache: 'no-store',
   });
   if (res.status === 401) {
     throw new ShopUnauthorizedError('Not logged in');
@@ -176,4 +178,55 @@ export async function uploadShopLogo(file: File): Promise<{ logoUrl: string }> {
     throw new Error(`uploadShopLogo failed: ${res.status}`);
   }
   return res.json();
+}
+
+export async function updateShopProduct(id: number, input: CreateProductInput): Promise<ShopProduct> {
+  const res = await fetch(`${API_BASE}/api/shops/me/products/${id}`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (res.status === 401) {
+    throw new ShopUnauthorizedError('Not logged in');
+  }
+  if (res.status === 404) {
+    throw new ShopNotFoundError(`Product not found: ${id}`);
+  }
+  if (!res.ok) {
+    throw new Error(`updateShopProduct failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteShopProduct(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/shops/me/products/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  if (res.status === 401) {
+    throw new ShopUnauthorizedError('Not logged in');
+  }
+  if (res.status === 404) {
+    throw new ShopNotFoundError(`Product not found: ${id}`);
+  }
+  if (!res.ok) {
+    throw new Error(`deleteShopProduct failed: ${res.status}`);
+  }
+}
+
+export async function deleteProductImage(productId: number, imageId: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/shops/me/products/${productId}/images/${imageId}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  if (res.status === 401) {
+    throw new ShopUnauthorizedError('Not logged in');
+  }
+  if (res.status === 404) {
+    throw new ShopNotFoundError(`Image not found: ${imageId}`);
+  }
+  if (!res.ok) {
+    throw new Error(`deleteProductImage failed: ${res.status}`);
+  }
 }

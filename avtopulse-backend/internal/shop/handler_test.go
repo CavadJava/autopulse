@@ -58,8 +58,8 @@ func (f *fakeRepo) CreateProduct(ctx context.Context, shopID int64, input Create
 	return p, nil
 }
 
-func (f *fakeRepo) AddProductImage(ctx context.Context, productID int64, url string, sira int) (*ProductImage, error) {
-	return &ProductImage{ID: int64(sira + 1), URL: url, Sira: sira}, nil
+func (f *fakeRepo) AddProductImage(ctx context.Context, productID int64, minioURL, s3URL string, sira int) (*ProductImage, error) {
+	return &ProductImage{ID: int64(sira + 1), MinioURL: minioURL, S3URL: s3URL, Sira: sira}, nil
 }
 
 func (f *fakeRepo) GetProductShopID(ctx context.Context, productID int64) (int64, error) {
@@ -74,6 +74,43 @@ func (f *fakeRepo) GetProductShopID(ctx context.Context, productID int64) (int64
 }
 
 func (f *fakeRepo) SetShopLogo(ctx context.Context, shopID int64, url string) error {
+	return nil
+}
+
+func (f *fakeRepo) UpdateProduct(ctx context.Context, productID int64, input CreateProductInput) (*Product, error) {
+	for shopID, products := range f.products {
+		for i, p := range products {
+			if p.ID == productID {
+				updated := Product{
+					ID: productID, Name: input.Name, Title: input.Title, Details: input.Details,
+					Marka: input.Marka, Model: input.Model, Il: input.Il, Qiymet: input.Qiymet,
+					Yurus: input.Yurus, Yanacaq: input.Yanacaq, Ban: input.Ban, Images: p.Images,
+				}
+				f.products[shopID][i] = updated
+				return &updated, nil
+			}
+		}
+	}
+	return nil, ErrNotFound
+}
+
+func (f *fakeRepo) DeleteProduct(ctx context.Context, productID int64) error {
+	for shopID, products := range f.products {
+		for i, p := range products {
+			if p.ID == productID {
+				f.products[shopID] = append(products[:i], products[i+1:]...)
+				return nil
+			}
+		}
+	}
+	return ErrNotFound
+}
+
+func (f *fakeRepo) GetImageProductID(ctx context.Context, imageID int64) (int64, error) {
+	return 1, nil
+}
+
+func (f *fakeRepo) DeleteProductImage(ctx context.Context, imageID int64) error {
 	return nil
 }
 

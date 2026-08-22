@@ -59,8 +59,8 @@ func (f *fakeShopRepo) CreateProduct(ctx context.Context, shopID int64, input sh
 	return &shop.Product{ID: 999, Name: input.Name, Title: input.Title, Marka: input.Marka, Model: input.Model, Il: input.Il, Qiymet: input.Qiymet, Images: []shop.ProductImage{}}, nil
 }
 
-func (f *fakeShopRepo) AddProductImage(ctx context.Context, productID int64, url string, sira int) (*shop.ProductImage, error) {
-	return &shop.ProductImage{ID: int64(sira + 1), URL: url, Sira: sira}, nil
+func (f *fakeShopRepo) AddProductImage(ctx context.Context, productID int64, minioURL, s3URL string, sira int) (*shop.ProductImage, error) {
+	return &shop.ProductImage{ID: int64(sira + 1), MinioURL: minioURL, S3URL: s3URL, Sira: sira}, nil
 }
 
 func (f *fakeShopRepo) GetProductShopID(ctx context.Context, productID int64) (int64, error) {
@@ -71,10 +71,30 @@ func (f *fakeShopRepo) SetShopLogo(ctx context.Context, shopID int64, url string
 	return nil
 }
 
+func (f *fakeShopRepo) UpdateProduct(ctx context.Context, productID int64, input shop.CreateProductInput) (*shop.Product, error) {
+	return &shop.Product{ID: productID, Name: input.Name, Title: input.Title, Marka: input.Marka, Model: input.Model, Il: input.Il, Qiymet: input.Qiymet, Images: []shop.ProductImage{}}, nil
+}
+
+func (f *fakeShopRepo) DeleteProduct(ctx context.Context, productID int64) error {
+	return nil
+}
+
+func (f *fakeShopRepo) GetImageProductID(ctx context.Context, imageID int64) (int64, error) {
+	return 1, nil
+}
+
+func (f *fakeShopRepo) DeleteProductImage(ctx context.Context, imageID int64) error {
+	return nil
+}
+
 type fakeStorageClient struct{}
 
 func (f *fakeStorageClient) Upload(ctx context.Context, path string, data io.Reader, size int64, contentType string) (string, error) {
 	return "http://fake-storage/" + path, nil
+}
+
+func (f *fakeStorageClient) UploadDual(ctx context.Context, path string, data io.Reader, size int64, contentType string) (string, string, error) {
+	return "http://fake-storage/" + path, "http://fake-s3/" + path, nil
 }
 
 type fakeSessionStore struct {
@@ -308,7 +328,7 @@ func TestUploadProductImages_Success(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
 		t.Fatalf("decode failed: %v", err)
 	}
-	if len(got) != 1 || got[0].URL == "" {
+	if len(got) != 1 || got[0].MinioURL == "" || got[0].S3URL == "" {
 		t.Fatalf("unexpected result: %+v", got)
 	}
 }
@@ -350,6 +370,86 @@ func TestUploadLogo_Success(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/me/logo", &buf)
 	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.AddCookie(&http.Cookie{Name: cookieName, Value: token})
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d, body: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestUpdateProduct_Success(t *testing.T) {
+	sessions := newFakeSessionStore()
+	token, _ := sessions.Create(context.Background(), 1)
+
+	h := NewHandler(newFakeShopRepo(), sessions, &fakeStorageClient{})
+	body, _ := json.Marshal(updateProductRequest{Name: "updated-car", Title: "Updated Car, 2024", Marka: "Toyota", Model: "Corolla", Il: 2024, Qiymet: 30000})
+	req := httptest.NewRequest(http.MethodPut, "/me/products/1", bytes.NewReader(body))
+	req.AddCookie(&http.Cookie{Name: cookieName, Value: token})
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d, body: %s", rec.Code, rec.Body.String())
+	}
+	var got shop.Product
+	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+		t.Fatalf("decode failed: %v", err)
+	}
+	if got.Title != "Updated Car, 2024" {
+		t.Fatalf("unexpected product: %+v", got)
+	}
+}
+
+func TestUpdateProduct_WrongShop(t *testing.T) {
+	sessions := newFakeSessionStore()
+	token, _ := sessions.Create(context.Background(), 999) // fakeShopRepo.GetProductShopID always returns 1
+
+	h := NewHandler(newFakeShopRepo(), sessions, &fakeStorageClient{})
+	body, _ := json.Marshal(updateProductRequest{Name: "x", Title: "x"})
+	req := httptest.NewRequest(http.MethodPut, "/me/products/1", bytes.NewReader(body))
+	req.AddCookie(&http.Cookie{Name: cookieName, Value: token})
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", rec.Code)
+	}
+}
+
+func TestDeleteProduct_Success(t *testing.T) {
+	sessions := newFakeSessionStore()
+	token, _ := sessions.Create(context.Background(), 1)
+
+	h := NewHandler(newFakeShopRepo(), sessions, &fakeStorageClient{})
+	req := httptest.NewRequest(http.MethodDelete, "/me/products/1", nil)
+	req.AddCookie(&http.Cookie{Name: cookieName, Value: token})
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d, body: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestDeleteProduct_NoCookie(t *testing.T) {
+	h := NewHandler(newFakeShopRepo(), newFakeSessionStore(), &fakeStorageClient{})
+	req := httptest.NewRequest(http.MethodDelete, "/me/products/1", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", rec.Code)
+	}
+}
+
+func TestDeleteProductImage_Success(t *testing.T) {
+	sessions := newFakeSessionStore()
+	token, _ := sessions.Create(context.Background(), 1)
+
+	h := NewHandler(newFakeShopRepo(), sessions, &fakeStorageClient{})
+	req := httptest.NewRequest(http.MethodDelete, "/me/products/1/images/1", nil)
 	req.AddCookie(&http.Cookie{Name: cookieName, Value: token})
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)

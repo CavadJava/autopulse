@@ -14,6 +14,12 @@ type Client interface {
 	// and returns a publicly-reachable URL for it (the bucket has a
 	// public-read policy, so no signed URL is needed for GET).
 	Upload(ctx context.Context, path string, data io.Reader, size int64, contentType string) (string, error)
+
+	// UploadDual is like Upload but additionally returns the secondary
+	// (real AWS S3, if configured) storage's URL alongside the primary
+	// (MinIO) one. For a single-storage client (plain minioClient or
+	// s3Client used standalone), the second return value is always "".
+	UploadDual(ctx context.Context, path string, data io.Reader, size int64, contentType string) (minioURL, s3URL string, err error)
 }
 
 type minioClient struct {
@@ -73,4 +79,9 @@ func (c *minioClient) Upload(ctx context.Context, path string, data io.Reader, s
 		return "", fmt.Errorf("storage: uploading %q: %w", path, err)
 	}
 	return fmt.Sprintf("%s/%s/%s", c.publicURL, c.bucket, path), nil
+}
+
+func (c *minioClient) UploadDual(ctx context.Context, path string, data io.Reader, size int64, contentType string) (string, string, error) {
+	url, err := c.Upload(ctx, path, data, size, contentType)
+	return url, "", err
 }

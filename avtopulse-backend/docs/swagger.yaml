@@ -35,6 +35,29 @@ definitions:
       shop:
         $ref: '#/definitions/shop.ShopSummary'
     type: object
+  auth.updateProductRequest:
+    properties:
+      ban:
+        type: string
+      details:
+        type: string
+      il:
+        type: integer
+      marka:
+        type: string
+      model:
+        type: string
+      name:
+        type: string
+      qiymet:
+        type: integer
+      title:
+        type: string
+      yanacaq:
+        type: string
+      yurus:
+        type: integer
+    type: object
   shop.Product:
     properties:
       ban:
@@ -68,10 +91,12 @@ definitions:
     properties:
       id:
         type: integer
+      minioUrl:
+        type: string
+      s3Url:
+        type: string
       sira:
         type: integer
-      url:
-        type: string
     type: object
   shop.Shop:
     properties:
@@ -330,6 +355,87 @@ paths:
       summary: Create a new product for the logged-in shop
       tags:
       - auth
+  /me/products/{id}:
+    delete:
+      description: Requires a valid shop_session cookie. Deletes the product and all
+        its images.
+      parameters:
+      - description: Product id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: invalid product id
+          schema:
+            type: string
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "404":
+          description: product not found or not owned by this shop
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Delete a product owned by the logged-in shop
+      tags:
+      - auth
+    put:
+      consumes:
+      - application/json
+      description: Requires a valid shop_session cookie. The product must belong to
+        the authenticated shop.
+      parameters:
+      - description: Product id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated product details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.updateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/shop.Product'
+        "400":
+          description: invalid product id or request body
+          schema:
+            type: string
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "404":
+          description: product not found or not owned by this shop
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Update an existing product owned by the logged-in shop
+      tags:
+      - auth
   /me/products/{id}/images:
     post:
       consumes:
@@ -373,6 +479,49 @@ paths:
           schema:
             type: string
       summary: Upload one or more images for a product
+      tags:
+      - auth
+  /me/products/{id}/images/{imageId}:
+    delete:
+      description: Requires a valid shop_session cookie. The image's product must
+        belong to the authenticated shop.
+      parameters:
+      - description: Product id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Image id
+        in: path
+        name: imageId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: invalid product or image id
+          schema:
+            type: string
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "404":
+          description: product or image not found, or not owned by this shop
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Delete a single image from a product owned by the logged-in shop
       tags:
       - auth
 swagger: "2.0"

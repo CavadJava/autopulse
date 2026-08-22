@@ -177,3 +177,129 @@
   border-radius: var(--radius-md);
   margin-bottom: var(--space-3);
 }
+
+.productActions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.editBtn {
+  flex: 1;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+}
+
+.editBtn:hover {
+  box-shadow: none;
+  border-color: var(--accent);
+}
+
+.deleteBtn {
+  flex: 1;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--error);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+}
+
+.deleteBtn:hover {
+  box-shadow: none;
+  border-color: var(--error);
+}
+
+.deleteBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancelBtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 14px;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+}
+
+.cancelBtn:hover {
+  box-shadow: none;
+  color: var(--text-primary);
+}
+
+.editActions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.editActions .submitBtn {
+  flex: 2;
+}
+
+.editActions .cancelBtn {
+  flex: 1;
+}
+
+.imageManageGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+}
+
+.imageManageItem {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.imageManageThumb {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.imageDeleteBtn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--scrim, rgba(0, 0, 0, 0.7));
+  color: #fff;
+  border: none;
+  font-size: 11px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.storageLabels {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.storageLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  border-radius: 100px;
+}

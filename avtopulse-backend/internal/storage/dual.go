@@ -26,21 +26,27 @@ func NewDualClient(primary, secondary Client) Client {
 }
 
 func (d *dualClient) Upload(ctx context.Context, path string, data io.Reader, size int64, contentType string) (string, error) {
+	minioURL, _, err := d.UploadDual(ctx, path, data, size, contentType)
+	return minioURL, err
+}
+
+func (d *dualClient) UploadDual(ctx context.Context, path string, data io.Reader, size int64, contentType string) (string, string, error) {
 	// io.Reader can only be consumed once — buffer it so both writes can
 	// read the same content independently.
 	buf, err := io.ReadAll(data)
 	if err != nil {
-		return "", fmt.Errorf("storage: buffering upload %q: %w", path, err)
+		return "", "", fmt.Errorf("storage: buffering upload %q: %w", path, err)
 	}
 
-	url, err := d.primary.Upload(ctx, path, bytes.NewReader(buf), size, contentType)
+	minioURL, err := d.primary.Upload(ctx, path, bytes.NewReader(buf), size, contentType)
 	if err != nil {
-		return "", fmt.Errorf("storage: primary (minio) upload failed: %w", err)
+		return "", "", fmt.Errorf("storage: primary (minio) upload failed: %w", err)
 	}
 
-	if _, err := d.secondary.Upload(ctx, "shop/"+path, bytes.NewReader(buf), size, contentType); err != nil {
-		return "", fmt.Errorf("storage: secondary (aws s3) upload failed: %w", err)
+	s3URL, err := d.secondary.Upload(ctx, "shop/"+path, bytes.NewReader(buf), size, contentType)
+	if err != nil {
+		return "", "", fmt.Errorf("storage: secondary (aws s3) upload failed: %w", err)
 	}
 
-	return url, nil
+	return minioURL, s3URL, nil
 }
