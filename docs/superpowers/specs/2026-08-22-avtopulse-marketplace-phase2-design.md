@@ -54,9 +54,19 @@ CREATE TABLE avto444.shop_product_images (
 - Server: `157.180.73.79`, MinIO konteyneri artıq işləyir (`docker ps` təsdiqlədi), S3 API `127.0.0.1:9000`, konsol `127.0.0.1:9001` (mövcud `minio-console.157.180.73.79.sslip.io` Caddy-dən proxy olunur)
 - Mövcud bucket-lər: `turbo-private`, `turbo-public` (başqa layihəyə aiddir)
 - Yeni bucket: **`avtopulse-public`** — public-read policy (şəkillər ictimai olaraq göstəriləcək, autentifikasiya tələb etmir oxumaq üçün)
-- Path konvensiyası:
-  - Məhsul şəkilləri: `products/{productId}/{uuid}.{ext}`
-  - Mağaza logosu: `shops/{shopId}/logo.{ext}`
+- Path konvensiyası — iki paralel kök, mağaza (bu faza) və gələcək fərdi/biznes istifadəçi elanları (sonrakı faza, indi yalnız sənədləşdirilir, tətbiq olunmur):
+
+  ```
+  magaza/{shopId}/logo/{uuid}.{ext}
+  magaza/{shopId}/product/{productId}/{uuid}.{ext}
+
+  user/{userId}/product/{listingId}/{uuid}.{ext}   ← YALNIZ gələcək faza üçün konvensiya,
+                                                       bu fazada istifadə OLUNMUR (/elan-ver
+                                                       hələ tam mock-data-dır, real backend-ə
+                                                       qoşulmayıb — həmin iş ayrıca bir fazadır)
+  ```
+
+  Bu fazada faktiki yazılan yeganə path-lər: `magaza/{shopId}/logo/{uuid}.{ext}` və `magaza/{shopId}/product/{productId}/{uuid}.{ext}`.
 - Backend Go SDK: `github.com/minio/minio-go/v7` (rəsmi MinIO Go klienti, AWS S3 SDK-a alternativ, MinIO ilə birbaşa uyğun)
 
 ## API-lər (yeni, 3 ədəd — hamısı `shop_session` cookie ilə autentifikasiyalı)
