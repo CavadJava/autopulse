@@ -89,6 +89,8 @@ CREATE TABLE avto444.shop_product_images (
 
 Mövcud oxu-yalnaz endpoint-lər (`GET /api/shops`, `/by-name/{name}`, `/{shopId}/products`) genişləndirilir ki, cavablarına yeni sahələr (marka/model/il/qiymet/yurus/yanacaq/ban, images massivi, shop-un logo_url-u) daxil olsun.
 
+**Swagger:** Faza 1-də quraşdırılan `swaggo/swag` sxemi (`avtopulse-backend/docs/`, canlıda `https://autopulse.157.180.73.79.sslip.io/swagger/index.html`) bu 3 yeni endpoint üçün də istifadə olunur — hər yeni handler üzərinə eyni annotasiya-şərh formatı (`@Summary`, `@Router`, `@Success`/`@Failure` və s.) əlavə olunur, sonra `swag init -g cmd/server/main.go -o docs --parseInternal` yenidən işə salınır ki, yeni endpoint-lər avtomatik generasiya olunan spesifikasiyaya (və Swagger UI-a) daxil olsun. Faza 1-də tapılan bug (annotasiyaların anonim closure-lara yox, adlandırılmış metodlara bağlanması lazım olduğu) artıq həll olunub — yeni handler-lər həmin adlandırılmış-metod nümunəsini (`shopHandlers`/`authHandlers` strukturları) davam etdirməlidir ki, eyni problem təkrarlanmasın.
+
 ## Frontend inteqrasiyası
 
 - `/magazam` — mövcud "öz məhsullarını görmə" siyahısının üstünə yeni bir "+ Yeni məhsul əlavə et" bölməsi/toggle əlavə olunur: zəngin form (yuxarıdakı sahələr) + şəkil seçici (bir neçə fayl) → `POST /api/shops/me/products`, sonra qayıdan `id` ilə `POST /api/shops/me/products/{id}/images`. Uğurlu olduqda siyahı yenilənir (yeni məhsul görünür).
