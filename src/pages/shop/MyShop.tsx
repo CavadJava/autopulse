@@ -30,7 +30,12 @@ export default function MyShop() {
   }, [navigate]);
 
   const handleLogout = async () => {
-    await shopLogout();
+    try {
+      await shopLogout();
+    } catch {
+      // Best-effort — even if the network call fails, still take the user
+      // back to the login page; they're no longer treating themselves as logged in.
+    }
     navigate('/magaza-giris');
   };
 
