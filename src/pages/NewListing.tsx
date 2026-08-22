@@ -2,8 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { BRANDS, CAR_GENERATIONS, DEFAULT_GENERATIONS, MODIFICATIONS, DEFAULT_MODIFICATIONS } from '../api/mockData/brands';
-import { getListingById, updateListing } from '../api/listings';
-import type { Listing } from '../types';
+import {
+  getMyListings,
+  createListing,
+  updateUserListing,
+  uploadListingImages,
+  type CreateListingInput,
+  type UserListingApi,
+} from '../api/auth';
 import {
   initialNewListingForm,
   loadDraft,
@@ -16,30 +22,20 @@ import {
 import PhotoGrid from '../components/PhotoGrid';
 import styles from './NewListing.module.css';
 
-// Maps the color names used elsewhere in the app (ListingCard filters, mock data)
-// to a swatch hex from RƏNGLƏR below, so editing an existing listing pre-selects
-// its color instead of leaving the whole rest of the form hidden.
-const RƏNG_NAME_TO_HEX: Record<string, string> = {
-  Qara: '#000000',
-  Ağ: '#F2EFE8',
-  Gümüş: '#B7BCC4',
-  Qırmızı: '#E11B1B',
-  Mavi: '#4E9AE0',
-};
-
-const RƏNG_HEX_TO_NAME: Record<string, string> = Object.fromEntries(
-  Object.entries(RƏNG_NAME_TO_HEX).map(([name, hex]) => [hex, name])
-);
-
 function toListingPhotos(urls: string[], prefix: string): ListingPhoto[] {
   return urls.map((url, idx) => ({ id: `existing-${prefix}-${idx}`, kind: 'existing' as const, url }));
 }
 
-function onlyExistingUrls(photos: ListingPhoto[]): string[] {
-  return photos.filter((p): p is Extract<ListingPhoto, { kind: 'existing' }> => p.kind === 'existing').map((p) => p.url);
+function onlyNewFiles(photos: ListingPhoto[]): File[] {
+  return photos.filter((p): p is Extract<ListingPhoto, { kind: 'new' }> => p.kind === 'new').map((p) => p.file);
 }
 
-function listingToFormState(listing: Listing): NewListingFormState {
+// Maps a real backend listing (the simpler marka/model/il/qiymet/... shape
+// UserListingApi actually stores) onto the wizard's much richer local form
+// state. Fields the backend doesn't persist (nəsil, modifikasiya, rəng,
+// təchizat, etc.) fall back to sane defaults — editing an existing listing
+// still lets the user fill those in and re-save, same as create mode.
+function listingToFormState(listing: UserListingApi): NewListingFormState {
   return {
     kateqoriya: 'Minik',
     marka: listing.marka,
@@ -48,60 +44,49 @@ function listingToFormState(listing: Listing): NewListingFormState {
     ban: listing.ban,
     nəsil: 'Cari nəsil',
     mühərrikNövü: listing.yanacaq === 'Elektrik' ? 'Elektro' : listing.yanacaq,
-    ötürücü: listing.ötürücü,
-    sürətlərQutusu: String(listing.sürətlərQutusu),
-    modifikasiya: listing.mühərrik,
-    yerlərSayı: listing.yerlərSayı,
-    rəng: RƏNG_NAME_TO_HEX[listing.rəng] ?? '#000000',
-    bazarÜçünYığılıb: listing.bazarÜçünYığılıb,
-    yürüş: String(listing.yürüş),
+    ötürücü: '',
+    sürətlərQutusu: '',
+    modifikasiya: '',
+    yerlərSayı: null,
+    rəng: null,
+    bazarÜçünYığılıb: '',
+    yürüş: String(listing.yurus),
     yürüşVahidi: 'km',
-    şəkillər: toListingPhotos(listing.şəkillər, 'ext'),
-    interyerŞəkillər: toListingPhotos(listing.interyerŞəkillər, 'int'),
-    təchizatŞəkillər: toListingPhotos(listing.təchizatŞəkillər, 'feat'),
-    qapılarŞəkillər: toListingPhotos(listing.qapılarŞəkillər, 'door'),
-    təchizat: listing.təchizat,
-    vuruğuVar: listing.vuruğuVar,
-    rənglənib: listing.rənglənib,
-    qəzalı: listing.qəzalı,
+    şəkillər: toListingPhotos(listing.images.map((img) => img.minioUrl), 'ext'),
+    interyerŞəkillər: [],
+    təchizatŞəkillər: [],
+    qapılarŞəkillər: [],
+    təchizat: [],
+    vuruğuVar: false,
+    rənglənib: false,
+    qəzalı: false,
     vinKod: '',
-    əlavəMəlumat: listing.təsvir,
-    şəhər: listing.şəhər,
-    qiymət: String(listing.qiymət),
+    əlavəMəlumat: listing.details,
+    şəhər: '',
+    qiymət: String(listing.qiymet),
     valyuta: 'AZN',
-    kreditlə: listing.kredit,
-    barterMümkündür: listing.barter,
-    ad: listing.satıcıAd,
+    kreditlə: false,
+    barterMümkündür: false,
+    ad: '',
     email: '',
-    telefon: listing.satıcıZəng,
+    telefon: '',
   };
 }
 
-function formStateToListingPatch(form: NewListingFormState): Partial<Listing> {
+// Maps the wizard's form state down to the fields the real backend actually
+// stores (CreateListingInput) — the richer wizard-only fields (nəsil, rəng,
+// təchizat, şəhər, etc.) aren't part of this phase's backend model yet.
+function formStateToCreateListingInput(form: NewListingFormState): CreateListingInput {
   return {
     marka: form.marka,
     model: form.model,
     il: form.il ?? 0,
+    qiymet: parseInt(form.qiymət) || 0,
+    yurus: parseInt(form.yürüş) || 0,
+    yanacaq: form.mühərrikNövü === 'Elektro' ? 'Elektrik' : form.mühərrikNövü,
     ban: form.ban,
-    yanacaq: (form.mühərrikNövü === 'Elektro' ? 'Elektrik' : form.mühərrikNövü) as Listing['yanacaq'],
-    ötürücü: form.ötürücü,
-    sürətlərQutusu: parseInt(form.sürətlərQutusu) || 0,
-    mühərrik: form.modifikasiya,
-    yerlərSayı: form.yerlərSayı ?? 5,
-    rəng: (form.rəng && RƏNG_HEX_TO_NAME[form.rəng]) || 'Digər',
-    bazarÜçünYığılıb: form.bazarÜçünYığılıb,
-    yürüş: parseInt(form.yürüş) || 0,
-    təchizat: form.təchizat,
-    vuruğuVar: form.vuruğuVar,
-    rənglənib: form.rənglənib,
-    qəzalı: form.qəzalı,
-    təsvir: form.əlavəMəlumat,
-    şəhər: form.şəhər,
-    qiymət: parseInt(form.qiymət) || 0,
-    kredit: form.kreditlə,
-    barter: form.barterMümkündür,
-    satıcıAd: form.ad,
-    satıcıZəng: form.telefon,
+    title: `${form.marka} ${form.model}, ${form.il ?? ''}`.trim(),
+    details: form.əlavəMəlumat,
   };
 }
 
@@ -193,7 +178,10 @@ export default function NewListing() {
       setLoadingExisting(true);
       setLoadError(null);
       try {
-        const listing = await getListingById(id);
+        // No single-listing GET endpoint exists yet — load the full list and
+        // find this one by id, same as KabinetElanlarim already does.
+        const listings = await getMyListings();
+        const listing = listings.find((l) => String(l.id) === id);
         if (!listing) {
           setLoadError('Elan tapılmadı.');
           return;
@@ -300,18 +288,24 @@ export default function NewListing() {
       goNext();
       return;
     }
+    // Only the exterior ("şəkillər") tab's photos are uploaded — that's the
+    // only photo category the backend currently stores.
+    const newExteriorFiles = onlyNewFiles(form.şəkillər);
+
     if (isEditMode && id) {
       setSaving(true);
       try {
-        // Mock update — new (locally-picked) photos aren't uploaded anywhere;
-        // only existing photo URLs are persisted, in their current (possibly reordered) order.
-        await updateListing(id, {
-          ...formStateToListingPatch(form),
-          şəkillər: onlyExistingUrls(form.şəkillər),
-          interyerŞəkillər: onlyExistingUrls(form.interyerŞəkillər),
-          təchizatŞəkillər: onlyExistingUrls(form.təchizatŞəkillər),
-          qapılarŞəkillər: onlyExistingUrls(form.qapılarŞəkillər),
-        });
+        const updated = await updateUserListing(Number(id), formStateToCreateListingInput(form));
+        // The listing itself is already saved at this point — an image-upload
+        // failure below is only a softer, separate error (mirrors
+        // MyShop.tsx's handleUpdateProduct pattern), not a "save failed" one.
+        if (newExteriorFiles.length > 0) {
+          try {
+            await uploadListingImages(updated.id, newExteriorFiles);
+          } catch {
+            setLoadError('Elan yeniləndi, amma yeni şəkillər yüklənmədi.');
+          }
+        }
         setSubmitted(true);
       } catch {
         setLoadError('Yadda saxlanılarkən xəta baş verdi.');
@@ -320,9 +314,26 @@ export default function NewListing() {
       }
       return;
     }
-    // Mock creation — no backend. Real implementation would POST the form + upload images.
-    clearDraft();
-    setSubmitted(true);
+
+    setSaving(true);
+    try {
+      const created = await createListing(formStateToCreateListingInput(form));
+      // Same softer-error pattern as MyShop.tsx's handleCreateProduct — the
+      // listing is already created; an image-upload failure is non-fatal.
+      if (newExteriorFiles.length > 0) {
+        try {
+          await uploadListingImages(created.id, newExteriorFiles);
+        } catch {
+          setLoadError('Elanınız yaradıldı, amma şəkillər yüklənmədi.');
+        }
+      }
+      clearDraft();
+      setSubmitted(true);
+    } catch {
+      setLoadError('Elan yaradılarkən xəta baş verdi.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loadingExisting) {

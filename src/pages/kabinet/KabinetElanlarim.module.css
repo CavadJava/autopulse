@@ -53,6 +53,12 @@
   aspect-ratio: 16 / 10;
 }
 
+.noImage {
+  width: 100%;
+  height: 100%;
+  background: var(--surface-alt, #f2f2f2);
+}
+
 .imageLink img {
   width: 100%;
   height: 100%;
