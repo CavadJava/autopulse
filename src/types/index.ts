@@ -21,6 +21,9 @@ export interface Listing {
   barter: boolean;
   təsvir: string;
   şəkillər: string[];
+  interyerŞəkillər: string[];
+  təchizatŞəkillər: string[];
+  qapılarŞəkillər: string[];
   satıcıAd: string;
   satıcıZəng: string;
   satıcıÜzvlükTarixi: string;

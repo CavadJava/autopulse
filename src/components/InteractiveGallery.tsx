@@ -48,7 +48,13 @@ interface InteractiveGalleryProps {
 export default function InteractiveGallery({ listing }: InteractiveGalleryProps) {
   const [activeTab, setActiveTab] = useState<GalleryTab>('exterior');
   const [activeHotspot, setActiveHotspot] = useState<number | null>(null);
-  const [selectedImage, setSelectedImage] = useState(0);
+  // Each tab remembers its own selected photo independently.
+  const [selectedByTab, setSelectedByTab] = useState<Record<GalleryTab, number>>({
+    exterior: 0,
+    interior: 0,
+    features: 0,
+    doors: 0,
+  });
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
 
@@ -61,35 +67,29 @@ export default function InteractiveGallery({ listing }: InteractiveGalleryProps)
   const [spinMode, setSpinMode] = useState(false);
   const spinDragStartX = useRef<number | null>(null);
 
+  // Real, distinct photo sets per tab — no reuse of the exterior pool.
+  const photosByTab: Record<GalleryTab, string[]> = {
+    exterior: listing.şəkillər,
+    interior: listing.interyerŞəkillər,
+    features: listing.təchizatŞəkillər,
+    doors: listing.qapılarŞəkillər,
+  };
+  const activePhotos = photosByTab[activeTab];
+  const selectedImage = selectedByTab[activeTab];
+  const photoCount = activePhotos.length;
+
   const exteriorHotspots = listing.təchizat
     .slice(0, EXTERIOR_HOTSPOTS.length)
     .map((label, idx) => ({ label, ...EXTERIOR_HOTSPOTS[idx] }));
-
-  // Interior photo: prefer a second shot if the listing has one, otherwise
-  // reuse the primary shot rather than showing nothing.
-  const interiorImage = listing.şəkillər[1] ?? listing.şəkillər[0];
   const interiorLabels = ['Sükan', 'Mərkəzi ekran', 'Ön oturacaq', 'Cihaz paneli'];
   const interiorHotspots = interiorLabels
     .slice(0, INTERIOR_HOTSPOTS.length)
     .map((label, idx) => ({ label, ...INTERIOR_HOTSPOTS[idx] }));
 
-  const stageImage = activeTab === 'interior' ? interiorImage : listing.şəkillər[selectedImage];
+  const stageImage = activePhotos[selectedImage] ?? activePhotos[0];
   const activeHotspots = activeTab === 'interior' ? interiorHotspots : exteriorHotspots;
   const showHotspots = (activeTab === 'exterior' || activeTab === 'interior') && zoom === 1 && !spinMode;
-  const photoCount = listing.şəkillər.length;
-  const showNavArrows = activeTab === 'exterior' && photoCount > 1 && !spinMode;
-
-  // Per-tab thumbnail strips. There's no dedicated interior/features/doors
-  // photo set in the mock data, so each tab reuses the listing's own photos
-  // in a different order/offset — enough to make each tab feel like it has
-  // its own gallery instead of literally the same strip everywhere.
-  const thumbnailsByTab: Record<GalleryTab, string[]> = {
-    exterior: listing.şəkillər,
-    interior: [...listing.şəkillər].reverse(),
-    features: listing.şəkillər.length > 1 ? [listing.şəkillər[1], ...listing.şəkillər] : listing.şəkillər,
-    doors: listing.şəkillər,
-  };
-  const activeThumbnails = thumbnailsByTab[activeTab];
+  const showNavArrows = photoCount > 1 && !spinMode;
 
   const clampPan = (next: { x: number; y: number }, z: number) => {
     if (z <= 1 || !stageRef.current) return { x: 0, y: 0 };
@@ -103,7 +103,7 @@ export default function InteractiveGallery({ listing }: InteractiveGalleryProps)
   };
 
   const selectImage = (idx: number) => {
-    setSelectedImage(idx);
+    setSelectedByTab((prev) => ({ ...prev, [activeTab]: idx }));
     setZoom(1);
     setPan({ x: 0, y: 0 });
   };
@@ -170,9 +170,10 @@ export default function InteractiveGallery({ listing }: InteractiveGalleryProps)
       // then reset the baseline so continued dragging keeps advancing.
       if (Math.abs(dx) >= SPIN_DRAG_THRESHOLD) {
         const framesToAdvance = Math.trunc(dx / SPIN_DRAG_THRESHOLD);
-        setSelectedImage((prev) => {
-          const next = (prev + framesToAdvance + photoCount * 100) % photoCount;
-          return next;
+        setSelectedByTab((prev) => {
+          const current = prev[activeTab];
+          const next = (current + framesToAdvance + photoCount * 100) % photoCount;
+          return { ...prev, [activeTab]: next };
         });
         spinDragStartX.current = e.clientX;
       }
@@ -192,127 +193,83 @@ export default function InteractiveGallery({ listing }: InteractiveGalleryProps)
 
   return (
     <div className={styles.gallery}>
-      {(activeTab === 'exterior' || activeTab === 'interior') && (
-        <div
-          ref={stageRef}
-          className={styles.stage}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={endDrag}
-          onMouseLeave={endDrag}
-        >
-          <img
-            src={stageImage}
-            alt={`${listing.marka} ${listing.model} — ${activeTab === 'interior' ? 'interior' : 'exterior'}`}
-            className={dragging ? styles.dragging : undefined}
-            style={{
-              transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
-              cursor: spinMode
+      <div
+        ref={stageRef}
+        className={styles.stage}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={endDrag}
+        onMouseLeave={endDrag}
+      >
+        <img
+          src={stageImage}
+          alt={`${listing.marka} ${listing.model} — ${activeTab}`}
+          className={dragging ? styles.dragging : undefined}
+          style={{
+            transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+            cursor: spinMode
+              ? dragging
+                ? 'grabbing'
+                : 'ew-resize'
+              : zoom > 1
                 ? dragging
                   ? 'grabbing'
-                  : 'ew-resize'
-                : zoom > 1
-                  ? dragging
-                    ? 'grabbing'
-                    : 'grab'
-                  : 'default',
-            }}
-            draggable={false}
-          />
+                  : 'grab'
+                : 'default',
+          }}
+          draggable={false}
+        />
 
-          {showNavArrows && (
-            <>
-              <button type="button" className={styles.navArrowLeft} onClick={goToPrevImage} aria-label="Əvvəlki şəkil">
-                ‹
-              </button>
-              <button type="button" className={styles.navArrowRight} onClick={goToNextImage} aria-label="Növbəti şəkil">
-                ›
-              </button>
-            </>
-          )}
-
-          {activeTab === 'exterior' && photoCount > 1 && (
-            <button
-              type="button"
-              className={spinMode ? styles.spinBtnActive : styles.spinBtn}
-              onClick={toggleSpinMode}
-            >
-              <span className={styles.spinIcon}>360°</span> Spin
+        {showNavArrows && (
+          <>
+            <button type="button" className={styles.navArrowLeft} onClick={goToPrevImage} aria-label="Əvvəlki şəkil">
+              ‹
             </button>
-          )}
+            <button type="button" className={styles.navArrowRight} onClick={goToNextImage} aria-label="Növbəti şəkil">
+              ›
+            </button>
+          </>
+        )}
 
-          {spinMode && <div className={styles.spinHint}>Fırlatmaq üçün şəkli sürükləyin</div>}
+        {activeTab === 'exterior' && photoCount > 1 && (
+          <button
+            type="button"
+            className={spinMode ? styles.spinBtnActive : styles.spinBtn}
+            onClick={toggleSpinMode}
+          >
+            <span className={styles.spinIcon}>360°</span> Spin
+          </button>
+        )}
 
-          {showHotspots &&
-            activeHotspots.map((h, idx) => (
-              <button
-                key={h.label}
-                type="button"
-                className={`${styles.hotspot} ${activeHotspot === idx ? styles.hotspotActive : ''}`}
-                style={{ top: h.top, left: h.left }}
-                onClick={() => setActiveHotspot(activeHotspot === idx ? null : idx)}
-              >
-                <span className={styles.hotspotDot} />
-                {activeHotspot === idx && <span className={styles.hotspotLabel}>{h.label}</span>}
-              </button>
-            ))}
+        {spinMode && <div className={styles.spinHint}>Fırlatmaq üçün şəkli sürükləyin</div>}
 
-          {!spinMode && (
-          <div className={styles.zoomControls}>
+        {showHotspots &&
+          activeHotspots.map((h, idx) => (
             <button
+              key={h.label}
               type="button"
-              aria-label="Yaxınlaşdır"
-              onClick={zoomIn}
-              disabled={zoom >= MAX_ZOOM}
+              className={`${styles.hotspot} ${activeHotspot === idx ? styles.hotspotActive : ''}`}
+              style={{ top: h.top, left: h.left }}
+              onClick={() => setActiveHotspot(activeHotspot === idx ? null : idx)}
             >
+              <span className={styles.hotspotDot} />
+              {activeHotspot === idx && <span className={styles.hotspotLabel}>{h.label}</span>}
+            </button>
+          ))}
+
+        {!spinMode && (
+          <div className={styles.zoomControls}>
+            <button type="button" aria-label="Yaxınlaşdır" onClick={zoomIn} disabled={zoom >= MAX_ZOOM}>
               +
             </button>
-            <button
-              type="button"
-              aria-label="Uzaqlaşdır"
-              onClick={zoomOut}
-              disabled={zoom <= MIN_ZOOM}
-            >
+            <button type="button" aria-label="Uzaqlaşdır" onClick={zoomOut} disabled={zoom <= MIN_ZOOM}>
               −
             </button>
           </div>
-          )}
+        )}
 
-          {zoom > 1 && <div className={styles.zoomBadge}>{Math.round(zoom * 100)}%</div>}
-        </div>
-      )}
-
-      {activeTab === 'features' && (
-        <div className={styles.featuresPanel}>
-          {listing.təchizat.length > 0 ? (
-            <div className={styles.featuresGrid}>
-              {listing.təchizat.map((item) => (
-                <span key={item} className={styles.featurePill}>
-                  ✓ {item}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className={styles.featuresEmpty}>Əlavə təchizat qeyd olunmayıb.</p>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'doors' && (
-        <div className={styles.doorsPanel}>
-          <div className={styles.doorsCar}>
-            <div className={styles.doorsRoof} />
-            {Array.from({ length: listing.yerlərSayı >= 5 ? 4 : 2 }).map((_, idx) => (
-              <div key={idx} className={styles.doorSlot}>
-                <span className={styles.doorIcon}>🚪</span>
-              </div>
-            ))}
-          </div>
-          <p className={styles.doorsCaption}>
-            {listing.yerlərSayı >= 5 ? '4 qapı' : '2 qapı'} · {listing.yerlərSayı} yerlik
-          </p>
-        </div>
-      )}
+        {zoom > 1 && <div className={styles.zoomBadge}>{Math.round(zoom * 100)}%</div>}
+      </div>
 
       <div className={styles.tabRow}>
         {TABS.map((tab) => (
@@ -327,32 +284,19 @@ export default function InteractiveGallery({ listing }: InteractiveGalleryProps)
       </div>
 
       <div className={styles.thumbnails}>
-        {activeThumbnails.map((img, idx) => {
-          const originalIdx = listing.şəkillər.indexOf(img);
-          const isActive = activeTab === 'exterior' && selectedImage === originalIdx;
-          return (
-            <button
-              key={`${activeTab}-${idx}`}
-              type="button"
-              className={isActive ? styles.thumbActive : styles.thumb}
-              onClick={() => {
-                if (activeTab === 'exterior') {
-                  selectImage(originalIdx);
-                } else {
-                  selectTab('exterior');
-                  selectImage(originalIdx);
-                }
-              }}
-            >
-              <img src={img} alt={`Şəkil ${idx + 1}`} />
-              {idx === activeThumbnails.length - 1 && (
-                <span className={styles.photoCountBadge}>
-                  🖼 {activeThumbnails.length} şəkil
-                </span>
-              )}
-            </button>
-          );
-        })}
+        {activePhotos.map((img, idx) => (
+          <button
+            key={idx}
+            type="button"
+            className={selectedImage === idx ? styles.thumbActive : styles.thumb}
+            onClick={() => selectImage(idx)}
+          >
+            <img src={img} alt={`${activeTab} şəkli ${idx + 1}`} />
+            {idx === activePhotos.length - 1 && (
+              <span className={styles.photoCountBadge}>🖼 {activePhotos.length} şəkil</span>
+            )}
+          </button>
+        ))}
       </div>
     </div>
   );
