@@ -59,9 +59,30 @@ func main() {
 		log.Fatal("AVTOPULSE_MINIO_ENDPOINT, AVTOPULSE_MINIO_ACCESS_KEY, AVTOPULSE_MINIO_SECRET_KEY, AVTOPULSE_MINIO_BUCKET, AVTOPULSE_MINIO_PUBLIC_URL env vars are required")
 	}
 
-	storageClient, err := storage.NewClient(ctx, minioEndpoint, minioAccessKey, minioSecretKey, minioBucket, minioPublicURL, false)
+	minioClient, err := storage.NewClient(ctx, minioEndpoint, minioAccessKey, minioSecretKey, minioBucket, minioPublicURL, false)
 	if err != nil {
 		log.Fatalf("failed to connect to minio: %v", err)
+	}
+
+	var storageClient storage.Client = minioClient
+
+	// Optional: mirror every upload to a real AWS S3 bucket too, in parallel
+	// with MinIO. Only enabled if all 4 AWS env vars are set — otherwise the
+	// backend runs MinIO-only, same as before.
+	awsAccessKey := os.Getenv("AVTOPULSE_AWS_ACCESS_KEY_ID")
+	awsSecretKey := os.Getenv("AVTOPULSE_AWS_SECRET_ACCESS_KEY")
+	awsRegion := os.Getenv("AVTOPULSE_AWS_REGION")
+	awsBucket := os.Getenv("AVTOPULSE_AWS_BUCKET")
+	if awsAccessKey != "" || awsSecretKey != "" || awsRegion != "" || awsBucket != "" {
+		if awsAccessKey == "" || awsSecretKey == "" || awsRegion == "" || awsBucket == "" {
+			log.Fatal("AVTOPULSE_AWS_ACCESS_KEY_ID, AVTOPULSE_AWS_SECRET_ACCESS_KEY, AVTOPULSE_AWS_REGION, AVTOPULSE_AWS_BUCKET must all be set together, or all left unset")
+		}
+		s3Client, err := storage.NewS3Client(ctx, awsRegion, awsAccessKey, awsSecretKey, awsBucket)
+		if err != nil {
+			log.Fatalf("failed to connect to aws s3: %v", err)
+		}
+		storageClient = storage.NewDualClient(minioClient, s3Client)
+		log.Printf("dual-write storage enabled: minio + aws s3 (%s/%s)", awsRegion, awsBucket)
 	}
 
 	r := chi.NewRouter()
