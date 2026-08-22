@@ -3,7 +3,6 @@ package shop
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -15,7 +14,7 @@ type Repository interface {
 	ListShops(ctx context.Context) ([]ShopSummary, error)
 	GetShopByName(ctx context.Context, name string) (*Shop, error)
 	GetShopByID(ctx context.Context, id int64) (*Shop, error)
-	ListProducts(ctx context.Context, shopID int64) ([]Product, error)
+	ListProducts(ctx context.Context, shopID int64, onlyStatus string) ([]Product, error)
 	GetPasswordHash(ctx context.Context, shopID int64) (string, error)
 	CreateProduct(ctx context.Context, shopID int64, input CreateProductInput) (*Product, error)
 	AddProductImage(ctx context.Context, productID int64, minioURL, s3URL string, sira int) (*ProductImage, error)
@@ -23,6 +22,7 @@ type Repository interface {
 	SetShopLogo(ctx context.Context, shopID int64, url string) error
 	UpdateProduct(ctx context.Context, productID int64, input CreateProductInput) (*Product, error)
 	DeleteProduct(ctx context.Context, productID int64) error
+	RestoreProduct(ctx context.Context, productID int64) error
 	GetImageProductID(ctx context.Context, imageID int64) (int64, error)
 	DeleteProductImage(ctx context.Context, imageID int64) error
 }
@@ -83,14 +83,19 @@ func (r *pgRepository) GetShopByID(ctx context.Context, id int64) (*Shop, error)
 	return &s, nil
 }
 
-func (r *pgRepository) ListProducts(ctx context.Context, shopID int64) ([]Product, error) {
-	rows, err := r.pool.Query(ctx,
-		`SELECT id, name, title, COALESCE(details, ''),
-		        COALESCE(marka, ''), COALESCE(model, ''), COALESCE(il, 0),
-		        COALESCE(qiymet, 0), COALESCE(yurus, 0), COALESCE(yanacaq, ''), COALESCE(ban, '')
-		 FROM avto444.shop_products WHERE shop_id = $1 ORDER BY id`,
-		shopID,
-	)
+func (r *pgRepository) ListProducts(ctx context.Context, shopID int64, onlyStatus string) ([]Product, error) {
+	query := `SELECT id, name, title, COALESCE(details, ''),
+	                 COALESCE(marka, ''), COALESCE(model, ''), COALESCE(il, 0),
+	                 COALESCE(qiymet, 0), COALESCE(yurus, 0), COALESCE(yanacaq, ''), COALESCE(ban, ''), status
+	          FROM avto444.shop_products WHERE shop_id = $1`
+	args := []any{shopID}
+	if onlyStatus != "" {
+		query += ` AND status = $2`
+		args = append(args, onlyStatus)
+	}
+	query += ` ORDER BY id`
+
+	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +105,7 @@ func (r *pgRepository) ListProducts(ctx context.Context, shopID int64) ([]Produc
 	for rows.Next() {
 		var p Product
 		if err := rows.Scan(&p.ID, &p.Name, &p.Title, &p.Details,
-			&p.Marka, &p.Model, &p.Il, &p.Qiymet, &p.Yurus, &p.Yanacaq, &p.Ban); err != nil {
+			&p.Marka, &p.Model, &p.Il, &p.Qiymet, &p.Yurus, &p.Yanacaq, &p.Ban, &p.Status); err != nil {
 			return nil, err
 		}
 		out = append(out, p)
@@ -174,6 +179,7 @@ func (r *pgRepository) CreateProduct(ctx context.Context, shopID int64, input Cr
 		Yurus:   input.Yurus,
 		Yanacaq: input.Yanacaq,
 		Ban:     input.Ban,
+		Status:  "saytda",
 		Images:  []ProductImage{},
 	}, nil
 }
@@ -205,12 +211,14 @@ func (r *pgRepository) SetShopLogo(ctx context.Context, shopID int64, url string
 }
 
 func (r *pgRepository) UpdateProduct(ctx context.Context, productID int64, input CreateProductInput) (*Product, error) {
-	_, err := r.pool.Exec(ctx,
+	var status string
+	err := r.pool.QueryRow(ctx,
 		`UPDATE avto444.shop_products
 		 SET name = $1, title = $2, details = $3, marka = $4, model = $5, il = $6, qiymet = $7, yurus = $8, yanacaq = $9, ban = $10
-		 WHERE id = $11`,
+		 WHERE id = $11
+		 RETURNING status`,
 		input.Name, input.Title, input.Details, input.Marka, input.Model, input.Il, input.Qiymet, input.Yurus, input.Yanacaq, input.Ban, productID,
-	)
+	).Scan(&status)
 	if err != nil {
 		return nil, err
 	}
@@ -223,25 +231,18 @@ func (r *pgRepository) UpdateProduct(ctx context.Context, productID int64, input
 	return &Product{
 		ID: productID, Name: input.Name, Title: input.Title, Details: input.Details,
 		Marka: input.Marka, Model: input.Model, Il: input.Il, Qiymet: input.Qiymet,
-		Yurus: input.Yurus, Yanacaq: input.Yanacaq, Ban: input.Ban, Images: images,
+		Yurus: input.Yurus, Yanacaq: input.Yanacaq, Ban: input.Ban, Status: status, Images: images,
 	}, nil
 }
 
 func (r *pgRepository) DeleteProduct(ctx context.Context, productID int64) error {
-	tx, err := r.pool.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx) // no-op if Commit succeeds
+	_, err := r.pool.Exec(ctx, `UPDATE avto444.shop_products SET status = 'legv_edilib' WHERE id = $1`, productID)
+	return err
+}
 
-	if _, err := tx.Exec(ctx, `DELETE FROM avto444.shop_product_images WHERE product_id = $1`, productID); err != nil {
-		return fmt.Errorf("deleting product images: %w", err)
-	}
-	if _, err := tx.Exec(ctx, `DELETE FROM avto444.shop_products WHERE id = $1`, productID); err != nil {
-		return fmt.Errorf("deleting product: %w", err)
-	}
-
-	return tx.Commit(ctx)
+func (r *pgRepository) RestoreProduct(ctx context.Context, productID int64) error {
+	_, err := r.pool.Exec(ctx, `UPDATE avto444.shop_products SET status = 'saytda' WHERE id = $1`, productID)
+	return err
 }
 
 func (r *pgRepository) GetImageProductID(ctx context.Context, imageID int64) (int64, error) {

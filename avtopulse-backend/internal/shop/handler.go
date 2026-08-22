@@ -92,7 +92,7 @@ func (h *shopHandlers) ListProducts(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	products, err := h.repo.ListProducts(req.Context(), id)
+	products, err := h.repo.ListProducts(req.Context(), id, "")
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return

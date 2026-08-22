@@ -83,7 +83,7 @@ func TestRepository_NullDetailsAndWorkTimes(t *testing.T) {
 		t.Errorf("expected empty WorkTimes, got %q", shopByID.WorkTimes)
 	}
 
-	products, err := repo.ListProducts(ctx, shopID)
+	products, err := repo.ListProducts(ctx, shopID, "")
 	if err != nil {
 		t.Fatalf("ListProducts failed on NULL details row: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestListProducts_EmptyResultIsNotNilSlice(t *testing.T) {
 		t.Fatalf("RunMigrations failed: %v", err)
 	}
 
-	products, err := NewRepository(pool).ListProducts(ctx, -1)
+	products, err := NewRepository(pool).ListProducts(ctx, -1, "")
 	if err != nil {
 		t.Fatalf("ListProducts failed: %v", err)
 	}

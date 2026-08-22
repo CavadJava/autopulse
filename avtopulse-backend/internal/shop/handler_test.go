@@ -36,8 +36,15 @@ func (f *fakeRepo) GetShopByID(ctx context.Context, id int64) (*Shop, error) {
 	return s, nil
 }
 
-func (f *fakeRepo) ListProducts(ctx context.Context, shopID int64) ([]Product, error) {
-	return f.products[shopID], nil
+func (f *fakeRepo) ListProducts(ctx context.Context, shopID int64, onlyStatus string) ([]Product, error) {
+	out := []Product{}
+	for _, p := range f.products[shopID] {
+		if onlyStatus != "" && p.Status != onlyStatus {
+			continue
+		}
+		out = append(out, p)
+	}
+	return out, nil
 }
 
 func (f *fakeRepo) GetPasswordHash(ctx context.Context, shopID int64) (string, error) {
@@ -52,6 +59,7 @@ func (f *fakeRepo) CreateProduct(ctx context.Context, shopID int64, input Create
 	p := &Product{
 		ID: int64(len(f.products[shopID]) + 100), Name: input.Name, Title: input.Title, Details: input.Details,
 		Marka: input.Marka, Model: input.Model, Il: input.Il, Qiymet: input.Qiymet, Yurus: input.Yurus, Yanacaq: input.Yanacaq, Ban: input.Ban,
+		Status: "saytda",
 		Images: []ProductImage{},
 	}
 	f.products[shopID] = append(f.products[shopID], *p)
@@ -84,7 +92,7 @@ func (f *fakeRepo) UpdateProduct(ctx context.Context, productID int64, input Cre
 				updated := Product{
 					ID: productID, Name: input.Name, Title: input.Title, Details: input.Details,
 					Marka: input.Marka, Model: input.Model, Il: input.Il, Qiymet: input.Qiymet,
-					Yurus: input.Yurus, Yanacaq: input.Yanacaq, Ban: input.Ban, Images: p.Images,
+					Yurus: input.Yurus, Yanacaq: input.Yanacaq, Ban: input.Ban, Status: p.Status, Images: p.Images,
 				}
 				f.products[shopID][i] = updated
 				return &updated, nil
@@ -98,7 +106,19 @@ func (f *fakeRepo) DeleteProduct(ctx context.Context, productID int64) error {
 	for shopID, products := range f.products {
 		for i, p := range products {
 			if p.ID == productID {
-				f.products[shopID] = append(products[:i], products[i+1:]...)
+				f.products[shopID][i].Status = "legv_edilib"
+				return nil
+			}
+		}
+	}
+	return ErrNotFound
+}
+
+func (f *fakeRepo) RestoreProduct(ctx context.Context, productID int64) error {
+	for shopID, products := range f.products {
+		for i, p := range products {
+			if p.ID == productID {
+				f.products[shopID][i].Status = "saytda"
 				return nil
 			}
 		}
