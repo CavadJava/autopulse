@@ -99,7 +99,7 @@ type loginRequest struct {
 // @Success      200   {string}  string  "ok"
 // @Failure      400   {string}  string  "invalid request body"
 // @Failure      401   {string}  string  "invalid credentials"
-// @Router       /login [post]
+// @Router       /admin/login [post]
 func (h *adminHandlers) Login(w http.ResponseWriter, req *http.Request) {
 	var body loginRequest
 	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
@@ -128,7 +128,7 @@ func (h *adminHandlers) Login(w http.ResponseWriter, req *http.Request) {
 // @Summary      Log out the current superadmin session
 // @Tags         admin
 // @Success      200  {string}  string  "ok"
-// @Router       /logout [post]
+// @Router       /admin/logout [post]
 func (h *adminHandlers) Logout(w http.ResponseWriter, req *http.Request) {
 	cookie, err := req.Cookie(cookieName)
 	if err == nil {

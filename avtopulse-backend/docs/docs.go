@@ -44,6 +44,68 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/login": {
+            "post": {
+                "description": "Authenticates against a fixed username/password from server configuration (not a DB-backed account). Sets an HttpOnly admin_session cookie on success.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Superadmin login",
+                "parameters": [
+                    {
+                        "description": "Admin username and password",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/admin.loginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "invalid credentials",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/logout": {
+            "post": {
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Log out the current superadmin session",
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/by-name/{name}": {
             "get": {
                 "description": "Returns full shop details for the given name (the shop's slug).",
