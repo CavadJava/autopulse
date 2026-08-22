@@ -13,10 +13,17 @@ import (
 	"github.com/CavadJava/avtopulse-backend/internal/auth"
 	"github.com/CavadJava/avtopulse-backend/internal/db"
 	"github.com/CavadJava/avtopulse-backend/internal/shop"
+	_ "github.com/CavadJava/avtopulse-backend/docs"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
+// @title AutoPulse Mağazalar API
+// @version 1.0
+// @description Backend API for AutoPulse's shop/mağaza listings — public shop/product browsing plus a simple cookie-based shop-owner login.
+// @host localhost:8090
+// @BasePath /api/shops
 func main() {
 	ctx := context.Background()
 
@@ -50,6 +57,8 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
 	})
+
+	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	authHandler := auth.NewHandler(shopRepo, sessions)
 	r.Post("/api/shops/login", func(w http.ResponseWriter, req *http.Request) {

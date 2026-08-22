@@ -1,0 +1,12 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Backend API for AutoPulse's shop/mağaza listings — public shop/product browsing plus a simple cookie-based shop-owner login.",
+        "title": "AutoPulse Mağazalar API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8090",
+    "basePath": "/api/shops",
+    "paths": {}
+}

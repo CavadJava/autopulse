@@ -1,0 +1,10 @@
+basePath: /api/shops
+host: localhost:8090
+info:
+  contact: {}
+  description: Backend API for AutoPulse's shop/mağaza listings — public shop/product
+    browsing plus a simple cookie-based shop-owner login.
+  title: AutoPulse Mağazalar API
+  version: "1.0"
+paths: {}
+swagger: "2.0"
