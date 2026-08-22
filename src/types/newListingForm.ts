@@ -27,6 +27,9 @@ export interface NewListingFormState {
   yürüş: string;
   yürüşVahidi: 'km' | 'mil';
   şəkillər: ListingPhoto[];
+  interyerŞəkillər: ListingPhoto[];
+  təchizatŞəkillər: ListingPhoto[];
+  qapılarŞəkillər: ListingPhoto[];
   təchizat: string[];
   vuruğuVar: boolean;
   rənglənib: boolean;
@@ -49,16 +52,23 @@ const DRAFT_STORAGE_KEY = 'autopulse.newListingDraft';
 // 'existing' (URL-backed) photos. Locally-picked files are lost across a
 // page leave/return — the rest of the form (marka, model, spesifikasiyalar,
 // qiymət, etc.) is what actually matters to restore.
-type PersistableFormState = Omit<NewListingFormState, 'şəkillər'> & {
-  şəkillər: Extract<ListingPhoto, { kind: 'existing' }>[];
+const PHOTO_FIELDS = ['şəkillər', 'interyerŞəkillər', 'təchizatŞəkillər', 'qapılarŞəkillər'] as const;
+
+type PersistableFormState = Omit<NewListingFormState, (typeof PHOTO_FIELDS)[number]> & {
+  [K in (typeof PHOTO_FIELDS)[number]]: Extract<ListingPhoto, { kind: 'existing' }>[];
 };
+
+function onlyExisting(photos: ListingPhoto[]) {
+  return photos.filter((p): p is Extract<ListingPhoto, { kind: 'existing' }> => p.kind === 'existing');
+}
 
 export function saveDraft(form: NewListingFormState) {
   const persistable: PersistableFormState = {
     ...form,
-    şəkillər: form.şəkillər.filter(
-      (p): p is Extract<ListingPhoto, { kind: 'existing' }> => p.kind === 'existing'
-    ),
+    şəkillər: onlyExisting(form.şəkillər),
+    interyerŞəkillər: onlyExisting(form.interyerŞəkillər),
+    təchizatŞəkillər: onlyExisting(form.təchizatŞəkillər),
+    qapılarŞəkillər: onlyExisting(form.qapılarŞəkillər),
   };
   try {
     sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(persistable));
@@ -99,6 +109,9 @@ export const initialNewListingForm: NewListingFormState = {
   yürüş: '',
   yürüşVahidi: 'km',
   şəkillər: [],
+  interyerŞəkillər: [],
+  təchizatŞəkillər: [],
+  qapılarŞəkillər: [],
   təchizat: [],
   vuruğuVar: false,
   rənglənib: false,

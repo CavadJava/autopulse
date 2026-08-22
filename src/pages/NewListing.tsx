@@ -31,6 +31,14 @@ const RƏNG_HEX_TO_NAME: Record<string, string> = Object.fromEntries(
   Object.entries(RƏNG_NAME_TO_HEX).map(([name, hex]) => [hex, name])
 );
 
+function toListingPhotos(urls: string[], prefix: string): ListingPhoto[] {
+  return urls.map((url, idx) => ({ id: `existing-${prefix}-${idx}`, kind: 'existing' as const, url }));
+}
+
+function onlyExistingUrls(photos: ListingPhoto[]): string[] {
+  return photos.filter((p): p is Extract<ListingPhoto, { kind: 'existing' }> => p.kind === 'existing').map((p) => p.url);
+}
+
 function listingToFormState(listing: Listing): NewListingFormState {
   return {
     kateqoriya: 'Minik',
@@ -48,11 +56,10 @@ function listingToFormState(listing: Listing): NewListingFormState {
     bazarÜçünYığılıb: listing.bazarÜçünYığılıb,
     yürüş: String(listing.yürüş),
     yürüşVahidi: 'km',
-    şəkillər: listing.şəkillər.map((url, idx) => ({
-      id: `existing-${idx}`,
-      kind: 'existing' as const,
-      url,
-    })),
+    şəkillər: toListingPhotos(listing.şəkillər, 'ext'),
+    interyerŞəkillər: toListingPhotos(listing.interyerŞəkillər, 'int'),
+    təchizatŞəkillər: toListingPhotos(listing.təchizatŞəkillər, 'feat'),
+    qapılarŞəkillər: toListingPhotos(listing.qapılarŞəkillər, 'door'),
     təchizat: listing.təchizat,
     vuruğuVar: listing.vuruğuVar,
     rənglənib: listing.rənglənib,
@@ -104,6 +111,17 @@ const KATEQORİYALAR: { key: Kateqoriya; icon: string; label: string }[] = [
   { key: 'Moto', icon: '🏍', label: 'Moto' },
 ];
 
+// Mirrors the Exterior/Interior/Key features/Doors tabs on the listing
+// detail gallery, so sellers upload photos into the same categories buyers
+// will browse — each maps to its own NewListingFormState photo field.
+type PhotoTabKey = 'exterior' | 'interior' | 'features' | 'doors';
+const PHOTO_TABS: { key: PhotoTabKey; label: string; icon: string; field: keyof NewListingFormState }[] = [
+  { key: 'exterior', label: 'Exterior', icon: '🚗', field: 'şəkillər' },
+  { key: 'interior', label: 'Interior', icon: '💺', field: 'interyerŞəkillər' },
+  { key: 'features', label: 'Key features', icon: '⚡', field: 'təchizatŞəkillər' },
+  { key: 'doors', label: 'Doors', icon: '🚪', field: 'qapılarŞəkillər' },
+];
+
 const BAN_LIST = ['Sedan', 'Offroader / SUV, 5 qapı', 'Hetçbek', 'Universal', 'Kupe', 'Minivan', 'Pikap'];
 const MÜHƏRRIK_LIST = ['Benzin', 'Dizel', 'Hibrid', 'Elektro'];
 const ÖTÜRÜCÜ_LIST = ['Ön', 'Arxa', 'Tam'];
@@ -144,6 +162,7 @@ export default function NewListing() {
     isEditMode ? initialNewListingForm : loadDraft() ?? initialNewListingForm
   );
   const [restoredFromDraft] = useState(() => !isEditMode && loadDraft() !== null);
+  const [photoTab, setPhotoTab] = useState<PhotoTabKey>('exterior');
   const [submitted, setSubmitted] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(isEditMode);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -198,8 +217,14 @@ export default function NewListing() {
     clearDraft();
   };
 
+  const activePhotoField = PHOTO_TABS.find((t) => t.key === photoTab)!.field as
+    | 'şəkillər'
+    | 'interyerŞəkillər'
+    | 'təchizatŞəkillər'
+    | 'qapılarŞəkillər';
+
   const handlePhotosChange = (photos: ListingPhoto[]) => {
-    set('şəkillər', photos);
+    set(activePhotoField, photos);
   };
 
   const toggleEquipment = (item: string) => {
@@ -216,10 +241,13 @@ export default function NewListing() {
       try {
         // Mock update — new (locally-picked) photos aren't uploaded anywhere;
         // only existing photo URLs are persisted, in their current (possibly reordered) order.
-        const existingUrls = form.şəkillər
-          .filter((p): p is Extract<ListingPhoto, { kind: 'existing' }> => p.kind === 'existing')
-          .map((p) => p.url);
-        await updateListing(id, { ...formStateToListingPatch(form), şəkillər: existingUrls });
+        await updateListing(id, {
+          ...formStateToListingPatch(form),
+          şəkillər: onlyExistingUrls(form.şəkillər),
+          interyerŞəkillər: onlyExistingUrls(form.interyerŞəkillər),
+          təchizatŞəkillər: onlyExistingUrls(form.təchizatŞəkillər),
+          qapılarŞəkillər: onlyExistingUrls(form.qapılarŞəkillər),
+        });
         setSubmitted(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } catch {
@@ -615,9 +643,34 @@ export default function NewListing() {
                 <strong>Qadağandır!</strong>
                 <span>Skrinşotlar, çərçivəli şəkillər və ekran şəkilləri.</span>
               </div>
-              <PhotoGrid photos={form.şəkillər} onChange={handlePhotosChange} maxPhotos={MAX_PHOTOS} />
+
+              <div className={styles.photoTabRow}>
+                {PHOTO_TABS.map((tab) => {
+                  const count = (form[tab.field] as ListingPhoto[]).length;
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      className={photoTab === tab.key ? styles.photoTabActive : styles.photoTab}
+                      onClick={() => setPhotoTab(tab.key)}
+                    >
+                      {tab.icon} {tab.label}
+                      {count > 0 && <span className={styles.photoTabCount}>{count}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <PhotoGrid
+                photos={form[activePhotoField] as ListingPhoto[]}
+                onChange={handlePhotosChange}
+                maxPhotos={MAX_PHOTOS}
+              />
               <p className={styles.photoHint}>
-                Minimum {MIN_PHOTOS} şəkil, maksimum {MAX_PHOTOS} şəkil ({form.şəkillər.length}/{MAX_PHOTOS}) ·
+                {photoTab === 'exterior'
+                  ? `Minimum ${MIN_PHOTOS} şəkil, `
+                  : ''}
+                maksimum {MAX_PHOTOS} şəkil ({(form[activePhotoField] as ListingPhoto[]).length}/{MAX_PHOTOS}) ·
                 Sıralamaq üçün şəkilləri sürükləyin
               </p>
             </div>
