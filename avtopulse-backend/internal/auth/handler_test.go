@@ -40,7 +40,7 @@ func (f *fakeShopRepo) GetShopByID(ctx context.Context, id int64) (*shop.Shop, e
 	return s, nil
 }
 
-func (f *fakeShopRepo) ListProducts(ctx context.Context, shopID int64) ([]shop.Product, error) {
+func (f *fakeShopRepo) ListProducts(ctx context.Context, shopID int64, onlyStatus string) ([]shop.Product, error) {
 	return []shop.Product{{ID: 1, Name: "bmw-320i", Title: "BMW 320i"}}, nil
 }
 
@@ -76,6 +76,10 @@ func (f *fakeShopRepo) UpdateProduct(ctx context.Context, productID int64, input
 }
 
 func (f *fakeShopRepo) DeleteProduct(ctx context.Context, productID int64) error {
+	return nil
+}
+
+func (f *fakeShopRepo) RestoreProduct(ctx context.Context, productID int64) error {
 	return nil
 }
 
@@ -456,5 +460,46 @@ func TestDeleteProductImage_Success(t *testing.T) {
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d, body: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestRestoreProduct_Success(t *testing.T) {
+	sessions := newFakeSessionStore()
+	token, _ := sessions.Create(context.Background(), 1)
+
+	h := NewHandler(newFakeShopRepo(), sessions, &fakeStorageClient{})
+	req := httptest.NewRequest(http.MethodPost, "/me/products/1/restore", nil)
+	req.AddCookie(&http.Cookie{Name: cookieName, Value: token})
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d, body: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestRestoreProduct_WrongShop(t *testing.T) {
+	sessions := newFakeSessionStore()
+	token, _ := sessions.Create(context.Background(), 999) // fakeShopRepo.GetProductShopID always returns 1
+
+	h := NewHandler(newFakeShopRepo(), sessions, &fakeStorageClient{})
+	req := httptest.NewRequest(http.MethodPost, "/me/products/1/restore", nil)
+	req.AddCookie(&http.Cookie{Name: cookieName, Value: token})
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", rec.Code)
+	}
+}
+
+func TestRestoreProduct_NoCookie(t *testing.T) {
+	h := NewHandler(newFakeShopRepo(), newFakeSessionStore(), &fakeStorageClient{})
+	req := httptest.NewRequest(http.MethodPost, "/me/products/1/restore", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", rec.Code)
 	}
 }

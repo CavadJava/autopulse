@@ -142,7 +142,7 @@ func newFakeRepo() *fakeRepo {
 		byName: map[string]*Shop{"avto444": s},
 		byID:   map[int64]*Shop{1: s},
 		products: map[int64][]Product{
-			1: {{ID: 10, Name: "bmw-320i", Title: "BMW 320i, 2020"}},
+			1: {{ID: 10, Name: "bmw-320i", Title: "BMW 320i, 2020", Status: "saytda"}},
 		},
 		passwordHashes: map[string]string{"avto444": string(hash)},
 	}
@@ -208,7 +208,7 @@ func TestListProducts_EmptyDetails(t *testing.T) {
 	repo := &fakeRepo{
 		byID: map[int64]*Shop{1: {ID: 1, Name: "avto444"}},
 		products: map[int64][]Product{
-			1: {{ID: 20, Name: "no-details-product", Title: "No Details", Details: ""}},
+			1: {{ID: 20, Name: "no-details-product", Title: "No Details", Details: "", Status: "saytda"}},
 		},
 	}
 	h := NewHandler(repo)

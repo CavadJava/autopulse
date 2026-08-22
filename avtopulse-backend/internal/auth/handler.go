@@ -42,6 +42,7 @@ func NewHandler(shopRepo shop.Repository, sessions SessionStore, storageClient s
 	r.Post("/me/products", h.CreateProduct)
 	r.Put("/me/products/{id}", h.UpdateProduct)
 	r.Delete("/me/products/{id}", h.DeleteProduct)
+	r.Post("/me/products/{id}/restore", h.RestoreProduct)
 	r.Post("/me/products/{id}/images", h.UploadProductImages)
 	r.Delete("/me/products/{id}/images/{imageId}", h.DeleteProductImage)
 	r.Post("/me/logo", h.UploadLogo)
@@ -131,7 +132,7 @@ func (h *authHandlers) MeProducts(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	products, err := h.shopRepo.ListProducts(req.Context(), shopID)
+	products, err := h.shopRepo.ListProducts(req.Context(), shopID, "")
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -448,6 +449,49 @@ func (h *authHandlers) DeleteProduct(w http.ResponseWriter, req *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]bool{"deleted": true})
+}
+
+// RestoreProduct godoc
+// @Summary      Restore a cancelled (ləğv edilib) product back to saytda
+// @Description  Requires a valid shop_session cookie. The product must belong to the authenticated shop.
+// @Tags         auth
+// @Produce      json
+// @Param        id  path  int  true  "Product id"
+// @Success      200  {object}  map[string]bool
+// @Failure      400  {string}  string  "invalid product id"
+// @Failure      401  {string}  string  "unauthorized"
+// @Failure      404  {string}  string  "product not found or not owned by this shop"
+// @Failure      500  {string}  string  "internal error"
+// @Router       /me/products/{id}/restore [post]
+func (h *authHandlers) RestoreProduct(w http.ResponseWriter, req *http.Request) {
+	shopID, err := requireSession(req, h.sessions)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	productID, err := strconv.ParseInt(chi.URLParam(req, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid product id", http.StatusBadRequest)
+		return
+	}
+
+	ownerShopID, err := h.shopRepo.GetProductShopID(req.Context(), productID)
+	if errors.Is(err, shop.ErrNotFound) || ownerShopID != shopID {
+		http.Error(w, "product not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := h.shopRepo.RestoreProduct(req.Context(), productID); err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]bool{"restored": true})
 }
 
 // DeleteProductImage godoc
