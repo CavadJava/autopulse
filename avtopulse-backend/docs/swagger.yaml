@@ -1,4 +1,52 @@
 basePath: /api/shops
+definitions:
+  auth.loginRequest:
+    properties:
+      name:
+        type: string
+      password:
+        type: string
+    type: object
+  auth.loginResponse:
+    properties:
+      shop:
+        $ref: '#/definitions/shop.ShopSummary'
+    type: object
+  shop.Product:
+    properties:
+      details:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      title:
+        type: string
+    type: object
+  shop.Shop:
+    properties:
+      customerId:
+        type: integer
+      details:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      title:
+        type: string
+      workTimes:
+        type: string
+    type: object
+  shop.ShopSummary:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      title:
+        type: string
+    type: object
 host: localhost:8090
 info:
   contact: {}
@@ -6,5 +54,159 @@ info:
     browsing plus a simple cookie-based shop-owner login.
   title: AutoPulse Mağazalar API
   version: "1.0"
-paths: {}
+paths:
+  /:
+    get:
+      description: Returns a lightweight summary of every shop (id, name, title).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/shop.ShopSummary'
+            type: array
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: List all shops
+      tags:
+      - shops
+  /{shopId}/products:
+    get:
+      description: Returns all products belonging to the given shop id.
+      parameters:
+      - description: Shop id
+        in: path
+        name: shopId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/shop.Product'
+            type: array
+        "400":
+          description: invalid shopId
+          schema:
+            type: string
+        "404":
+          description: shop not found
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: List a shop's products
+      tags:
+      - shops
+  /by-name/{name}:
+    get:
+      description: Returns full shop details for the given name (the shop's slug).
+      parameters:
+      - description: Shop name/slug
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/shop.Shop'
+        "404":
+          description: shop not found
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Get a shop by its name
+      tags:
+      - shops
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a shop by name+password and sets an HttpOnly shop_session
+        cookie on success.
+      parameters:
+      - description: Shop name and password
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.loginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.loginResponse'
+        "400":
+          description: invalid request body
+          schema:
+            type: string
+        "401":
+          description: invalid name or password
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Shop owner login
+      tags:
+      - auth
+  /logout:
+    post:
+      description: Deletes the server-side session and clears the shop_session cookie.
+        Returns 500 (and leaves the cookie/session intact) if server-side deletion
+        fails.
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Log out the current shop session
+      tags:
+      - auth
+  /me/products:
+    get:
+      description: Requires a valid shop_session cookie (set by /login).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/shop.Product'
+            type: array
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: List the logged-in shop's own products
+      tags:
+      - auth
 swagger: "2.0"
