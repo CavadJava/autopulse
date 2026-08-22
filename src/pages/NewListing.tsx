@@ -275,6 +275,12 @@ export default function NewListing() {
   const goNext = () => {
     if (!canGoNext) {
       setAttempted(true);
+      // Şəkillər addımında tələb yalnız Exterior kateqoriyası üçündür —
+      // istifadəçi başqa tabdaykən xəbərdarlığın nəyə aid olduğu aydın olsun
+      // deyə avtomatik Exterior taba keçirik.
+      if (step === 3 && form.şəkillər.length < MIN_PHOTOS) {
+        setPhotoTab('exterior');
+      }
       return;
     }
     setStep((s) => Math.min(TOTAL_STEPS - 1, s + 1));
