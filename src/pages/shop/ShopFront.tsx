@@ -88,7 +88,7 @@ export default function ShopFront() {
             <div key={product.id} className={styles.productCard}>
               {product.images?.[0] && (
                 <img
-                  src={product.images[0].url}
+                  src={product.images[0].minioUrl}
                   alt={product.title}
                   className={styles.productImage}
                 />
