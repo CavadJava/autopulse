@@ -80,6 +80,68 @@ func TestListShops(t *testing.T) {
 	}
 }
 
+func TestListShops_EmptyIsJSONArrayNotNull(t *testing.T) {
+	h := NewHandler(&fakeRepo{shops: []ShopSummary{}})
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	body := rec.Body.String()
+	if body != "[]\n" && body != "[]" {
+		t.Fatalf("expected JSON array `[]` for empty shop list, got %q", body)
+	}
+}
+
+func TestGetShopByName_EmptyDetailsAndWorkTimes(t *testing.T) {
+	s := &Shop{ID: 2, Name: "empty-fields-shop", Title: "Empty Fields Shop", Details: "", WorkTimes: ""}
+	repo := &fakeRepo{
+		byName: map[string]*Shop{"empty-fields-shop": s},
+		byID:   map[int64]*Shop{2: s},
+	}
+	h := NewHandler(repo)
+	req := httptest.NewRequest(http.MethodGet, "/by-name/empty-fields-shop", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	var got Shop
+	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+		t.Fatalf("decode failed: %v", err)
+	}
+	if got.Details != "" || got.WorkTimes != "" {
+		t.Fatalf("expected empty Details/WorkTimes, got %+v", got)
+	}
+}
+
+func TestListProducts_EmptyDetails(t *testing.T) {
+	repo := &fakeRepo{
+		byID: map[int64]*Shop{1: {ID: 1, Name: "avto444"}},
+		products: map[int64][]Product{
+			1: {{ID: 20, Name: "no-details-product", Title: "No Details", Details: ""}},
+		},
+	}
+	h := NewHandler(repo)
+	req := httptest.NewRequest(http.MethodGet, "/1/products", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	var got []Product
+	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+		t.Fatalf("decode failed: %v", err)
+	}
+	if len(got) != 1 || got[0].Details != "" {
+		t.Fatalf("unexpected body: %+v", got)
+	}
+}
+
 func TestGetShopByName_Found(t *testing.T) {
 	h := NewHandler(newFakeRepo())
 	req := httptest.NewRequest(http.MethodGet, "/by-name/avto444", nil)

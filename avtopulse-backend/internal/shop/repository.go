@@ -33,7 +33,7 @@ func (r *pgRepository) ListShops(ctx context.Context) ([]ShopSummary, error) {
 	}
 	defer rows.Close()
 
-	var out []ShopSummary
+	out := []ShopSummary{}
 	for rows.Next() {
 		var s ShopSummary
 		if err := rows.Scan(&s.ID, &s.Name, &s.Title); err != nil {
@@ -47,7 +47,7 @@ func (r *pgRepository) ListShops(ctx context.Context) ([]ShopSummary, error) {
 func (r *pgRepository) GetShopByName(ctx context.Context, name string) (*Shop, error) {
 	var s Shop
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, name, customer_id, title, details, work_times FROM avto444.shop WHERE name = $1`,
+		`SELECT id, name, customer_id, title, COALESCE(details, ''), COALESCE(work_times, '') FROM avto444.shop WHERE name = $1`,
 		name,
 	).Scan(&s.ID, &s.Name, &s.CustomerID, &s.Title, &s.Details, &s.WorkTimes)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -62,7 +62,7 @@ func (r *pgRepository) GetShopByName(ctx context.Context, name string) (*Shop, e
 func (r *pgRepository) GetShopByID(ctx context.Context, id int64) (*Shop, error) {
 	var s Shop
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, name, customer_id, title, details, work_times FROM avto444.shop WHERE id = $1`,
+		`SELECT id, name, customer_id, title, COALESCE(details, ''), COALESCE(work_times, '') FROM avto444.shop WHERE id = $1`,
 		id,
 	).Scan(&s.ID, &s.Name, &s.CustomerID, &s.Title, &s.Details, &s.WorkTimes)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -76,7 +76,7 @@ func (r *pgRepository) GetShopByID(ctx context.Context, id int64) (*Shop, error)
 
 func (r *pgRepository) ListProducts(ctx context.Context, shopID int64) ([]Product, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, name, title, details FROM avto444.shop_products WHERE shop_id = $1 ORDER BY id`,
+		`SELECT id, name, title, COALESCE(details, '') FROM avto444.shop_products WHERE shop_id = $1 ORDER BY id`,
 		shopID,
 	)
 	if err != nil {
