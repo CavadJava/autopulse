@@ -10,11 +10,38 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/CavadJava/avtopulse-backend/internal/auth"
+	"github.com/CavadJava/avtopulse-backend/internal/db"
+	"github.com/CavadJava/avtopulse-backend/internal/shop"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
+	ctx := context.Background()
+
+	dsn := os.Getenv("AVTOPULSE_DSN")
+	if dsn == "" {
+		log.Fatal("AVTOPULSE_DSN env var is required")
+	}
+	port := os.Getenv("AVTOPULSE_PORT")
+	if port == "" {
+		port = "8090"
+	}
+
+	pool, err := db.Connect(ctx, dsn)
+	if err != nil {
+		log.Fatalf("failed to connect to db: %v", err)
+	}
+	defer pool.Close()
+
+	if err := db.RunMigrations(ctx, pool, "migrations"); err != nil {
+		log.Fatalf("failed to run migrations: %v", err)
+	}
+
+	shopRepo := shop.NewRepository(pool)
+	sessions := auth.NewSessionStore(pool)
+
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
@@ -24,7 +51,20 @@ func main() {
 		w.Write([]byte("ok"))
 	})
 
-	addr := ":8090"
+	authHandler := auth.NewHandler(shopRepo, sessions)
+	r.Post("/api/shops/login", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/shops", authHandler).ServeHTTP(w, req)
+	})
+	r.Get("/api/shops/me/products", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/shops", authHandler).ServeHTTP(w, req)
+	})
+	r.Post("/api/shops/logout", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/shops", authHandler).ServeHTTP(w, req)
+	})
+
+	r.Mount("/api/shops", shop.NewHandler(shopRepo))
+
+	addr := ":" + port
 	srv := &http.Server{Addr: addr, Handler: r}
 
 	go func() {
@@ -38,9 +78,9 @@ func main() {
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("shutdown error: %v", err)
 	}
 }
