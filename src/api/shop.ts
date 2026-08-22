@@ -11,6 +11,12 @@ export interface ShopSummary {
   title: string;
 }
 
+export interface ProductImage {
+  id: number;
+  url: string;
+  sira: number;
+}
+
 export interface Shop {
   id: number;
   name: string;
@@ -18,6 +24,7 @@ export interface Shop {
   title: string;
   details: string;
   workTimes: string;
+  logoUrl: string;
 }
 
 export interface ShopProduct {
@@ -25,6 +32,27 @@ export interface ShopProduct {
   name: string;
   title: string;
   details: string;
+  marka: string;
+  model: string;
+  il: number;
+  qiymet: number;
+  yurus: number;
+  yanacaq: string;
+  ban: string;
+  images: ProductImage[];
+}
+
+export interface CreateProductInput {
+  name: string;
+  title: string;
+  details: string;
+  marka: string;
+  model: string;
+  il: number;
+  qiymet: number;
+  yurus: number;
+  yanacaq: string;
+  ban: string;
 }
 
 export class ShopNotFoundError extends Error {}
@@ -96,4 +124,56 @@ export async function shopLogout(): Promise<void> {
     method: 'POST',
     credentials: 'include',
   });
+}
+
+export async function createShopProduct(input: CreateProductInput): Promise<ShopProduct> {
+  const res = await fetch(`${API_BASE}/api/shops/me/products`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (res.status === 401) {
+    throw new ShopUnauthorizedError('Not logged in');
+  }
+  if (!res.ok) {
+    throw new Error(`createShopProduct failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function uploadProductImages(productId: number, files: File[]): Promise<ProductImage[]> {
+  const form = new FormData();
+  files.forEach((file) => form.append('images', file));
+
+  const res = await fetch(`${API_BASE}/api/shops/me/products/${productId}/images`, {
+    method: 'POST',
+    credentials: 'include',
+    body: form,
+  });
+  if (res.status === 401) {
+    throw new ShopUnauthorizedError('Not logged in');
+  }
+  if (!res.ok) {
+    throw new Error(`uploadProductImages failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function uploadShopLogo(file: File): Promise<{ logoUrl: string }> {
+  const form = new FormData();
+  form.append('logo', file);
+
+  const res = await fetch(`${API_BASE}/api/shops/me/logo`, {
+    method: 'POST',
+    credentials: 'include',
+    body: form,
+  });
+  if (res.status === 401) {
+    throw new ShopUnauthorizedError('Not logged in');
+  }
+  if (!res.ok) {
+    throw new Error(`uploadShopLogo failed: ${res.status}`);
+  }
+  return res.json();
 }
