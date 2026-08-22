@@ -6,13 +6,16 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type fakeRepo struct {
-	shops    []ShopSummary
-	byName   map[string]*Shop
-	byID     map[int64]*Shop
-	products map[int64][]Product
+	shops          []ShopSummary
+	byName         map[string]*Shop
+	byID           map[int64]*Shop
+	products       map[int64][]Product
+	passwordHashes map[string]string
 }
 
 func (f *fakeRepo) ListShops(ctx context.Context) ([]ShopSummary, error) { return f.shops, nil }
@@ -37,8 +40,17 @@ func (f *fakeRepo) ListProducts(ctx context.Context, shopID int64) ([]Product, e
 	return f.products[shopID], nil
 }
 
+func (f *fakeRepo) GetPasswordHash(ctx context.Context, shopID int64) (string, error) {
+	s, ok := f.byID[shopID]
+	if !ok {
+		return "", ErrNotFound
+	}
+	return f.passwordHashes[s.Name], nil
+}
+
 func newFakeRepo() *fakeRepo {
 	s := &Shop{ID: 1, Name: "avto444", Title: "Avto 444"}
+	hash, _ := bcrypt.GenerateFromPassword([]byte("test-pass"), 4)
 	return &fakeRepo{
 		shops:  []ShopSummary{{ID: 1, Name: "avto444", Title: "Avto 444"}},
 		byName: map[string]*Shop{"avto444": s},
@@ -46,6 +58,7 @@ func newFakeRepo() *fakeRepo {
 		products: map[int64][]Product{
 			1: {{ID: 10, Name: "bmw-320i", Title: "BMW 320i, 2020"}},
 		},
+		passwordHashes: map[string]string{"avto444": string(hash)},
 	}
 }
 

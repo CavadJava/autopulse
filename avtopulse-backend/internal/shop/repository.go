@@ -15,6 +15,7 @@ type Repository interface {
 	GetShopByName(ctx context.Context, name string) (*Shop, error)
 	GetShopByID(ctx context.Context, id int64) (*Shop, error)
 	ListProducts(ctx context.Context, shopID int64) ([]Product, error)
+	GetPasswordHash(ctx context.Context, shopID int64) (string, error)
 }
 
 type pgRepository struct {
@@ -92,4 +93,13 @@ func (r *pgRepository) ListProducts(ctx context.Context, shopID int64) ([]Produc
 		out = append(out, p)
 	}
 	return out, rows.Err()
+}
+
+func (r *pgRepository) GetPasswordHash(ctx context.Context, shopID int64) (string, error) {
+	var hash string
+	err := r.pool.QueryRow(ctx, `SELECT password_hash FROM avto444.shop WHERE id = $1`, shopID).Scan(&hash)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", ErrNotFound
+	}
+	return hash, err
 }
