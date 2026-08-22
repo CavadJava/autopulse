@@ -37,6 +37,10 @@ const MIN_ZOOM = 1;
 const MAX_ZOOM = 3;
 const ZOOM_STEP = 0.5;
 
+// How many pixels of horizontal drag it takes to advance one frame while
+// spinning — smaller = more sensitive.
+const SPIN_DRAG_THRESHOLD = 40;
+
 interface InteractiveGalleryProps {
   listing: Listing;
 }
@@ -54,6 +58,9 @@ export default function InteractiveGallery({ listing }: InteractiveGalleryProps)
   );
   const [dragging, setDragging] = useState(false);
 
+  const [spinMode, setSpinMode] = useState(false);
+  const spinDragStartX = useRef<number | null>(null);
+
   const exteriorHotspots = listing.təchizat
     .slice(0, EXTERIOR_HOTSPOTS.length)
     .map((label, idx) => ({ label, ...EXTERIOR_HOTSPOTS[idx] }));
@@ -68,7 +75,9 @@ export default function InteractiveGallery({ listing }: InteractiveGalleryProps)
 
   const stageImage = activeTab === 'interior' ? interiorImage : listing.şəkillər[selectedImage];
   const activeHotspots = activeTab === 'interior' ? interiorHotspots : exteriorHotspots;
-  const showHotspots = (activeTab === 'exterior' || activeTab === 'interior') && zoom === 1;
+  const showHotspots = (activeTab === 'exterior' || activeTab === 'interior') && zoom === 1 && !spinMode;
+  const photoCount = listing.şəkillər.length;
+  const showNavArrows = activeTab === 'exterior' && photoCount > 1 && !spinMode;
 
   const clampPan = (next: { x: number; y: number }, z: number) => {
     if (z <= 1 || !stageRef.current) return { x: 0, y: 0 };
@@ -92,6 +101,24 @@ export default function InteractiveGallery({ listing }: InteractiveGalleryProps)
     setActiveHotspot(null);
     setZoom(1);
     setPan({ x: 0, y: 0 });
+    setSpinMode(false);
+  };
+
+  const goToPrevImage = () => {
+    setActiveHotspot(null);
+    selectImage((selectedImage - 1 + photoCount) % photoCount);
+  };
+
+  const goToNextImage = () => {
+    setActiveHotspot(null);
+    selectImage((selectedImage + 1) % photoCount);
+  };
+
+  const toggleSpinMode = () => {
+    setSpinMode((v) => !v);
+    setActiveHotspot(null);
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
   };
 
   const zoomIn = () => {
@@ -111,6 +138,12 @@ export default function InteractiveGallery({ listing }: InteractiveGalleryProps)
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (spinMode) {
+      e.preventDefault();
+      spinDragStartX.current = e.clientX;
+      setDragging(true);
+      return;
+    }
     if (zoom <= 1) return;
     e.preventDefault();
     dragState.current = { startX: e.clientX, startY: e.clientY, panX: pan.x, panY: pan.y };
@@ -118,6 +151,21 @@ export default function InteractiveGallery({ listing }: InteractiveGalleryProps)
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
+    if (spinMode) {
+      if (spinDragStartX.current === null) return;
+      const dx = e.clientX - spinDragStartX.current;
+      // Advance one frame per SPIN_DRAG_THRESHOLD px, in either direction,
+      // then reset the baseline so continued dragging keeps advancing.
+      if (Math.abs(dx) >= SPIN_DRAG_THRESHOLD) {
+        const framesToAdvance = Math.trunc(dx / SPIN_DRAG_THRESHOLD);
+        setSelectedImage((prev) => {
+          const next = (prev + framesToAdvance + photoCount * 100) % photoCount;
+          return next;
+        });
+        spinDragStartX.current = e.clientX;
+      }
+      return;
+    }
     if (!dragState.current) return;
     const dx = e.clientX - dragState.current.startX;
     const dy = e.clientY - dragState.current.startY;
@@ -126,6 +174,7 @@ export default function InteractiveGallery({ listing }: InteractiveGalleryProps)
 
   const endDrag = () => {
     dragState.current = null;
+    spinDragStartX.current = null;
     setDragging(false);
   };
 
@@ -146,10 +195,41 @@ export default function InteractiveGallery({ listing }: InteractiveGalleryProps)
             className={dragging ? styles.dragging : undefined}
             style={{
               transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
-              cursor: zoom > 1 ? (dragging ? 'grabbing' : 'grab') : 'default',
+              cursor: spinMode
+                ? dragging
+                  ? 'grabbing'
+                  : 'ew-resize'
+                : zoom > 1
+                  ? dragging
+                    ? 'grabbing'
+                    : 'grab'
+                  : 'default',
             }}
             draggable={false}
           />
+
+          {showNavArrows && (
+            <>
+              <button type="button" className={styles.navArrowLeft} onClick={goToPrevImage} aria-label="Əvvəlki şəkil">
+                ‹
+              </button>
+              <button type="button" className={styles.navArrowRight} onClick={goToNextImage} aria-label="Növbəti şəkil">
+                ›
+              </button>
+            </>
+          )}
+
+          {activeTab === 'exterior' && photoCount > 1 && (
+            <button
+              type="button"
+              className={spinMode ? styles.spinBtnActive : styles.spinBtn}
+              onClick={toggleSpinMode}
+            >
+              <span className={styles.spinIcon}>360°</span> Spin
+            </button>
+          )}
+
+          {spinMode && <div className={styles.spinHint}>Fırlatmaq üçün şəkli sürükləyin</div>}
 
           {showHotspots &&
             activeHotspots.map((h, idx) => (
@@ -165,6 +245,7 @@ export default function InteractiveGallery({ listing }: InteractiveGalleryProps)
               </button>
             ))}
 
+          {!spinMode && (
           <div className={styles.zoomControls}>
             <button
               type="button"
@@ -183,6 +264,7 @@ export default function InteractiveGallery({ listing }: InteractiveGalleryProps)
               −
             </button>
           </div>
+          )}
 
           {zoom > 1 && <div className={styles.zoomBadge}>{Math.round(zoom * 100)}%</div>}
         </div>
