@@ -160,6 +160,59 @@ const docTemplate = `{
                 }
             }
         },
+        "/me/logo": {
+            "post": {
+                "description": "Requires a valid shop_session cookie.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Upload the logged-in shop's logo",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Logo image file",
+                        "name": "logo",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "invalid multipart form or no file",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/me/products": {
             "get": {
                 "description": "Requires a valid shop_session cookie (set by /login).",
@@ -182,6 +235,122 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Requires a valid shop_session cookie. Creates a shop_products row owned by the authenticated shop.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Create a new product for the logged-in shop",
+                "parameters": [
+                    {
+                        "description": "New product details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.createProductRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/shop.Product"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/me/products/{id}/images": {
+            "post": {
+                "description": "Requires a valid shop_session cookie. The product must belong to the authenticated shop.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Upload one or more images for a product",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "One or more image files",
+                        "name": "images",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/shop.ProductImage"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "invalid product id or no files",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "product not found or not owned by this shop",
                         "schema": {
                             "type": "string"
                         }
@@ -247,6 +416,41 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "auth.createProductRequest": {
+            "type": "object",
+            "properties": {
+                "ban": {
+                    "type": "string"
+                },
+                "details": {
+                    "type": "string"
+                },
+                "il": {
+                    "type": "integer"
+                },
+                "marka": {
+                    "type": "string"
+                },
+                "model": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "qiymet": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "yanacaq": {
+                    "type": "string"
+                },
+                "yurus": {
+                    "type": "integer"
+                }
+            }
+        },
         "auth.loginRequest": {
             "type": "object",
             "properties": {
@@ -269,16 +473,57 @@ const docTemplate = `{
         "shop.Product": {
             "type": "object",
             "properties": {
+                "ban": {
+                    "type": "string"
+                },
                 "details": {
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
                 },
+                "il": {
+                    "type": "integer"
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/shop.ProductImage"
+                    }
+                },
+                "marka": {
+                    "type": "string"
+                },
+                "model": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
+                "qiymet": {
+                    "type": "integer"
+                },
                 "title": {
+                    "type": "string"
+                },
+                "yanacaq": {
+                    "type": "string"
+                },
+                "yurus": {
+                    "type": "integer"
+                }
+            }
+        },
+        "shop.ProductImage": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "sira": {
+                    "type": "integer"
+                },
+                "url": {
                     "type": "string"
                 }
             }
@@ -294,6 +539,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
+                },
+                "logoUrl": {
+                    "type": "string"
                 },
                 "name": {
                     "type": "string"

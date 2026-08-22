@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -57,6 +59,24 @@ func (f *fakeShopRepo) CreateProduct(ctx context.Context, shopID int64, input sh
 	return &shop.Product{ID: 999, Name: input.Name, Title: input.Title, Marka: input.Marka, Model: input.Model, Il: input.Il, Qiymet: input.Qiymet, Images: []shop.ProductImage{}}, nil
 }
 
+func (f *fakeShopRepo) AddProductImage(ctx context.Context, productID int64, url string, sira int) (*shop.ProductImage, error) {
+	return &shop.ProductImage{ID: int64(sira + 1), URL: url, Sira: sira}, nil
+}
+
+func (f *fakeShopRepo) GetProductShopID(ctx context.Context, productID int64) (int64, error) {
+	return 1, nil
+}
+
+func (f *fakeShopRepo) SetShopLogo(ctx context.Context, shopID int64, url string) error {
+	return nil
+}
+
+type fakeStorageClient struct{}
+
+func (f *fakeStorageClient) Upload(ctx context.Context, path string, data io.Reader, size int64, contentType string) (string, error) {
+	return "http://fake-storage/" + path, nil
+}
+
 type fakeSessionStore struct {
 	tokenToShop map[string]int64
 	deleteFails bool
@@ -99,7 +119,7 @@ func newFakeShopRepo() *fakeShopRepo {
 }
 
 func TestLogin_Success_SetsCookie(t *testing.T) {
-	h := NewHandler(newFakeShopRepo(), newFakeSessionStore())
+	h := NewHandler(newFakeShopRepo(), newFakeSessionStore(), &fakeStorageClient{})
 	body, _ := json.Marshal(loginRequest{Name: "avto444", Password: "correct-password"})
 	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
@@ -128,7 +148,7 @@ func TestLogin_Success_SetsCookie(t *testing.T) {
 }
 
 func TestLogin_WrongPassword(t *testing.T) {
-	h := NewHandler(newFakeShopRepo(), newFakeSessionStore())
+	h := NewHandler(newFakeShopRepo(), newFakeSessionStore(), &fakeStorageClient{})
 	body, _ := json.Marshal(loginRequest{Name: "avto444", Password: "wrong-password"})
 	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
@@ -140,7 +160,7 @@ func TestLogin_WrongPassword(t *testing.T) {
 }
 
 func TestMeProducts_NoCookie(t *testing.T) {
-	h := NewHandler(newFakeShopRepo(), newFakeSessionStore())
+	h := NewHandler(newFakeShopRepo(), newFakeSessionStore(), &fakeStorageClient{})
 	req := httptest.NewRequest(http.MethodGet, "/me/products", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -154,7 +174,7 @@ func TestMeProducts_WithValidCookie(t *testing.T) {
 	sessions := newFakeSessionStore()
 	token, _ := sessions.Create(context.Background(), 1)
 
-	h := NewHandler(newFakeShopRepo(), sessions)
+	h := NewHandler(newFakeShopRepo(), sessions, &fakeStorageClient{})
 	req := httptest.NewRequest(http.MethodGet, "/me/products", nil)
 	req.AddCookie(&http.Cookie{Name: cookieName, Value: token})
 	rec := httptest.NewRecorder()
@@ -169,7 +189,7 @@ func TestLogout_ClearsSession(t *testing.T) {
 	sessions := newFakeSessionStore()
 	token, _ := sessions.Create(context.Background(), 1)
 
-	h := NewHandler(newFakeShopRepo(), sessions)
+	h := NewHandler(newFakeShopRepo(), sessions, &fakeStorageClient{})
 	req := httptest.NewRequest(http.MethodPost, "/logout", nil)
 	req.AddCookie(&http.Cookie{Name: cookieName, Value: token})
 	rec := httptest.NewRecorder()
@@ -189,7 +209,7 @@ func TestLogout_DeleteFails_ReturnsInternalError(t *testing.T) {
 	token, _ := sessions.Create(context.Background(), 1)
 	sessions.deleteFails = true
 
-	h := NewHandler(newFakeShopRepo(), sessions)
+	h := NewHandler(newFakeShopRepo(), sessions, &fakeStorageClient{})
 	req := httptest.NewRequest(http.MethodPost, "/logout", nil)
 	req.AddCookie(&http.Cookie{Name: cookieName, Value: token})
 	rec := httptest.NewRecorder()
@@ -214,7 +234,7 @@ func TestCreateProduct_Success(t *testing.T) {
 	sessions := newFakeSessionStore()
 	token, _ := sessions.Create(context.Background(), 1)
 
-	h := NewHandler(newFakeShopRepo(), sessions)
+	h := NewHandler(newFakeShopRepo(), sessions, &fakeStorageClient{})
 	body, _ := json.Marshal(createProductRequest{
 		Name: "toyota-camry-2", Title: "Toyota Camry, 2022", Marka: "Toyota", Model: "Camry", Il: 2022, Qiymet: 45000,
 	})
@@ -236,7 +256,7 @@ func TestCreateProduct_Success(t *testing.T) {
 }
 
 func TestCreateProduct_NoCookie(t *testing.T) {
-	h := NewHandler(newFakeShopRepo(), newFakeSessionStore())
+	h := NewHandler(newFakeShopRepo(), newFakeSessionStore(), &fakeStorageClient{})
 	body, _ := json.Marshal(createProductRequest{Name: "x", Title: "x"})
 	req := httptest.NewRequest(http.MethodPost, "/me/products", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
@@ -251,7 +271,7 @@ func TestLogin_PasswordHashNotFound_ReturnsUnauthorized(t *testing.T) {
 	repo := newFakeShopRepo()
 	repo.passwordHashNotFnd = true
 
-	h := NewHandler(repo, newFakeSessionStore())
+	h := NewHandler(repo, newFakeSessionStore(), &fakeStorageClient{})
 	body, _ := json.Marshal(loginRequest{Name: "avto444", Password: "correct-password"})
 	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
@@ -259,5 +279,82 @@ func TestLogin_PasswordHashNotFound_ReturnsUnauthorized(t *testing.T) {
 
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401 when GetPasswordHash returns ErrNotFound, got %d, body: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestUploadProductImages_Success(t *testing.T) {
+	sessions := newFakeSessionStore()
+	token, _ := sessions.Create(context.Background(), 1)
+
+	repo := newFakeShopRepo()
+	h := NewHandler(repo, sessions, &fakeStorageClient{})
+
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	fw, _ := mw.CreateFormFile("images", "test.jpg")
+	fw.Write([]byte("fake image bytes"))
+	mw.Close()
+
+	req := httptest.NewRequest(http.MethodPost, "/me/products/1/images", &buf)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.AddCookie(&http.Cookie{Name: cookieName, Value: token})
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d, body: %s", rec.Code, rec.Body.String())
+	}
+	var got []shop.ProductImage
+	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+		t.Fatalf("decode failed: %v", err)
+	}
+	if len(got) != 1 || got[0].URL == "" {
+		t.Fatalf("unexpected result: %+v", got)
+	}
+}
+
+func TestUploadProductImages_WrongShop(t *testing.T) {
+	sessions := newFakeSessionStore()
+	token, _ := sessions.Create(context.Background(), 999) // a shop ID that doesn't own product 1
+
+	h := NewHandler(newFakeShopRepo(), sessions, &fakeStorageClient{})
+
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	fw, _ := mw.CreateFormFile("images", "test.jpg")
+	fw.Write([]byte("fake image bytes"))
+	mw.Close()
+
+	req := httptest.NewRequest(http.MethodPost, "/me/products/1/images", &buf)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.AddCookie(&http.Cookie{Name: cookieName, Value: token})
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", rec.Code)
+	}
+}
+
+func TestUploadLogo_Success(t *testing.T) {
+	sessions := newFakeSessionStore()
+	token, _ := sessions.Create(context.Background(), 1)
+
+	h := NewHandler(newFakeShopRepo(), sessions, &fakeStorageClient{})
+
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	fw, _ := mw.CreateFormFile("logo", "logo.png")
+	fw.Write([]byte("fake logo bytes"))
+	mw.Close()
+
+	req := httptest.NewRequest(http.MethodPost, "/me/logo", &buf)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.AddCookie(&http.Cookie{Name: cookieName, Value: token})
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d, body: %s", rec.Code, rec.Body.String())
 	}
 }

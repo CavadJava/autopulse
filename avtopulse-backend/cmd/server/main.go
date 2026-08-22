@@ -14,6 +14,7 @@ import (
 	"github.com/CavadJava/avtopulse-backend/internal/auth"
 	"github.com/CavadJava/avtopulse-backend/internal/db"
 	"github.com/CavadJava/avtopulse-backend/internal/shop"
+	"github.com/CavadJava/avtopulse-backend/internal/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
@@ -49,6 +50,20 @@ func main() {
 	shopRepo := shop.NewRepository(pool)
 	sessions := auth.NewSessionStore(pool)
 
+	minioEndpoint := os.Getenv("AVTOPULSE_MINIO_ENDPOINT")
+	minioAccessKey := os.Getenv("AVTOPULSE_MINIO_ACCESS_KEY")
+	minioSecretKey := os.Getenv("AVTOPULSE_MINIO_SECRET_KEY")
+	minioBucket := os.Getenv("AVTOPULSE_MINIO_BUCKET")
+	minioPublicURL := os.Getenv("AVTOPULSE_MINIO_PUBLIC_URL")
+	if minioEndpoint == "" || minioAccessKey == "" || minioSecretKey == "" || minioBucket == "" || minioPublicURL == "" {
+		log.Fatal("AVTOPULSE_MINIO_ENDPOINT, AVTOPULSE_MINIO_ACCESS_KEY, AVTOPULSE_MINIO_SECRET_KEY, AVTOPULSE_MINIO_BUCKET, AVTOPULSE_MINIO_PUBLIC_URL env vars are required")
+	}
+
+	storageClient, err := storage.NewClient(ctx, minioEndpoint, minioAccessKey, minioSecretKey, minioBucket, minioPublicURL, false)
+	if err != nil {
+		log.Fatalf("failed to connect to minio: %v", err)
+	}
+
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
@@ -60,7 +75,7 @@ func main() {
 
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
-	authHandler := auth.NewHandler(shopRepo, sessions)
+	authHandler := auth.NewHandler(shopRepo, sessions, storageClient)
 	r.Post("/api/shops/login", func(w http.ResponseWriter, req *http.Request) {
 		http.StripPrefix("/api/shops", authHandler).ServeHTTP(w, req)
 	})
@@ -71,6 +86,12 @@ func main() {
 		http.StripPrefix("/api/shops", authHandler).ServeHTTP(w, req)
 	})
 	r.Post("/api/shops/me/products", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/shops", authHandler).ServeHTTP(w, req)
+	})
+	r.Post("/api/shops/me/products/{id}/images", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/shops", authHandler).ServeHTTP(w, req)
+	})
+	r.Post("/api/shops/me/logo", func(w http.ResponseWriter, req *http.Request) {
 		http.StripPrefix("/api/shops", authHandler).ServeHTTP(w, req)
 	})
 

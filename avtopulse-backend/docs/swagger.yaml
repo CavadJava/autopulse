@@ -1,5 +1,28 @@
 basePath: /api/shops
 definitions:
+  auth.createProductRequest:
+    properties:
+      ban:
+        type: string
+      details:
+        type: string
+      il:
+        type: integer
+      marka:
+        type: string
+      model:
+        type: string
+      name:
+        type: string
+      qiymet:
+        type: integer
+      title:
+        type: string
+      yanacaq:
+        type: string
+      yurus:
+        type: integer
+    type: object
   auth.loginRequest:
     properties:
       name:
@@ -14,13 +37,40 @@ definitions:
     type: object
   shop.Product:
     properties:
+      ban:
+        type: string
       details:
         type: string
       id:
         type: integer
+      il:
+        type: integer
+      images:
+        items:
+          $ref: '#/definitions/shop.ProductImage'
+        type: array
+      marka:
+        type: string
+      model:
+        type: string
       name:
         type: string
+      qiymet:
+        type: integer
       title:
+        type: string
+      yanacaq:
+        type: string
+      yurus:
+        type: integer
+    type: object
+  shop.ProductImage:
+    properties:
+      id:
+        type: integer
+      sira:
+        type: integer
+      url:
         type: string
     type: object
   shop.Shop:
@@ -31,6 +81,8 @@ definitions:
         type: string
       id:
         type: integer
+      logoUrl:
+        type: string
       name:
         type: string
       title:
@@ -186,6 +238,41 @@ paths:
       summary: Log out the current shop session
       tags:
       - auth
+  /me/logo:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Requires a valid shop_session cookie.
+      parameters:
+      - description: Logo image file
+        in: formData
+        name: logo
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: invalid multipart form or no file
+          schema:
+            type: string
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Upload the logged-in shop's logo
+      tags:
+      - auth
   /me/products:
     get:
       description: Requires a valid shop_session cookie (set by /login).
@@ -207,6 +294,85 @@ paths:
           schema:
             type: string
       summary: List the logged-in shop's own products
+      tags:
+      - auth
+    post:
+      consumes:
+      - application/json
+      description: Requires a valid shop_session cookie. Creates a shop_products row
+        owned by the authenticated shop.
+      parameters:
+      - description: New product details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.createProductRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/shop.Product'
+        "400":
+          description: invalid request body
+          schema:
+            type: string
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Create a new product for the logged-in shop
+      tags:
+      - auth
+  /me/products/{id}/images:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Requires a valid shop_session cookie. The product must belong to
+        the authenticated shop.
+      parameters:
+      - description: Product id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: One or more image files
+        in: formData
+        name: images
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/shop.ProductImage'
+            type: array
+        "400":
+          description: invalid product id or no files
+          schema:
+            type: string
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "404":
+          description: product not found or not owned by this shop
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Upload one or more images for a product
       tags:
       - auth
 swagger: "2.0"

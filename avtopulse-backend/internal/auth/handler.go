@@ -1,12 +1,17 @@
 package auth
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"path/filepath"
+	"strconv"
 
 	"github.com/CavadJava/avtopulse-backend/internal/shop"
+	"github.com/CavadJava/avtopulse-backend/internal/storage"
 	"github.com/go-chi/chi/v5"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -25,15 +30,18 @@ type loginResponse struct {
 type authHandlers struct {
 	shopRepo shop.Repository
 	sessions SessionStore
+	storage  storage.Client
 }
 
-func NewHandler(shopRepo shop.Repository, sessions SessionStore) http.Handler {
-	h := &authHandlers{shopRepo: shopRepo, sessions: sessions}
+func NewHandler(shopRepo shop.Repository, sessions SessionStore, storageClient storage.Client) http.Handler {
+	h := &authHandlers{shopRepo: shopRepo, sessions: sessions, storage: storageClient}
 	r := chi.NewRouter()
 
 	r.Post("/login", h.Login)
 	r.Get("/me/products", h.MeProducts)
 	r.Post("/me/products", h.CreateProduct)
+	r.Post("/me/products/{id}/images", h.UploadProductImages)
+	r.Post("/me/logo", h.UploadLogo)
 	r.Post("/logout", h.Logout)
 
 	return r
@@ -205,6 +213,134 @@ func (h *authHandlers) CreateProduct(w http.ResponseWriter, req *http.Request) {
 	}
 
 	writeJSON(w, http.StatusCreated, product)
+}
+
+// UploadProductImages godoc
+// @Summary      Upload one or more images for a product
+// @Description  Requires a valid shop_session cookie. The product must belong to the authenticated shop.
+// @Tags         auth
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        id      path      int   true  "Product id"
+// @Param        images  formData  file  true  "One or more image files"
+// @Success      200     {array}   shop.ProductImage
+// @Failure      400     {string}  string  "invalid product id or no files"
+// @Failure      401     {string}  string  "unauthorized"
+// @Failure      404     {string}  string  "product not found or not owned by this shop"
+// @Failure      500     {string}  string  "internal error"
+// @Router       /me/products/{id}/images [post]
+func (h *authHandlers) UploadProductImages(w http.ResponseWriter, req *http.Request) {
+	shopID, err := requireSession(req, h.sessions)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	productID, err := strconv.ParseInt(chi.URLParam(req, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid product id", http.StatusBadRequest)
+		return
+	}
+
+	ownerShopID, err := h.shopRepo.GetProductShopID(req.Context(), productID)
+	if errors.Is(err, shop.ErrNotFound) || ownerShopID != shopID {
+		http.Error(w, "product not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := req.ParseMultipartForm(32 << 20); err != nil {
+		http.Error(w, "invalid multipart form", http.StatusBadRequest)
+		return
+	}
+	files := req.MultipartForm.File["images"]
+	if len(files) == 0 {
+		http.Error(w, "no files provided", http.StatusBadRequest)
+		return
+	}
+
+	var results []shop.ProductImage
+	for i, fh := range files {
+		f, err := fh.Open()
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		ext := filepath.Ext(fh.Filename)
+		objectPath := fmt.Sprintf("magaza/%d/product/%d/%s%s", shopID, productID, uuidV4(), ext)
+		url, err := h.storage.Upload(req.Context(), objectPath, f, fh.Size, fh.Header.Get("Content-Type"))
+		f.Close()
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		img, err := h.shopRepo.AddProductImage(req.Context(), productID, url, i)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		results = append(results, *img)
+	}
+
+	writeJSON(w, http.StatusOK, results)
+}
+
+// UploadLogo godoc
+// @Summary      Upload the logged-in shop's logo
+// @Description  Requires a valid shop_session cookie.
+// @Tags         auth
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        logo  formData  file  true  "Logo image file"
+// @Success      200   {object}  map[string]string
+// @Failure      400   {string}  string  "invalid multipart form or no file"
+// @Failure      401   {string}  string  "unauthorized"
+// @Failure      500   {string}  string  "internal error"
+// @Router       /me/logo [post]
+func (h *authHandlers) UploadLogo(w http.ResponseWriter, req *http.Request) {
+	shopID, err := requireSession(req, h.sessions)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if err := req.ParseMultipartForm(32 << 20); err != nil {
+		http.Error(w, "invalid multipart form", http.StatusBadRequest)
+		return
+	}
+	f, fh, err := req.FormFile("logo")
+	if err != nil {
+		http.Error(w, "no file provided", http.StatusBadRequest)
+		return
+	}
+	defer f.Close()
+
+	ext := filepath.Ext(fh.Filename)
+	objectPath := fmt.Sprintf("magaza/%d/logo/%s%s", shopID, uuidV4(), ext)
+	url, err := h.storage.Upload(req.Context(), objectPath, f, fh.Size, fh.Header.Get("Content-Type"))
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := h.shopRepo.SetShopLogo(req.Context(), shopID, url); err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"logoUrl": url})
+}
+
+func uuidV4() string {
+	b := make([]byte, 16)
+	rand.Read(b)
+	b[6] = (b[6] & 0x0f) | 0x40
+	b[8] = (b[8] & 0x3f) | 0x80
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
 }
 
 func requireSession(req *http.Request, sessions SessionStore) (int64, error) {

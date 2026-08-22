@@ -17,6 +17,9 @@ type Repository interface {
 	ListProducts(ctx context.Context, shopID int64) ([]Product, error)
 	GetPasswordHash(ctx context.Context, shopID int64) (string, error)
 	CreateProduct(ctx context.Context, shopID int64, input CreateProductInput) (*Product, error)
+	AddProductImage(ctx context.Context, productID int64, url string, sira int) (*ProductImage, error)
+	GetProductShopID(ctx context.Context, productID int64) (int64, error)
+	SetShopLogo(ctx context.Context, shopID int64, url string) error
 }
 
 type pgRepository struct {
@@ -168,4 +171,30 @@ func (r *pgRepository) CreateProduct(ctx context.Context, shopID int64, input Cr
 		Ban:     input.Ban,
 		Images:  []ProductImage{},
 	}, nil
+}
+
+func (r *pgRepository) AddProductImage(ctx context.Context, productID int64, url string, sira int) (*ProductImage, error) {
+	var id int64
+	err := r.pool.QueryRow(ctx,
+		`INSERT INTO avto444.shop_product_images (product_id, url, sira) VALUES ($1, $2, $3) RETURNING id`,
+		productID, url, sira,
+	).Scan(&id)
+	if err != nil {
+		return nil, err
+	}
+	return &ProductImage{ID: id, URL: url, Sira: sira}, nil
+}
+
+func (r *pgRepository) GetProductShopID(ctx context.Context, productID int64) (int64, error) {
+	var shopID int64
+	err := r.pool.QueryRow(ctx, `SELECT shop_id FROM avto444.shop_products WHERE id = $1`, productID).Scan(&shopID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, ErrNotFound
+	}
+	return shopID, err
+}
+
+func (r *pgRepository) SetShopLogo(ctx context.Context, shopID int64, url string) error {
+	_, err := r.pool.Exec(ctx, `UPDATE avto444.shop SET logo_url = $1 WHERE id = $2`, url, shopID)
+	return err
 }

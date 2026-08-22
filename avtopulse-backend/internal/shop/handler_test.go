@@ -58,6 +58,25 @@ func (f *fakeRepo) CreateProduct(ctx context.Context, shopID int64, input Create
 	return p, nil
 }
 
+func (f *fakeRepo) AddProductImage(ctx context.Context, productID int64, url string, sira int) (*ProductImage, error) {
+	return &ProductImage{ID: int64(sira + 1), URL: url, Sira: sira}, nil
+}
+
+func (f *fakeRepo) GetProductShopID(ctx context.Context, productID int64) (int64, error) {
+	for shopID, products := range f.products {
+		for _, p := range products {
+			if p.ID == productID {
+				return shopID, nil
+			}
+		}
+	}
+	return 0, ErrNotFound
+}
+
+func (f *fakeRepo) SetShopLogo(ctx context.Context, shopID int64, url string) error {
+	return nil
+}
+
 func newFakeRepo() *fakeRepo {
 	s := &Shop{ID: 1, Name: "avto444", Title: "Avto 444"}
 	hash, _ := bcrypt.GenerateFromPassword([]byte("test-pass"), 4)
