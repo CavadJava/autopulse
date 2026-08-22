@@ -24,6 +24,7 @@ function promoTierToVipTier(tier: PromoTier): VIPTier {
 export interface BusinessLoginPayload {
   email: string;
   ünvan: string;
+  parol: string;
 }
 
 // In-memory mock "backend" — a real backend would issue/verify OTPs and sessions.
@@ -71,9 +72,10 @@ export async function verifyOtp(zəng: string, code: string): Promise<User> {
 
 export async function loginBusiness(payload: BusinessLoginPayload): Promise<User> {
   await new Promise((resolve) => setTimeout(resolve, 500));
-  if (!payload.email || !payload.ünvan) {
-    throw new Error('E-mail və ünvan tələb olunur.');
+  if (!payload.email || !payload.ünvan || !payload.parol) {
+    throw new Error('E-mail, ünvan və parol tələb olunur.');
   }
+  // Mock: any non-empty password is accepted — a real backend would verify it.
   return buildBiznesUser(payload);
 }
 

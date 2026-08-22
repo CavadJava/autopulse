@@ -11,6 +11,7 @@ export default function Login() {
   const [zəng, setZəng] = useState('');
   const [email, setEmail] = useState('');
   const [ünvan, setÜnvan] = useState('');
+  const [parol, setParol] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -39,7 +40,7 @@ export default function Login() {
     setError(null);
     setLoading(true);
     try {
-      const user = await loginBusiness({ email, ünvan });
+      const user = await loginBusiness({ email, ünvan, parol });
       login(user);
       navigate('/kabinet');
     } catch (err) {
@@ -100,6 +101,14 @@ export default function Login() {
               placeholder="Bakı, Nərimanov r."
               value={ünvan}
               onChange={(e) => setÜnvan(e.target.value)}
+              className={styles.input}
+            />
+            <label className={styles.label}>Parol</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={parol}
+              onChange={(e) => setParol(e.target.value)}
               className={styles.input}
             />
             {error && <p className={styles.error}>{error}</p>}
