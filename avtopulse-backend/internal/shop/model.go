@@ -37,3 +37,16 @@ type Product struct {
 
 	Images []ProductImage `json:"images"`
 }
+
+type CreateProductInput struct {
+	Name    string `json:"name"`
+	Title   string `json:"title"`
+	Details string `json:"details"`
+	Marka   string `json:"marka"`
+	Model   string `json:"model"`
+	Il      int    `json:"il"`
+	Qiymet  int    `json:"qiymet"`
+	Yurus   int    `json:"yurus"`
+	Yanacaq string `json:"yanacaq"`
+	Ban     string `json:"ban"`
+}

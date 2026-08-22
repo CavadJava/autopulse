@@ -48,6 +48,16 @@ func (f *fakeRepo) GetPasswordHash(ctx context.Context, shopID int64) (string, e
 	return f.passwordHashes[s.Name], nil
 }
 
+func (f *fakeRepo) CreateProduct(ctx context.Context, shopID int64, input CreateProductInput) (*Product, error) {
+	p := &Product{
+		ID: int64(len(f.products[shopID]) + 100), Name: input.Name, Title: input.Title, Details: input.Details,
+		Marka: input.Marka, Model: input.Model, Il: input.Il, Qiymet: input.Qiymet, Yurus: input.Yurus, Yanacaq: input.Yanacaq, Ban: input.Ban,
+		Images: []ProductImage{},
+	}
+	f.products[shopID] = append(f.products[shopID], *p)
+	return p, nil
+}
+
 func newFakeRepo() *fakeRepo {
 	s := &Shop{ID: 1, Name: "avto444", Title: "Avto 444"}
 	hash, _ := bcrypt.GenerateFromPassword([]byte("test-pass"), 4)

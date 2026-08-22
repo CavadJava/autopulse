@@ -70,6 +70,9 @@ func main() {
 	r.Post("/api/shops/logout", func(w http.ResponseWriter, req *http.Request) {
 		http.StripPrefix("/api/shops", authHandler).ServeHTTP(w, req)
 	})
+	r.Post("/api/shops/me/products", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/shops", authHandler).ServeHTTP(w, req)
+	})
 
 	r.Mount("/api/shops", shop.NewHandler(shopRepo))
 

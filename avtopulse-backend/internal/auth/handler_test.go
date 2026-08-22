@@ -53,6 +53,10 @@ func (f *fakeShopRepo) GetPasswordHash(ctx context.Context, shopID int64) (strin
 	return h, nil
 }
 
+func (f *fakeShopRepo) CreateProduct(ctx context.Context, shopID int64, input shop.CreateProductInput) (*shop.Product, error) {
+	return &shop.Product{ID: 999, Name: input.Name, Title: input.Title, Marka: input.Marka, Model: input.Model, Il: input.Il, Qiymet: input.Qiymet, Images: []shop.ProductImage{}}, nil
+}
+
 type fakeSessionStore struct {
 	tokenToShop map[string]int64
 	deleteFails bool
@@ -203,6 +207,43 @@ func TestLogout_DeleteFails_ReturnsInternalError(t *testing.T) {
 
 	if _, err := sessions.Lookup(context.Background(), token); err != nil {
 		t.Fatal("expected session to still be valid when delete fails")
+	}
+}
+
+func TestCreateProduct_Success(t *testing.T) {
+	sessions := newFakeSessionStore()
+	token, _ := sessions.Create(context.Background(), 1)
+
+	h := NewHandler(newFakeShopRepo(), sessions)
+	body, _ := json.Marshal(createProductRequest{
+		Name: "toyota-camry-2", Title: "Toyota Camry, 2022", Marka: "Toyota", Model: "Camry", Il: 2022, Qiymet: 45000,
+	})
+	req := httptest.NewRequest(http.MethodPost, "/me/products", bytes.NewReader(body))
+	req.AddCookie(&http.Cookie{Name: cookieName, Value: token})
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d, body: %s", rec.Code, rec.Body.String())
+	}
+	var got shop.Product
+	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+		t.Fatalf("decode failed: %v", err)
+	}
+	if got.Title != "Toyota Camry, 2022" || got.Marka != "Toyota" {
+		t.Fatalf("unexpected product: %+v", got)
+	}
+}
+
+func TestCreateProduct_NoCookie(t *testing.T) {
+	h := NewHandler(newFakeShopRepo(), newFakeSessionStore())
+	body, _ := json.Marshal(createProductRequest{Name: "x", Title: "x"})
+	req := httptest.NewRequest(http.MethodPost, "/me/products", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", rec.Code)
 	}
 }
 

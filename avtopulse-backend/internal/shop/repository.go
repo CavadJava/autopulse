@@ -16,6 +16,7 @@ type Repository interface {
 	GetShopByID(ctx context.Context, id int64) (*Shop, error)
 	ListProducts(ctx context.Context, shopID int64) ([]Product, error)
 	GetPasswordHash(ctx context.Context, shopID int64) (string, error)
+	CreateProduct(ctx context.Context, shopID int64, input CreateProductInput) (*Product, error)
 }
 
 type pgRepository struct {
@@ -139,4 +140,32 @@ func (r *pgRepository) GetPasswordHash(ctx context.Context, shopID int64) (strin
 		return "", ErrNotFound
 	}
 	return hash, err
+}
+
+func (r *pgRepository) CreateProduct(ctx context.Context, shopID int64, input CreateProductInput) (*Product, error) {
+	var id int64
+	err := r.pool.QueryRow(ctx,
+		`INSERT INTO avto444.shop_products (name, title, details, marka, model, il, qiymet, yurus, yanacaq, ban, shop_id)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		 RETURNING id`,
+		input.Name, input.Title, input.Details, input.Marka, input.Model, input.Il, input.Qiymet, input.Yurus, input.Yanacaq, input.Ban, shopID,
+	).Scan(&id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Product{
+		ID:      id,
+		Name:    input.Name,
+		Title:   input.Title,
+		Details: input.Details,
+		Marka:   input.Marka,
+		Model:   input.Model,
+		Il:      input.Il,
+		Qiymet:  input.Qiymet,
+		Yurus:   input.Yurus,
+		Yanacaq: input.Yanacaq,
+		Ban:     input.Ban,
+		Images:  []ProductImage{},
+	}, nil
 }

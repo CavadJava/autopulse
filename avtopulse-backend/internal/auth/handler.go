@@ -33,6 +33,7 @@ func NewHandler(shopRepo shop.Repository, sessions SessionStore) http.Handler {
 
 	r.Post("/login", h.Login)
 	r.Get("/me/products", h.MeProducts)
+	r.Post("/me/products", h.CreateProduct)
 	r.Post("/logout", h.Logout)
 
 	return r
@@ -153,6 +154,57 @@ func (h *authHandlers) Logout(w http.ResponseWriter, req *http.Request) {
 		MaxAge:   -1,
 	})
 	w.WriteHeader(http.StatusOK)
+}
+
+type createProductRequest struct {
+	Name    string `json:"name"`
+	Title   string `json:"title"`
+	Details string `json:"details"`
+	Marka   string `json:"marka"`
+	Model   string `json:"model"`
+	Il      int    `json:"il"`
+	Qiymet  int    `json:"qiymet"`
+	Yurus   int    `json:"yurus"`
+	Yanacaq string `json:"yanacaq"`
+	Ban     string `json:"ban"`
+}
+
+// CreateProduct godoc
+// @Summary      Create a new product for the logged-in shop
+// @Description  Requires a valid shop_session cookie. Creates a shop_products row owned by the authenticated shop.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body      createProductRequest  true  "New product details"
+// @Success      201   {object}  shop.Product
+// @Failure      400   {string}  string  "invalid request body"
+// @Failure      401   {string}  string  "unauthorized"
+// @Failure      500   {string}  string  "internal error"
+// @Router       /me/products [post]
+func (h *authHandlers) CreateProduct(w http.ResponseWriter, req *http.Request) {
+	shopID, err := requireSession(req, h.sessions)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var body createProductRequest
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	product, err := h.shopRepo.CreateProduct(req.Context(), shopID, shop.CreateProductInput{
+		Name: body.Name, Title: body.Title, Details: body.Details,
+		Marka: body.Marka, Model: body.Model, Il: body.Il,
+		Qiymet: body.Qiymet, Yurus: body.Yurus, Yanacaq: body.Yanacaq, Ban: body.Ban,
+	})
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, product)
 }
 
 func requireSession(req *http.Request, sessions SessionStore) (int64, error) {
