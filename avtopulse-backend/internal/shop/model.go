@@ -17,9 +17,10 @@ type ShopSummary struct {
 }
 
 type ProductImage struct {
-	ID   int64  `json:"id"`
-	URL  string `json:"url"`
-	Sira int    `json:"sira"`
+	ID       int64  `json:"id"`
+	MinioURL string `json:"minioUrl"`
+	S3URL    string `json:"s3Url"`
+	Sira     int    `json:"sira"`
 }
 
 type Product struct {

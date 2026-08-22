@@ -3,6 +3,7 @@ package shop
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -17,9 +18,13 @@ type Repository interface {
 	ListProducts(ctx context.Context, shopID int64) ([]Product, error)
 	GetPasswordHash(ctx context.Context, shopID int64) (string, error)
 	CreateProduct(ctx context.Context, shopID int64, input CreateProductInput) (*Product, error)
-	AddProductImage(ctx context.Context, productID int64, url string, sira int) (*ProductImage, error)
+	AddProductImage(ctx context.Context, productID int64, minioURL, s3URL string, sira int) (*ProductImage, error)
 	GetProductShopID(ctx context.Context, productID int64) (int64, error)
 	SetShopLogo(ctx context.Context, shopID int64, url string) error
+	UpdateProduct(ctx context.Context, productID int64, input CreateProductInput) (*Product, error)
+	DeleteProduct(ctx context.Context, productID int64) error
+	GetImageProductID(ctx context.Context, imageID int64) (int64, error)
+	DeleteProductImage(ctx context.Context, imageID int64) error
 }
 
 type pgRepository struct {
@@ -117,7 +122,7 @@ func (r *pgRepository) ListProducts(ctx context.Context, shopID int64) ([]Produc
 
 func (r *pgRepository) listProductImages(ctx context.Context, productID int64) ([]ProductImage, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, url, sira FROM avto444.shop_product_images WHERE product_id = $1 ORDER BY sira, id`,
+		`SELECT id, minio_url, COALESCE(s3_url, ''), sira FROM avto444.shop_product_images WHERE product_id = $1 ORDER BY sira, id`,
 		productID,
 	)
 	if err != nil {
@@ -128,7 +133,7 @@ func (r *pgRepository) listProductImages(ctx context.Context, productID int64) (
 	out := []ProductImage{}
 	for rows.Next() {
 		var img ProductImage
-		if err := rows.Scan(&img.ID, &img.URL, &img.Sira); err != nil {
+		if err := rows.Scan(&img.ID, &img.MinioURL, &img.S3URL, &img.Sira); err != nil {
 			return nil, err
 		}
 		out = append(out, img)
@@ -173,16 +178,16 @@ func (r *pgRepository) CreateProduct(ctx context.Context, shopID int64, input Cr
 	}, nil
 }
 
-func (r *pgRepository) AddProductImage(ctx context.Context, productID int64, url string, sira int) (*ProductImage, error) {
+func (r *pgRepository) AddProductImage(ctx context.Context, productID int64, minioURL, s3URL string, sira int) (*ProductImage, error) {
 	var id int64
 	err := r.pool.QueryRow(ctx,
-		`INSERT INTO avto444.shop_product_images (product_id, url, sira) VALUES ($1, $2, $3) RETURNING id`,
-		productID, url, sira,
+		`INSERT INTO avto444.shop_product_images (product_id, minio_url, s3_url, sira) VALUES ($1, $2, $3, $4) RETURNING id`,
+		productID, minioURL, s3URL, sira,
 	).Scan(&id)
 	if err != nil {
 		return nil, err
 	}
-	return &ProductImage{ID: id, URL: url, Sira: sira}, nil
+	return &ProductImage{ID: id, MinioURL: minioURL, S3URL: s3URL, Sira: sira}, nil
 }
 
 func (r *pgRepository) GetProductShopID(ctx context.Context, productID int64) (int64, error) {
@@ -196,5 +201,59 @@ func (r *pgRepository) GetProductShopID(ctx context.Context, productID int64) (i
 
 func (r *pgRepository) SetShopLogo(ctx context.Context, shopID int64, url string) error {
 	_, err := r.pool.Exec(ctx, `UPDATE avto444.shop SET logo_url = $1 WHERE id = $2`, url, shopID)
+	return err
+}
+
+func (r *pgRepository) UpdateProduct(ctx context.Context, productID int64, input CreateProductInput) (*Product, error) {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE avto444.shop_products
+		 SET name = $1, title = $2, details = $3, marka = $4, model = $5, il = $6, qiymet = $7, yurus = $8, yanacaq = $9, ban = $10
+		 WHERE id = $11`,
+		input.Name, input.Title, input.Details, input.Marka, input.Model, input.Il, input.Qiymet, input.Yurus, input.Yanacaq, input.Ban, productID,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	images, err := r.listProductImages(ctx, productID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Product{
+		ID: productID, Name: input.Name, Title: input.Title, Details: input.Details,
+		Marka: input.Marka, Model: input.Model, Il: input.Il, Qiymet: input.Qiymet,
+		Yurus: input.Yurus, Yanacaq: input.Yanacaq, Ban: input.Ban, Images: images,
+	}, nil
+}
+
+func (r *pgRepository) DeleteProduct(ctx context.Context, productID int64) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) // no-op if Commit succeeds
+
+	if _, err := tx.Exec(ctx, `DELETE FROM avto444.shop_product_images WHERE product_id = $1`, productID); err != nil {
+		return fmt.Errorf("deleting product images: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM avto444.shop_products WHERE id = $1`, productID); err != nil {
+		return fmt.Errorf("deleting product: %w", err)
+	}
+
+	return tx.Commit(ctx)
+}
+
+func (r *pgRepository) GetImageProductID(ctx context.Context, imageID int64) (int64, error) {
+	var productID int64
+	err := r.pool.QueryRow(ctx, `SELECT product_id FROM avto444.shop_product_images WHERE id = $1`, imageID).Scan(&productID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, ErrNotFound
+	}
+	return productID, err
+}
+
+func (r *pgRepository) DeleteProductImage(ctx context.Context, imageID int64) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM avto444.shop_product_images WHERE id = $1`, imageID)
 	return err
 }
