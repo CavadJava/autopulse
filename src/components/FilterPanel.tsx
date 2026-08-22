@@ -38,6 +38,20 @@ interface FilterPanelProps {
   onFilterChange: (filters: Filters) => void;
 }
 
+// Small icon per section — purely decorative, gives each collapsible
+// group its own visual identity instead of a flat list of plain text labels.
+const SECTION_ICONS: Record<string, string> = {
+  marka: '🚗',
+  qiymət: '💰',
+  şəhər: '📍',
+  yanacaq: '⛽',
+  ban: '🚙',
+  ötürücü: '⚙️',
+  rəng: '🎨',
+  vəziyyət: '✨',
+  digər: '➕',
+};
+
 export default function FilterPanel({ filters, onFilterChange }: FilterPanelProps) {
   // Collapsed by default — the panel is only ever expanded via the mobile
   // toggle below; on desktop the CSS media query keeps it always visible
@@ -71,6 +85,33 @@ export default function FilterPanel({ filters, onFilterChange }: FilterPanelProp
   const rəngList = ['Qara', 'Ağ', 'Gümüş', 'Qırmızı', 'Mavi'];
   const vəziyyətList = ['Yeni', 'İşlənmiş'];
 
+  const activeCount = Object.values(filters).filter((v) => v !== undefined && v !== false).length;
+
+  const SectionHeader = ({ id, label }: { id: string; label: string }) => (
+    <button className={styles.sectionHeader} onClick={() => toggleSection(id)} type="button">
+      <span className={styles.sectionHeaderLeft}>
+        <span className={styles.sectionIcon}>{SECTION_ICONS[id]}</span>
+        {label}
+      </span>
+      <span className={expanded[id] ? styles.chevronBtnOpen : styles.chevronBtn}>▾</span>
+    </button>
+  );
+
+  const Option = ({
+    active,
+    label,
+    onClick,
+  }: {
+    active: boolean;
+    label: string;
+    onClick: () => void;
+  }) => (
+    <button type="button" className={active ? styles.optionActive : styles.option} onClick={onClick}>
+      <span className={active ? styles.checkboxActive : styles.checkbox}>{active && '✓'}</span>
+      {label}
+    </button>
+  );
+
   return (
     <aside className={styles.panel}>
       <button
@@ -78,202 +119,180 @@ export default function FilterPanel({ filters, onFilterChange }: FilterPanelProp
         className={styles.mobileToggle}
         onClick={() => setMobileOpen((v) => !v)}
       >
-        <h3 className={styles.title}>Filtrlər</h3>
+        <h3 className={styles.title}>
+          🔍 Filtrlər
+          {activeCount > 0 && <span className={styles.activeBadge}>{activeCount}</span>}
+        </h3>
         <span className={mobileOpen ? styles.chevronOpen : styles.chevron}>▾</span>
       </button>
 
       <div className={mobileOpen ? styles.bodyOpen : styles.body}>
-      <div className={styles.section}>
-        <button className={styles.sectionHeader} onClick={() => toggleSection('marka')}>
-          Marka {expanded.marka ? '−' : '+'}
-        </button>
-        {expanded.marka && (
-          <div className={styles.options}>
-            {markaList.map((m) => (
-              <label key={m}>
-                <input
-                  type="checkbox"
-                  checked={filters.marka === m}
-                  onChange={(e) => handleFilterChange('marka', e.target.checked ? m : undefined)}
+        <div className={styles.desktopTitleRow}>
+          <h3 className={styles.title}>
+            🔍 Filtrlər
+            {activeCount > 0 && <span className={styles.activeBadge}>{activeCount}</span>}
+          </h3>
+          {activeCount > 0 && (
+            <button type="button" className={styles.clearBtn} onClick={() => onFilterChange({})}>
+              Təmizlə
+            </button>
+          )}
+        </div>
+
+        <div className={styles.section}>
+          <SectionHeader id="marka" label="Marka" />
+          {expanded.marka && (
+            <div className={styles.options}>
+              {markaList.map((m) => (
+                <Option
+                  key={m}
+                  label={m}
+                  active={filters.marka === m}
+                  onClick={() => handleFilterChange('marka', filters.marka === m ? undefined : m)}
                 />
-                {m}
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
 
-      <div className={styles.section}>
-        <button className={styles.sectionHeader} onClick={() => toggleSection('qiymət')}>
-          Qiymət {expanded.qiymət ? '−' : '+'}
-        </button>
-        {expanded.qiymət && (
-          <div className={styles.rangeInputs}>
-            <input
-              type="number"
-              placeholder="Min"
-              value={filters.qiymətMin ?? ''}
-              onChange={(e) =>
-                handleFilterChange('qiymətMin', e.target.value ? parseInt(e.target.value) : undefined)
-              }
-            />
-            <input
-              type="number"
-              placeholder="Max"
-              value={filters.qiymətMax ?? ''}
-              onChange={(e) =>
-                handleFilterChange('qiymətMax', e.target.value ? parseInt(e.target.value) : undefined)
-              }
-            />
-          </div>
-        )}
-      </div>
-
-      <div className={styles.section}>
-        <button className={styles.sectionHeader} onClick={() => toggleSection('şəhər')}>
-          Şəhər {expanded.şəhər ? '−' : '+'}
-        </button>
-        {expanded.şəhər && (
-          <div className={styles.options}>
-            {şəhərList.map((ş) => (
-              <label key={ş}>
-                <input
-                  type="checkbox"
-                  checked={filters.şəhər === ş}
-                  onChange={(e) => handleFilterChange('şəhər', e.target.checked ? ş : undefined)}
-                />
-                {ş}
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className={styles.section}>
-        <button className={styles.sectionHeader} onClick={() => toggleSection('yanacaq')}>
-          Yanacaq {expanded.yanacaq ? '−' : '+'}
-        </button>
-        {expanded.yanacaq && (
-          <div className={styles.options}>
-            {yanacaqList.map((y) => (
-              <label key={y}>
-                <input
-                  type="checkbox"
-                  checked={filters.yanacaq === y}
-                  onChange={(e) => handleFilterChange('yanacaq', e.target.checked ? y : undefined)}
-                />
-                {y}
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className={styles.section}>
-        <button className={styles.sectionHeader} onClick={() => toggleSection('ban')}>
-          Ban Növü {expanded.ban ? '−' : '+'}
-        </button>
-        {expanded.ban && (
-          <div className={styles.options}>
-            {banList.map((b) => (
-              <label key={b}>
-                <input
-                  type="checkbox"
-                  checked={filters.ban === b}
-                  onChange={(e) => handleFilterChange('ban', e.target.checked ? b : undefined)}
-                />
-                {b}
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className={styles.section}>
-        <button className={styles.sectionHeader} onClick={() => toggleSection('ötürücü')}>
-          Ötürücü {expanded.ötürücü ? '−' : '+'}
-        </button>
-        {expanded.ötürücü && (
-          <div className={styles.options}>
-            {ötürücüList.map((ö) => (
-              <label key={ö}>
-                <input
-                  type="checkbox"
-                  checked={filters.ötürücü === ö}
-                  onChange={(e) => handleFilterChange('ötürücü', e.target.checked ? ö : undefined)}
-                />
-                {ö}
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className={styles.section}>
-        <button className={styles.sectionHeader} onClick={() => toggleSection('rəng')}>
-          Rəng {expanded.rəng ? '−' : '+'}
-        </button>
-        {expanded.rəng && (
-          <div className={styles.options}>
-            {rəngList.map((r) => (
-              <label key={r}>
-                <input
-                  type="checkbox"
-                  checked={filters.rəng === r}
-                  onChange={(e) => handleFilterChange('rəng', e.target.checked ? r : undefined)}
-                />
-                {r}
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className={styles.section}>
-        <button className={styles.sectionHeader} onClick={() => toggleSection('vəziyyət')}>
-          Vəziyyət {expanded.vəziyyət ? '−' : '+'}
-        </button>
-        {expanded.vəziyyət && (
-          <div className={styles.options}>
-            {vəziyyətList.map((v) => (
-              <label key={v}>
-                <input
-                  type="checkbox"
-                  checked={filters.vəziyyət === v}
-                  onChange={(e) => handleFilterChange('vəziyyət', e.target.checked ? v : undefined)}
-                />
-                {v}
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className={styles.section}>
-        <button className={styles.sectionHeader} onClick={() => toggleSection('digər')}>
-          Digər {expanded.digər ? '−' : '+'}
-        </button>
-        {expanded.digər && (
-          <div className={styles.checkboxes}>
-            <label>
+        <div className={styles.section}>
+          <SectionHeader id="qiymət" label="Qiymət" />
+          {expanded.qiymət && (
+            <div className={styles.rangeInputs}>
               <input
-                type="checkbox"
-                checked={filters.kredit || false}
-                onChange={(e) => handleFilterChange('kredit', e.target.checked)}
+                type="number"
+                placeholder="Min"
+                value={filters.qiymətMin ?? ''}
+                onChange={(e) =>
+                  handleFilterChange('qiymətMin', e.target.value ? parseInt(e.target.value) : undefined)
+                }
               />
-              Kredit Mövcuddur
-            </label>
-            <label>
+              <span className={styles.rangeSep}>—</span>
               <input
-                type="checkbox"
-                checked={filters.barter || false}
-                onChange={(e) => handleFilterChange('barter', e.target.checked)}
+                type="number"
+                placeholder="Max"
+                value={filters.qiymətMax ?? ''}
+                onChange={(e) =>
+                  handleFilterChange('qiymətMax', e.target.value ? parseInt(e.target.value) : undefined)
+                }
               />
-              Barter Qəbul Edir
-            </label>
-          </div>
-        )}
-      </div>
+            </div>
+          )}
+        </div>
+
+        <div className={styles.section}>
+          <SectionHeader id="şəhər" label="Şəhər" />
+          {expanded.şəhər && (
+            <div className={styles.options}>
+              {şəhərList.map((ş) => (
+                <Option
+                  key={ş}
+                  label={ş}
+                  active={filters.şəhər === ş}
+                  onClick={() => handleFilterChange('şəhər', filters.şəhər === ş ? undefined : ş)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className={styles.section}>
+          <SectionHeader id="yanacaq" label="Yanacaq" />
+          {expanded.yanacaq && (
+            <div className={styles.options}>
+              {yanacaqList.map((y) => (
+                <Option
+                  key={y}
+                  label={y}
+                  active={filters.yanacaq === y}
+                  onClick={() => handleFilterChange('yanacaq', filters.yanacaq === y ? undefined : y)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className={styles.section}>
+          <SectionHeader id="ban" label="Ban Növü" />
+          {expanded.ban && (
+            <div className={styles.options}>
+              {banList.map((b) => (
+                <Option
+                  key={b}
+                  label={b}
+                  active={filters.ban === b}
+                  onClick={() => handleFilterChange('ban', filters.ban === b ? undefined : b)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className={styles.section}>
+          <SectionHeader id="ötürücü" label="Ötürücü" />
+          {expanded.ötürücü && (
+            <div className={styles.options}>
+              {ötürücüList.map((ö) => (
+                <Option
+                  key={ö}
+                  label={ö}
+                  active={filters.ötürücü === ö}
+                  onClick={() => handleFilterChange('ötürücü', filters.ötürücü === ö ? undefined : ö)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className={styles.section}>
+          <SectionHeader id="rəng" label="Rəng" />
+          {expanded.rəng && (
+            <div className={styles.options}>
+              {rəngList.map((r) => (
+                <Option
+                  key={r}
+                  label={r}
+                  active={filters.rəng === r}
+                  onClick={() => handleFilterChange('rəng', filters.rəng === r ? undefined : r)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className={styles.section}>
+          <SectionHeader id="vəziyyət" label="Vəziyyət" />
+          {expanded.vəziyyət && (
+            <div className={styles.options}>
+              {vəziyyətList.map((v) => (
+                <Option
+                  key={v}
+                  label={v}
+                  active={filters.vəziyyət === v}
+                  onClick={() => handleFilterChange('vəziyyət', filters.vəziyyət === v ? undefined : v)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className={styles.section}>
+          <SectionHeader id="digər" label="Digər" />
+          {expanded.digər && (
+            <div className={styles.options}>
+              <Option
+                label="Kredit Mövcuddur"
+                active={filters.kredit || false}
+                onClick={() => handleFilterChange('kredit', !filters.kredit)}
+              />
+              <Option
+                label="Barter Qəbul Edir"
+                active={filters.barter || false}
+                onClick={() => handleFilterChange('barter', !filters.barter)}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </aside>
   );
