@@ -80,6 +80,7 @@ export default function MyShop() {
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+    setNotice(null);
     if (!form.name.trim() || !form.title.trim()) {
       setFormError('Ad və başlıq tələb olunur.');
       return;
@@ -106,7 +107,6 @@ export default function MyShop() {
       setForm(EMPTY_FORM);
       setImageFiles([]);
       setShowForm(false);
-      setNotice(null);
       if (imageFiles.length > 0) {
         try {
           await uploadProductImages(created.id, imageFiles);
