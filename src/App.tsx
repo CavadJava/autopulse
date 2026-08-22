@@ -11,6 +11,8 @@ import NewListing from './pages/NewListing';
 import Compare from './pages/Compare';
 import ShopList from './pages/shop/ShopList';
 import ShopFront from './pages/shop/ShopFront';
+import ShopLogin from './pages/shop/ShopLogin';
+import MyShop from './pages/shop/MyShop';
 import KabinetLayout from './pages/kabinet/KabinetLayout';
 import KabinetOverview from './pages/kabinet/KabinetOverview';
 import KabinetElanlarim from './pages/kabinet/KabinetElanlarim';
@@ -43,6 +45,8 @@ export default function App() {
             <Route path="/muqayise" element={<Compare />} />
             <Route path="/magazalar" element={<ShopList />} />
             <Route path="/magazalar/:name" element={<ShopFront />} />
+            <Route path="/magaza-giris" element={<ShopLogin />} />
+            <Route path="/magazam" element={<MyShop />} />
             <Route path="/kabinet" element={<KabinetLayout />}>
               <Route index element={<KabinetOverview />} />
               <Route path="elanlarim" element={<KabinetElanlarim />} />
