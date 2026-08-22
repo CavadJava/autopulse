@@ -29,6 +29,10 @@ export default function MyShop() {
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Page-level notice — separate from formError, so it stays visible even
+  // after the create-product form auto-closes on success (e.g. the product
+  // was created but its image upload failed).
+  const [notice, setNotice] = useState<string | null>(null);
 
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -94,12 +98,26 @@ export default function MyShop() {
         yanacaq: form.yanacaq,
         ban: form.ban,
       });
-      if (imageFiles.length > 0) {
-        await uploadProductImages(created.id, imageFiles);
-      }
+      // The product is already created server-side at this point — a
+      // failure below is only an image-upload failure, not a "creation
+      // failed" one. Reload the list and reset the form regardless, so the
+      // new product shows up, then surface the narrower error via the
+      // page-level notice (formError would be invisible once the form closes).
       setForm(EMPTY_FORM);
       setImageFiles([]);
       setShowForm(false);
+      setNotice(null);
+      if (imageFiles.length > 0) {
+        try {
+          await uploadProductImages(created.id, imageFiles);
+        } catch (err) {
+          if (err instanceof ShopUnauthorizedError) {
+            navigate('/magaza-giris');
+            return;
+          }
+          setNotice('Məhsul yaradıldı, amma şəkillər yüklənmədi.');
+        }
+      }
       await loadProducts();
     } catch (err) {
       if (err instanceof ShopUnauthorizedError) {
@@ -147,6 +165,8 @@ export default function MyShop() {
           Çıxış
         </button>
       </div>
+
+      {notice && <p className={styles.formError}>{notice}</p>}
 
       <div className={styles.logoSection}>
         <div className={styles.logoLabel}>Mağaza logosu</div>

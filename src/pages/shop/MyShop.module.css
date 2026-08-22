@@ -89,6 +89,10 @@
 
 .uploadBtn {
   background: var(--accent);
+  /* #fff is an intentional exception, not a hardcoded-color bug: both theme
+     accents (#FF9466 default, #2563EB Carvana) are dark enough that white
+     text stays readable in every theme — same pattern used across the app,
+     e.g. ShopLogin/FilterPanel/InteractiveGallery/NewListing/KabinetOverview. */
   color: #fff;
   border: none;
   font-size: 13px;
@@ -152,6 +156,7 @@
 
 .submitBtn {
   background: var(--accent);
+  /* Same intentional #fff exception as .uploadBtn above. */
   color: #fff;
   border: none;
   font-weight: 700;
