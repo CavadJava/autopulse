@@ -10,10 +10,10 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/CavadJava/avtopulse-backend/docs"
 	"github.com/CavadJava/avtopulse-backend/internal/auth"
 	"github.com/CavadJava/avtopulse-backend/internal/db"
 	"github.com/CavadJava/avtopulse-backend/internal/shop"
-	_ "github.com/CavadJava/avtopulse-backend/docs"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
