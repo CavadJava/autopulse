@@ -101,6 +101,41 @@
   box-shadow: 0 0 12px var(--accent-soft);
 }
 
+/* Marks whichever block/input is still unfilled when the user tries to
+   advance (İrəli/submit) with a required field missing — a red glow +
+   one-shot shake, plus an inline hint line under it. */
+.invalidBlock {
+  outline: 2px solid var(--error, #e11b1b);
+  outline-offset: 6px;
+  border-radius: var(--radius-md);
+  animation: invalidShake 0.4s ease;
+}
+
+@keyframes invalidShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+.invalidHint {
+  color: var(--error, #e11b1b);
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-top: var(--space-2);
+}
+
 .stepChipRow {
   display: flex;
   flex-wrap: wrap;

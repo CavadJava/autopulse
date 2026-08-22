@@ -177,6 +177,10 @@ export default function NewListing() {
   const [restoredFromDraft] = useState(() => !isEditMode && loadDraft() !== null);
   const [photoTab, setPhotoTab] = useState<PhotoTabKey>('exterior');
   const [step, setStep] = useState(0);
+  // Set when the user tries to advance (İrəli/submit) while the current
+  // step is still missing required fields — drives the red "seçilməyib"
+  // highlight on whichever block is still empty, instead of just disabling İrəli silently.
+  const [attempted, setAttempted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(isEditMode);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -212,6 +216,7 @@ export default function NewListing() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    setAttempted(false);
   }, [step]);
 
   const set = <K extends keyof NewListingFormState>(key: K, value: NewListingFormState[K]) => {
@@ -268,7 +273,10 @@ export default function NewListing() {
   const canGoNext = stepValid[step];
 
   const goNext = () => {
-    if (!canGoNext) return;
+    if (!canGoNext) {
+      setAttempted(true);
+      return;
+    }
     setStep((s) => Math.min(TOTAL_STEPS - 1, s + 1));
   };
 
@@ -278,6 +286,10 @@ export default function NewListing() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canGoNext) {
+      setAttempted(true);
+      return;
+    }
     if (!isLastStep) {
       goNext();
       return;
@@ -405,7 +417,7 @@ export default function NewListing() {
             {/* Step 1: Əsas — Kateqoriya + Marka/Model + İl */}
             {step === 0 && (
               <div className={styles.stepBody}>
-                <div className={styles.categoryGrid}>
+                <div className={`${styles.categoryGrid} ${attempted && !form.kateqoriya ? styles.invalidBlock : ''}`}>
                   {KATEQORİYALAR.map((k) => (
                     <button
                       key={k.key}
@@ -418,6 +430,9 @@ export default function NewListing() {
                     </button>
                   ))}
                 </div>
+                {attempted && !form.kateqoriya && (
+                  <p className={styles.invalidHint}>Kateqoriya seçilməyib</p>
+                )}
 
                 {form.kateqoriya && (
                   <>
@@ -425,6 +440,7 @@ export default function NewListing() {
                       <FloatingInput
                         label="Marka"
                         required
+                        invalid={attempted && !form.marka}
                         value={form.marka}
                         onChange={(v) => {
                           set('marka', v);
@@ -440,7 +456,7 @@ export default function NewListing() {
                     {!form.marka && (
                       <>
                         <div className={styles.brandSectionLabel}>Populyar</div>
-                        <div className={styles.brandGrid}>
+                        <div className={`${styles.brandGrid} ${attempted ? styles.invalidBlock : ''}`}>
                           {popularBrands.map((b) => (
                             <button type="button" key={b.ad} className={styles.brandItem} onClick={() => set('marka', b.ad)}>
                               <span className={styles.brandBadge}>{b.ad.slice(0, 2).toUpperCase()}</span>
@@ -466,13 +482,14 @@ export default function NewListing() {
                           <FloatingInput
                             label="Model"
                             required
+                            invalid={attempted && !form.model}
                             value={form.model}
                             onChange={(v) => set('model', v)}
                             onClear={() => set('model', '')}
                           />
                         </div>
                         {!form.model && (
-                          <div className={styles.modelGrid}>
+                          <div className={`${styles.modelGrid} ${attempted ? styles.invalidBlock : ''}`}>
                             {brand.modellər.map((m) => (
                               <button type="button" key={m} className={styles.modelItem} onClick={() => set('model', m)}>
                                 {m}
@@ -489,6 +506,7 @@ export default function NewListing() {
                           <FloatingInput
                             label="Buraxılış ili"
                             required
+                            invalid={attempted && !form.il}
                             value={form.il ? String(form.il) : ''}
                             onChange={() => {}}
                             onClear={() => set('il', null)}
@@ -496,7 +514,7 @@ export default function NewListing() {
                           />
                         </div>
                         {!form.il && (
-                          <div className={styles.yearGrid}>
+                          <div className={`${styles.yearGrid} ${attempted ? styles.invalidBlock : ''}`}>
                             {YEARS.map((y) => (
                               <button type="button" key={y} className={styles.yearItem} onClick={() => set('il', y)}>
                                 {y}
@@ -516,18 +534,24 @@ export default function NewListing() {
               <div className={styles.stepBody}>
                 <div className={styles.field}>
                   <label className={styles.selectLabel}>Ban növü *</label>
-                  <select className={styles.select} value={form.ban} onChange={(e) => set('ban', e.target.value)} required>
+                  <select
+                    className={`${styles.select} ${attempted && !form.ban ? styles.invalidBlock : ''}`}
+                    value={form.ban}
+                    onChange={(e) => set('ban', e.target.value)}
+                    required
+                  >
                     <option value="" disabled>Seçin</option>
                     {BAN_LIST.map((b) => (
                       <option key={b} value={b}>{b}</option>
                     ))}
                   </select>
+                  {attempted && !form.ban && <p className={styles.invalidHint}>Ban növü seçilməyib</p>}
                 </div>
 
                 {form.ban && (
                   <div className={styles.field}>
                     <div className={styles.blockLabel}>Nəsil *</div>
-                    <div className={styles.generationGrid}>
+                    <div className={`${styles.generationGrid} ${attempted && !form.nəsil ? styles.invalidBlock : ''}`}>
                       {generations.map((g) => (
                         <button
                           type="button"
@@ -550,7 +574,7 @@ export default function NewListing() {
                   <>
                     <div className={styles.field}>
                       <div className={styles.blockLabel}>Mühərrik *</div>
-                      <div className={styles.pillRow}>
+                      <div className={`${styles.pillRow} ${attempted && !form.mühərrikNövü ? styles.invalidBlock : ''}`}>
                         {MÜHƏRRIK_LIST.map((m) => (
                           <button
                             type="button"
@@ -566,7 +590,7 @@ export default function NewListing() {
 
                     <div className={styles.field}>
                       <div className={styles.blockLabel}>Ötürücü *</div>
-                      <div className={styles.pillRow}>
+                      <div className={`${styles.pillRow} ${attempted && !form.ötürücü ? styles.invalidBlock : ''}`}>
                         {ÖTÜRÜCÜ_LIST.map((o) => (
                           <button
                             type="button"
@@ -582,7 +606,7 @@ export default function NewListing() {
 
                     <div className={styles.field}>
                       <div className={styles.blockLabel}>Sürətlər qutusu *</div>
-                      <div className={styles.pillRow}>
+                      <div className={`${styles.pillRow} ${attempted && !form.sürətlərQutusu ? styles.invalidBlock : ''}`}>
                         {SÜRƏT_QUTUSU_LIST.map((s) => (
                           <button
                             type="button"
@@ -600,7 +624,7 @@ export default function NewListing() {
                       <div className={styles.field}>
                         <label className={styles.selectLabel}>Modifikasiya *</label>
                         <select
-                          className={styles.select}
+                          className={`${styles.select} ${attempted && !form.modifikasiya ? styles.invalidBlock : ''}`}
                           value={form.modifikasiya}
                           onChange={(e) => set('modifikasiya', e.target.value)}
                           required
@@ -610,6 +634,7 @@ export default function NewListing() {
                             <option key={m} value={m}>{m}</option>
                           ))}
                         </select>
+                        {attempted && !form.modifikasiya && <p className={styles.invalidHint}>Modifikasiya seçilməyib</p>}
                       </div>
                     )}
                   </>
@@ -622,7 +647,7 @@ export default function NewListing() {
               <div className={styles.stepBody}>
                 <div className={styles.field}>
                   <div className={styles.blockLabel}>Yerlərin sayı</div>
-                  <div className={styles.circleRow}>
+                  <div className={`${styles.circleRow} ${attempted && !form.yerlərSayı ? styles.invalidBlock : ''}`}>
                     {YERLƏR_LIST.map((y) => (
                       <button
                         type="button"
@@ -638,7 +663,7 @@ export default function NewListing() {
 
                 <div className={styles.field}>
                   <div className={styles.blockLabel}>Rəng *</div>
-                  <div className={styles.colorRow}>
+                  <div className={`${styles.colorRow} ${attempted && !form.rəng ? styles.invalidBlock : ''}`}>
                     {RƏNGLƏR.map((c) => (
                       <button
                         type="button"
@@ -675,7 +700,7 @@ export default function NewListing() {
                       type="number"
                       min={0}
                       placeholder="Yürüş *"
-                      className={styles.numInput}
+                      className={`${styles.numInput} ${attempted && !form.yürüş ? styles.invalidBlock : ''}`}
                       value={form.yürüş}
                       onChange={(e) => set('yürüş', e.target.value)}
                       required
@@ -689,6 +714,7 @@ export default function NewListing() {
                       <option value="mil">mil</option>
                     </select>
                   </div>
+                  {attempted && !form.yürüş && <p className={styles.invalidHint}>Yürüş qeyd edilməyib</p>}
                 </div>
 
                 <div className={styles.field}>
@@ -794,6 +820,11 @@ export default function NewListing() {
                   maksimum {MAX_PHOTOS} şəkil ({(form[activePhotoField] as ListingPhoto[]).length}/{MAX_PHOTOS}) ·
                   Sıralamaq üçün şəkilləri sürükləyin
                 </p>
+                {attempted && form.şəkillər.length < MIN_PHOTOS && (
+                  <p className={styles.invalidHint}>
+                    Exterior kateqoriyasında minimum {MIN_PHOTOS} şəkil əlavə edilməyib
+                  </p>
+                )}
               </div>
             )}
 
@@ -816,7 +847,7 @@ export default function NewListing() {
                       type="number"
                       min={0}
                       placeholder="Qiymət *"
-                      className={styles.numInput}
+                      className={`${styles.numInput} ${attempted && !form.qiymət ? styles.invalidBlock : ''}`}
                       value={form.qiymət}
                       onChange={(e) => set('qiymət', e.target.value)}
                       required
@@ -830,6 +861,7 @@ export default function NewListing() {
                       <option value="USD">USD</option>
                     </select>
                   </div>
+                  {attempted && !form.qiymət && <p className={styles.invalidHint}>Qiymət qeyd edilməyib</p>}
                 </div>
 
                 <div className={styles.checkboxRow}>
@@ -854,6 +886,7 @@ export default function NewListing() {
                   <FloatingInput
                     label="Adınız"
                     required
+                    invalid={attempted && !form.ad}
                     value={form.ad}
                     onChange={(v) => set('ad', v)}
                     onClear={() => set('ad', '')}
@@ -863,6 +896,7 @@ export default function NewListing() {
                   <FloatingInput
                     label="E-mail"
                     required
+                    invalid={attempted && !form.email}
                     type="email"
                     value={form.email}
                     onChange={(v) => set('email', v)}
@@ -873,6 +907,7 @@ export default function NewListing() {
                   <FloatingInput
                     label="Telefon nömrəsi"
                     required
+                    invalid={attempted && !(form.telefon || user.zəng)}
                     value={form.telefon || user.zəng || ''}
                     onChange={(v) => set('telefon', v)}
                     onClear={() => set('telefon', '')}
@@ -952,6 +987,7 @@ function FloatingInput({
   type = 'text',
   readOnly,
   verified,
+  invalid,
 }: {
   label: string;
   value: string;
@@ -961,9 +997,10 @@ function FloatingInput({
   type?: string;
   readOnly?: boolean;
   verified?: boolean;
+  invalid?: boolean;
 }) {
   return (
-    <div className={styles.floatingWrap}>
+    <div className={`${styles.floatingWrap} ${invalid ? styles.invalidBlock : ''}`}>
       <input
         type={type}
         className={styles.floatingInput}
@@ -985,6 +1022,7 @@ function FloatingInput({
           </button>
         )
       )}
+      {invalid && <p className={styles.invalidHint}>{label} seçilməyib</p>}
     </div>
   );
 }
