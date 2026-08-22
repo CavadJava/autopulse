@@ -63,7 +63,9 @@
   /* #fff is an intentional exception here, not a hardcoded-color bug: both
      theme accents (#FF9466 default, #2563EB Carvana) are dark enough that
      white text stays readable in every theme. Same pattern is used across
-     the app, e.g. globals.css's primary button and NewListing/KabinetOverview. */
+     the app, e.g. FilterPanel/InteractiveGallery/NewListing/KabinetOverview
+     (globals.css's own base button uses var(--bg-primary) instead, since
+     it isn't tied to a colored background the way this button is). */
   color: #fff;
   border: none;
   font-weight: 700;
