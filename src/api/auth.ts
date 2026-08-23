@@ -1,5 +1,6 @@
 import type { AccountKind, PromoTier, SavedCard, User, UserListing, VIPTier } from '../types';
 import { updateListing as updateMockListing } from './listings';
+import type { ApiListingDetails } from './listings';
 
 // Real HTTP client for the avtopulse-backend Go service's fərdi (individual)
 // user endpoints — OTP login/session + "Mənim elanlarım" listing CRUD. This
@@ -60,6 +61,7 @@ export interface UserListingApi {
   details: string;
   status: string;
   images: UserProductImage[];
+  detailsJson?: ApiListingDetails;
 }
 
 export interface CreateListingInput {
@@ -72,6 +74,7 @@ export interface CreateListingInput {
   ban: string;
   title: string;
   details: string;
+  detailsJson?: Record<string, unknown>;
 }
 
 export class UserUnauthorizedError extends Error {}
@@ -213,9 +216,14 @@ export async function deleteUserListing(id: number): Promise<void> {
   }
 }
 
-export async function uploadListingImages(listingId: number, files: File[]): Promise<UserProductImage[]> {
+export async function uploadListingImages(
+  listingId: number,
+  files: File[],
+  kind: 'exterior' | 'interior' | 'features' | 'doors' = 'exterior'
+): Promise<UserProductImage[]> {
   const form = new FormData();
   files.forEach((file) => form.append('images', file));
+  form.append('kind', kind);
 
   const res = await fetch(`${API_BASE}/api/users/me/products/${listingId}/images`, {
     method: 'POST',
