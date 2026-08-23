@@ -112,6 +112,9 @@ func main() {
 	r.Post("/api/shops/login", func(w http.ResponseWriter, req *http.Request) {
 		http.StripPrefix("/api/shops", authHandler).ServeHTTP(w, req)
 	})
+	r.Post("/api/shops/register", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/shops", authHandler).ServeHTTP(w, req)
+	})
 	r.Get("/api/shops/me/products", func(w http.ResponseWriter, req *http.Request) {
 		http.StripPrefix("/api/shops", authHandler).ServeHTTP(w, req)
 	})

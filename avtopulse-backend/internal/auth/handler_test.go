@@ -32,6 +32,28 @@ func (f *fakeShopRepo) GetShopByName(ctx context.Context, name string) (*shop.Sh
 	return s, nil
 }
 
+func (f *fakeShopRepo) GetShopByEmail(ctx context.Context, email string) (*shop.Shop, error) {
+	for _, s := range f.byName {
+		if s.Email == email {
+			return s, nil
+		}
+	}
+	return nil, shop.ErrNotFound
+}
+
+func (f *fakeShopRepo) CreateShop(ctx context.Context, input shop.CreateShopInput) (*shop.Shop, error) {
+	for _, s := range f.byName {
+		if s.Email == input.Email || s.Name == input.Name {
+			return nil, shop.ErrDuplicate
+		}
+	}
+	nextID := int64(len(f.byName) + 1)
+	s := &shop.Shop{ID: nextID, Name: input.Name, Title: input.Title, Email: input.Email}
+	f.byName[input.Name] = s
+	f.byID[nextID] = s
+	return s, nil
+}
+
 func (f *fakeShopRepo) GetShopByID(ctx context.Context, id int64) (*shop.Shop, error) {
 	s, ok := f.byID[id]
 	if !ok {
@@ -142,7 +164,7 @@ func (f *fakeSessionStore) Delete(ctx context.Context, token string) error {
 
 func newFakeShopRepo() *fakeShopRepo {
 	hash, _ := bcrypt.GenerateFromPassword([]byte("correct-password"), 4)
-	s := &shop.Shop{ID: 1, Name: "avto444", Title: "Avto 444"}
+	s := &shop.Shop{ID: 1, Name: "avto444", Title: "Avto 444", Email: "avto444@test.local"}
 	return &fakeShopRepo{
 		byName: map[string]*shop.Shop{"avto444": s},
 		byID:   map[int64]*shop.Shop{1: s},
@@ -152,7 +174,7 @@ func newFakeShopRepo() *fakeShopRepo {
 
 func TestLogin_Success_SetsCookie(t *testing.T) {
 	h := NewHandler(newFakeShopRepo(), newFakeSessionStore(), &fakeStorageClient{})
-	body, _ := json.Marshal(loginRequest{Name: "avto444", Password: "correct-password"})
+	body, _ := json.Marshal(loginRequest{Email: "avto444@test.local", Password: "correct-password"})
 	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -181,7 +203,7 @@ func TestLogin_Success_SetsCookie(t *testing.T) {
 
 func TestLogin_WrongPassword(t *testing.T) {
 	h := NewHandler(newFakeShopRepo(), newFakeSessionStore(), &fakeStorageClient{})
-	body, _ := json.Marshal(loginRequest{Name: "avto444", Password: "wrong-password"})
+	body, _ := json.Marshal(loginRequest{Email: "avto444@test.local", Password: "wrong-password"})
 	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -304,13 +326,58 @@ func TestLogin_PasswordHashNotFound_ReturnsUnauthorized(t *testing.T) {
 	repo.passwordHashNotFnd = true
 
 	h := NewHandler(repo, newFakeSessionStore(), &fakeStorageClient{})
-	body, _ := json.Marshal(loginRequest{Name: "avto444", Password: "correct-password"})
+	body, _ := json.Marshal(loginRequest{Email: "avto444@test.local", Password: "correct-password"})
 	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401 when GetPasswordHash returns ErrNotFound, got %d, body: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestRegister_Success(t *testing.T) {
+	h := NewHandler(newFakeShopRepo(), newFakeSessionStore(), &fakeStorageClient{})
+	body, _ := json.Marshal(registerRequest{Name: "yeni-magaza", Title: "Yeni Mağaza", Email: "yeni@test.local", Password: "test-password"})
+	req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d, body: %s", rec.Code, rec.Body.String())
+	}
+	found := false
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == cookieName {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("expected shop_session cookie to be set on successful registration")
+	}
+}
+
+func TestRegister_DuplicateEmail_Conflict(t *testing.T) {
+	h := NewHandler(newFakeShopRepo(), newFakeSessionStore(), &fakeStorageClient{})
+	body, _ := json.Marshal(registerRequest{Name: "yeni-magaza-2", Title: "Yeni Mağaza 2", Email: "avto444@test.local", Password: "test-password"})
+	req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("expected 409, got %d, body: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestRegister_MissingFields_BadRequest(t *testing.T) {
+	h := NewHandler(newFakeShopRepo(), newFakeSessionStore(), &fakeStorageClient{})
+	body, _ := json.Marshal(registerRequest{Name: "", Title: "", Email: "", Password: ""})
+	req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d, body: %s", rec.Code, rec.Body.String())
 	}
 }
 

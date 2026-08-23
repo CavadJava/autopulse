@@ -69,6 +69,12 @@ func (f *fakeShopRepo) GetShopByName(ctx context.Context, name string) (*shop.Sh
 	return nil, nil
 }
 func (f *fakeShopRepo) GetShopByID(ctx context.Context, id int64) (*shop.Shop, error) { return nil, nil }
+func (f *fakeShopRepo) GetShopByEmail(ctx context.Context, email string) (*shop.Shop, error) {
+	return nil, nil
+}
+func (f *fakeShopRepo) CreateShop(ctx context.Context, input shop.CreateShopInput) (*shop.Shop, error) {
+	return nil, nil
+}
 func (f *fakeShopRepo) ListProducts(ctx context.Context, shopID int64, onlyStatus string) ([]shop.Product, error) {
 	return nil, nil
 }

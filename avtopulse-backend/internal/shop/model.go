@@ -8,6 +8,14 @@ type Shop struct {
 	Details    string `json:"details"`
 	WorkTimes  string `json:"workTimes"`
 	LogoURL    string `json:"logoUrl"`
+	Email      string `json:"email"`
+}
+
+type CreateShopInput struct {
+	Name     string `json:"name"`
+	Title    string `json:"title"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type ShopSummary struct {

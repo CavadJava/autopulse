@@ -28,6 +28,33 @@ func (f *fakeRepo) GetShopByName(ctx context.Context, name string) (*Shop, error
 	return s, nil
 }
 
+func (f *fakeRepo) GetShopByEmail(ctx context.Context, email string) (*Shop, error) {
+	for _, s := range f.byName {
+		if s.Email == email {
+			return s, nil
+		}
+	}
+	return nil, ErrNotFound
+}
+
+func (f *fakeRepo) CreateShop(ctx context.Context, input CreateShopInput) (*Shop, error) {
+	if _, exists := f.byName[input.Name]; exists {
+		return nil, ErrDuplicate
+	}
+	for _, s := range f.byName {
+		if s.Email == input.Email {
+			return nil, ErrDuplicate
+		}
+	}
+	s := &Shop{ID: int64(len(f.byName) + 1), Name: input.Name, Title: input.Title, Email: input.Email}
+	f.byName[input.Name] = s
+	if f.byID == nil {
+		f.byID = map[int64]*Shop{}
+	}
+	f.byID[s.ID] = s
+	return s, nil
+}
+
 func (f *fakeRepo) GetShopByID(ctx context.Context, id int64) (*Shop, error) {
 	s, ok := f.byID[id]
 	if !ok {

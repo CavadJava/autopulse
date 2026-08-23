@@ -32,7 +32,7 @@ definitions:
     type: object
   auth.loginRequest:
     properties:
-      name:
+      email:
         type: string
       password:
         type: string
@@ -41,6 +41,17 @@ definitions:
     properties:
       shop:
         $ref: '#/definitions/shop.ShopSummary'
+    type: object
+  auth.registerRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      title:
+        type: string
     type: object
   auth.updateProductRequest:
     properties:
@@ -157,6 +168,8 @@ definitions:
       customerId:
         type: integer
       details:
+        type: string
+      email:
         type: string
       id:
         type: integer
@@ -606,10 +619,10 @@ paths:
     post:
       consumes:
       - application/json
-      description: Authenticates a shop by name+password and sets an HttpOnly shop_session
+      description: Authenticates a shop by email+password and sets an HttpOnly shop_session
         cookie on success.
       parameters:
-      - description: Shop name and password
+      - description: Shop email and password
         in: body
         name: body
         required: true
@@ -627,7 +640,7 @@ paths:
           schema:
             type: string
         "401":
-          description: invalid name or password
+          description: invalid email or password
           schema:
             type: string
         "500":
@@ -951,6 +964,42 @@ paths:
           schema:
             type: string
       summary: Restore a cancelled (ləğv edilib) product back to saytda
+      tags:
+      - auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Publicly creates a new shop account and immediately logs it in
+        (sets an HttpOnly shop_session cookie), same as /login. No email verification
+        is performed.
+      parameters:
+      - description: New shop's name, title, email, and password
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.registerRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/auth.loginResponse'
+        "400":
+          description: invalid request body
+          schema:
+            type: string
+        "409":
+          description: name or email already in use
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Register a new shop account
       tags:
       - auth
   /users/logout:
