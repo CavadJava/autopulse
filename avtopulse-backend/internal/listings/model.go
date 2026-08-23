@@ -26,4 +26,5 @@ type PublicListing struct {
 	SellerName  string          `json:"sellerName"` // shop name, or "" for user listings
 	DetailsJSON json.RawMessage `json:"detailsJson"`
 	ViewCount   int             `json:"viewCount"`
+	VipTier     string          `json:"vipTier"`
 }

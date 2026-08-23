@@ -55,7 +55,7 @@ func (h *listingsHandlers) PublicListings(w http.ResponseWriter, req *http.Reque
 			Qiymet: p.Qiymet, Yurus: p.Yurus, Yanacaq: p.Yanacaq, Ban: p.Ban,
 			Title: p.Title, Details: p.Details, Images: images,
 			SellerType: "diler", SellerName: p.ShopName,
-			DetailsJSON: p.DetailsJSON, ViewCount: p.ViewCount,
+			DetailsJSON: p.DetailsJSON, ViewCount: p.ViewCount, VipTier: p.VipTier,
 		})
 	}
 
@@ -74,7 +74,7 @@ func (h *listingsHandlers) PublicListings(w http.ResponseWriter, req *http.Reque
 			Qiymet: p.Qiymet, Yurus: p.Yurus, Yanacaq: p.Yanacaq, Ban: p.Ban,
 			Title: p.Title, Details: p.Details, Images: images,
 			SellerType: "şəxsi", SellerName: "",
-			DetailsJSON: p.DetailsJSON, ViewCount: p.ViewCount,
+			DetailsJSON: p.DetailsJSON, ViewCount: p.ViewCount, VipTier: p.VipTier,
 		})
 	}
 
@@ -126,7 +126,7 @@ func (h *listingsHandlers) PublicListingDetail(w http.ResponseWriter, req *http.
 				Qiymet: p.Qiymet, Yurus: p.Yurus, Yanacaq: p.Yanacaq, Ban: p.Ban,
 				Title: p.Title, Details: p.Details, Images: images,
 				SellerType: "diler", SellerName: p.ShopName,
-				DetailsJSON: p.DetailsJSON, ViewCount: p.ViewCount + 1,
+				DetailsJSON: p.DetailsJSON, ViewCount: p.ViewCount + 1, VipTier: p.VipTier,
 			})
 			return
 		}
@@ -153,7 +153,7 @@ func (h *listingsHandlers) PublicListingDetail(w http.ResponseWriter, req *http.
 			Qiymet: p.Qiymet, Yurus: p.Yurus, Yanacaq: p.Yanacaq, Ban: p.Ban,
 			Title: p.Title, Details: p.Details, Images: images,
 			SellerType: "şəxsi", SellerName: "",
-			DetailsJSON: p.DetailsJSON, ViewCount: p.ViewCount + 1,
+			DetailsJSON: p.DetailsJSON, ViewCount: p.ViewCount + 1, VipTier: p.VipTier,
 		})
 		return
 	}
