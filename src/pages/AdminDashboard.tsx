@@ -10,11 +10,13 @@ import {
   AdminUnauthorizedError,
 } from '../api/admin';
 import type { PendingUserListing, ShopProductForAdmin } from '../api/admin';
+import { previewNotification, sendNotification, getSentNotifications } from '../api/adminNotify';
+import type { NotificationFilters, NotificationSummary } from '../api/adminNotify';
 import styles from './AdminDashboard.module.css';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'pending' | 'shopProducts'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'shopProducts' | 'notifications'>('pending');
 
   const [pendingListings, setPendingListings] = useState<PendingUserListing[]>([]);
   const [shopProducts, setShopProducts] = useState<ShopProductForAdmin[]>([]);
@@ -23,6 +25,14 @@ export default function AdminDashboard() {
   const [notice, setNotice] = useState<string | null>(null);
 
   const [actingId, setActingId] = useState<number | null>(null);
+
+  const [notifTitle, setNotifTitle] = useState('');
+  const [notifBody, setNotifBody] = useState('');
+  const [notifRecipientType, setNotifRecipientType] = useState<'user' | 'shop' | ''>('');
+  const [notifHasNonVip, setNotifHasNonVip] = useState(false);
+  const [previewCount, setPreviewCount] = useState<number | null>(null);
+  const [sending, setSending] = useState(false);
+  const [sentList, setSentList] = useState<NotificationSummary[]>([]);
 
   const loadPending = async () => {
     const data = await getPendingListings();
@@ -34,11 +44,60 @@ export default function AdminDashboard() {
     setShopProducts(data);
   };
 
+  const loadSent = async () => {
+    const data = await getSentNotifications();
+    setSentList(data);
+  };
+
+  const buildFilters = (): NotificationFilters => ({
+    recipientType: notifRecipientType,
+    ...(notifHasNonVip ? { hasNonVipActiveListing: true } : {}),
+  });
+
+  const handlePreview = async () => {
+    try {
+      setPreviewCount(
+        await previewNotification(notifTitle || '(preview)', notifBody || '(preview)', buildFilters())
+      );
+    } catch (err) {
+      if (err instanceof AdminUnauthorizedError) {
+        navigate('/admin');
+        return;
+      }
+      setNotice('Alıcı sayı hesablanarkən xəta baş verdi.');
+    }
+  };
+
+  const handleSend = async () => {
+    if (!notifTitle || !notifBody) {
+      setNotice('Başlıq və mətn tələb olunur.');
+      return;
+    }
+    setSending(true);
+    setNotice(null);
+    try {
+      const result = await sendNotification(notifTitle, notifBody, buildFilters());
+      setNotice(`Bildiriş ${result.recipientCount} alıcıya göndərildi.`);
+      setNotifTitle('');
+      setNotifBody('');
+      setPreviewCount(null);
+      await loadSent();
+    } catch (err) {
+      if (err instanceof AdminUnauthorizedError) {
+        navigate('/admin');
+        return;
+      }
+      setNotice('Bildiriş göndərilərkən xəta baş verdi.');
+    } finally {
+      setSending(false);
+    }
+  };
+
   const loadAll = async () => {
     setLoading(true);
     setError(null);
     try {
-      await Promise.all([loadPending(), loadShopProducts()]);
+      await Promise.all([loadPending(), loadShopProducts(), loadSent()]);
     } catch (err) {
       if (err instanceof AdminUnauthorizedError) {
         navigate('/admin');
@@ -149,6 +208,12 @@ export default function AdminDashboard() {
         >
           Mağaza elanları ({shopProducts.length})
         </button>
+        <button
+          className={activeTab === 'notifications' ? styles.tabActive : styles.tab}
+          onClick={() => setActiveTab('notifications')}
+        >
+          Bildirişlər ({sentList.length})
+        </button>
       </div>
 
       {activeTab === 'pending' && (
@@ -215,6 +280,92 @@ export default function AdminDashboard() {
             </div>
           )}
         </>
+      )}
+
+      {activeTab === 'notifications' && (
+        <div className={styles.list}>
+          <div className={styles.row}>
+            <div className={styles.rowInfo} style={{ width: '100%' }}>
+              <input
+                className={styles.formInput}
+                placeholder="Başlıq"
+                value={notifTitle}
+                onChange={(e) => setNotifTitle(e.target.value)}
+              />
+              <textarea
+                className={styles.formInput}
+                placeholder="Mətn"
+                value={notifBody}
+                onChange={(e) => setNotifBody(e.target.value)}
+                rows={3}
+              />
+              <div className={styles.rowDetails}>
+                <label>
+                  <input
+                    type="radio"
+                    checked={notifRecipientType === ''}
+                    onChange={() => setNotifRecipientType('')}
+                  />{' '}
+                  Hər ikisi
+                </label>{' '}
+                <label>
+                  <input
+                    type="radio"
+                    checked={notifRecipientType === 'user'}
+                    onChange={() => setNotifRecipientType('user')}
+                  />{' '}
+                  Yalnız istifadəçilər
+                </label>{' '}
+                <label>
+                  <input
+                    type="radio"
+                    checked={notifRecipientType === 'shop'}
+                    onChange={() => setNotifRecipientType('shop')}
+                  />{' '}
+                  Yalnız mağazalar
+                </label>
+              </div>
+              <div className={styles.rowDetails}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={notifHasNonVip}
+                    onChange={(e) => setNotifHasNonVip(e.target.checked)}
+                  />{' '}
+                  Yalnız VIP olmayan aktiv elanı olanlar
+                </label>
+              </div>
+            </div>
+            <div className={styles.rowActions}>
+              <button className={styles.approveBtn} onClick={handlePreview}>
+                Neçəyə çatacaq?
+              </button>
+              <button className={styles.approveBtn} onClick={handleSend} disabled={sending}>
+                {sending ? '...' : 'Göndər'}
+              </button>
+            </div>
+          </div>
+          {previewCount !== null && (
+            <p className={styles.status}>Bu filtrlərlə {previewCount} alıcıya çatacaq.</p>
+          )}
+
+          <h3>Göndərilmiş bildirişlər</h3>
+          {sentList.length === 0 ? (
+            <p className={styles.status}>Hələ heç bir bildiriş göndərilməyib.</p>
+          ) : (
+            sentList.map((n) => (
+              <div key={n.id} className={styles.row}>
+                <div className={styles.rowInfo}>
+                  <div className={styles.rowTitle}>{n.title}</div>
+                  <div className={styles.rowDetails}>{n.body}</div>
+                  <span className={styles.statusBadge}>
+                    Göndərildi: {n.sentCount} / Oxundu: {n.readCount}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       )}
     </div>
   );
