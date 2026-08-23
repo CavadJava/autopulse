@@ -3,6 +3,8 @@
 // of AutoPulse's mock-data API modules (src/api/listings.ts etc.) — it talks
 // to a real backend over the network, not an in-memory mock.
 
+import { InsufficientBalanceError } from './auth';
+
 const API_BASE = import.meta.env.VITE_AVTOPULSE_API_BASE ?? '';
 
 export interface ShopSummary {
@@ -236,6 +238,29 @@ export async function deleteShopProduct(id: number): Promise<void> {
   if (!res.ok) {
     throw new Error(`deleteShopProduct failed: ${res.status}`);
   }
+}
+
+export async function promoteShopListing(
+  productId: number,
+  tier: 'ireli_cek' | 'vip' | 'premium_vip'
+): Promise<ShopProduct> {
+  const res = await fetch(`${API_BASE}/api/shops/me/products/${productId}/promote`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tier }),
+  });
+  if (res.status === 401) {
+    throw new ShopUnauthorizedError('Not logged in');
+  }
+  if (res.status === 402) {
+    const body = await res.json();
+    throw new InsufficientBalanceError(body.required);
+  }
+  if (!res.ok) {
+    throw new Error(`promoteShopListing failed: ${res.status}`);
+  }
+  return res.json();
 }
 
 export async function restoreShopProduct(id: number): Promise<void> {

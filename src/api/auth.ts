@@ -79,6 +79,13 @@ export interface CreateListingInput {
 }
 
 export class UserUnauthorizedError extends Error {}
+export class InsufficientBalanceError extends Error {
+  required: number;
+  constructor(required: number) {
+    super('Insufficient balance');
+    this.required = required;
+  }
+}
 export class UserOtpError extends Error {}
 
 function summaryToUser(summary: UserSummary): User {
@@ -215,6 +222,29 @@ export async function deleteUserListing(id: number): Promise<void> {
   if (!res.ok) {
     throw new Error(`deleteUserListing failed: ${res.status}`);
   }
+}
+
+export async function promoteRealUserListing(
+  listingId: number,
+  tier: 'ireli_cek' | 'vip' | 'premium_vip'
+): Promise<UserListingApi> {
+  const res = await fetch(`${API_BASE}/api/users/me/products/${listingId}/promote`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tier }),
+  });
+  if (res.status === 401) {
+    throw new UserUnauthorizedError('Not logged in');
+  }
+  if (res.status === 402) {
+    const body = await res.json();
+    throw new InsufficientBalanceError(body.required);
+  }
+  if (!res.ok) {
+    throw new Error(`promoteRealUserListing failed: ${res.status}`);
+  }
+  return res.json();
 }
 
 export async function uploadListingImages(
