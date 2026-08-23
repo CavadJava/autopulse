@@ -15,6 +15,7 @@ import ShopLogin from './pages/shop/ShopLogin';
 import ShopRegister from './pages/shop/ShopRegister';
 import MyShop from './pages/shop/MyShop';
 import MyShopMesajlar from './pages/shop/MyShopMesajlar';
+import MyShopBildirisler from './pages/shop/MyShopBildirisler';
 import KabinetLayout from './pages/kabinet/KabinetLayout';
 import KabinetOverview from './pages/kabinet/KabinetOverview';
 import KabinetElanlarim from './pages/kabinet/KabinetElanlarim';
@@ -55,6 +56,7 @@ export default function App() {
             <Route path="/magaza-qeydiyyat" element={<ShopRegister />} />
             <Route path="/magazam" element={<MyShop />} />
             <Route path="/magazam/mesajlar" element={<MyShopMesajlar />} />
+            <Route path="/magazam/bildirisler" element={<MyShopBildirisler />} />
             <Route path="/kabinet" element={<KabinetLayout />}>
               <Route index element={<KabinetOverview />} />
               <Route path="elanlarim" element={<KabinetElanlarim />} />

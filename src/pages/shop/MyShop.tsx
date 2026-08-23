@@ -17,6 +17,7 @@ import {
 import type { ShopProduct } from '../../api/shop';
 import { InsufficientBalanceError } from '../../api/auth';
 import { getShopUnreadCount } from '../../api/chat';
+import { getShopNotificationsUnreadCount } from '../../api/notifications';
 import type { PromoTier } from '../../types';
 import PromoteModal from '../../components/PromoteModal';
 import styles from './MyShop.module.css';
@@ -68,6 +69,7 @@ export default function MyShop() {
   const [promoteError, setPromoteError] = useState<string | null>(null);
 
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notifUnread, setNotifUnread] = useState(0);
 
   const [profileAddress, setProfileAddress] = useState('');
   const [profileContactName, setProfileContactName] = useState('');
@@ -100,6 +102,7 @@ export default function MyShop() {
     const poll = async () => {
       try {
         setUnreadCount(await getShopUnreadCount());
+        setNotifUnread(await getShopNotificationsUnreadCount());
       } catch {
         // Non-fatal.
       }
@@ -367,6 +370,9 @@ export default function MyShop() {
         <div className={styles.headerActions}>
           <Link to="/magazam/mesajlar" className={styles.logoutBtn}>
             💬 Mesajlar {unreadCount > 0 && <span className={styles.badge}>{unreadCount}</span>}
+          </Link>
+          <Link to="/magazam/bildirisler" className={styles.logoutBtn}>
+            🔔 Bildirişlər {notifUnread > 0 && <span className={styles.badge}>{notifUnread}</span>}
           </Link>
           <button className={styles.logoutBtn} onClick={handleLogout}>
             Çıxış
