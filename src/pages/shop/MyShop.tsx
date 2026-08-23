@@ -10,9 +10,13 @@ import {
   deleteShopProduct,
   deleteProductImage,
   restoreShopProduct,
+  promoteShopListing,
   ShopUnauthorizedError,
 } from '../../api/shop';
 import type { ShopProduct } from '../../api/shop';
+import { InsufficientBalanceError } from '../../api/auth';
+import type { PromoTier } from '../../types';
+import PromoteModal from '../../components/PromoteModal';
 import styles from './MyShop.module.css';
 
 const EMPTY_FORM = {
@@ -57,6 +61,8 @@ export default function MyShop() {
   const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'hamisi' | 'saytda' | 'legv_edilib'>('hamisi');
   const [restoringProductId, setRestoringProductId] = useState<number | null>(null);
+  const [promotingProduct, setPromotingProduct] = useState<ShopProduct | null>(null);
+  const [promoteError, setPromoteError] = useState<string | null>(null);
 
   const loadProducts = async () => {
     setLoading(true);
@@ -276,6 +282,26 @@ export default function MyShop() {
       setLogoError('Loqo yüklənərkən xəta baş verdi.');
     } finally {
       setLogoUploading(false);
+    }
+  };
+
+  const handlePromote = async (tier: PromoTier) => {
+    if (!promotingProduct) return;
+    try {
+      await promoteShopListing(promotingProduct.id, tier);
+      setPromoteError(null);
+      await loadProducts();
+    } catch (err) {
+      if (err instanceof ShopUnauthorizedError) {
+        navigate('/magaza-giris');
+        return;
+      }
+      if (err instanceof InsufficientBalanceError) {
+        setPromoteError(`Balansınız kifayət etmir (${err.required} AZN lazımdır).`);
+      } else {
+        setPromoteError('Yüksəltmə zamanı xəta baş verdi.');
+      }
+      throw err;
     }
   };
 
@@ -578,12 +604,28 @@ export default function MyShop() {
                         {deletingProductId === product.id ? 'Silinir...' : '🗑 Sil'}
                       </button>
                     )}
+                    <button
+                      className={styles.editBtn}
+                      onClick={() => setPromotingProduct(product)}
+                    >
+                      ↑ Yüksəlt
+                    </button>
                   </div>
                 </>
               )}
             </div>
           ))}
         </div>
+      )}
+
+      {promoteError && <p className={styles.status}>{promoteError}</p>}
+
+      {promotingProduct && (
+        <PromoteModal
+          onClose={() => setPromotingProduct(null)}
+          onConfirm={handlePromote}
+          balans={Infinity}
+        />
       )}
     </div>
   );

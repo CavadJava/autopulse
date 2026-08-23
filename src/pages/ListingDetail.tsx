@@ -154,7 +154,7 @@ export default function ListingDetail() {
       </div>
 
       {promoteOpen && user && (
-        <PromoteModal onClose={() => setPromoteOpen(false)} onConfirm={handlePromote} />
+        <PromoteModal onClose={() => setPromoteOpen(false)} onConfirm={handlePromote} balans={user.balans} />
       )}
     </div>
   );

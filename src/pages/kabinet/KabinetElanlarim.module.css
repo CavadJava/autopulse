@@ -163,3 +163,17 @@
 .adBtn:hover {
   box-shadow: none;
 }
+
+.promoteBtn {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.promoteBtn:hover {
+  border-color: var(--accent);
+}

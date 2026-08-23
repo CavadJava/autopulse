@@ -1,8 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import type { PromoTier } from '../types';
 import { PROMO_LABELS, PROMO_PRICES } from '../api/auth';
-import { useAuth } from '../context/AuthContext';
 import styles from './PromoteModal.module.css';
 
 const TIERS: { key: PromoTier; icon: string }[] = [
@@ -14,33 +12,33 @@ const TIERS: { key: PromoTier; icon: string }[] = [
 interface PromoteModalProps {
   onClose: () => void;
   onConfirm: (tier: PromoTier) => Promise<void>;
+  // Caller-supplied balance — no longer read from the mock AuthContext, since
+  // real shop/user sessions have their own real balance the mock context
+  // doesn't know about. Pass Infinity to skip client-side gating entirely
+  // and let the server's 402 response be the source of truth instead.
+  balans: number;
 }
 
-export default function PromoteModal({ onClose, onConfirm }: PromoteModalProps) {
-  const { user } = useAuth();
-  const navigate = useNavigate();
+export default function PromoteModal({ onClose, onConfirm, balans }: PromoteModalProps) {
   const [selected, setSelected] = useState<PromoTier | null>(null);
   const [loading, setLoading] = useState(false);
-
-  if (!user) return null;
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const selectedPrice = selected ? PROMO_PRICES[selected] : 0;
-  const insufficientBalance = selected !== null && user.balans < selectedPrice;
+  const insufficientBalance = selected !== null && balans < selectedPrice;
 
   const handleConfirm = async () => {
     if (!selected || insufficientBalance) return;
     setLoading(true);
+    setErrorMessage(null);
     try {
       await onConfirm(selected);
       onClose();
+    } catch {
+      setErrorMessage('Yüksəltmə zamanı xəta baş verdi.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleTopUp = () => {
-    onClose();
-    navigate('/kabinet');
   };
 
   return (
@@ -53,10 +51,12 @@ export default function PromoteModal({ onClose, onConfirm }: PromoteModalProps) 
           </button>
         </div>
 
-        <div className={styles.balanceRow}>
-          <span>Şəxsi hesab balansı</span>
-          <span className={styles.balanceValue}>{user.balans.toFixed(2)} AZN</span>
-        </div>
+        {Number.isFinite(balans) && (
+          <div className={styles.balanceRow}>
+            <span>Balans</span>
+            <span className={styles.balanceValue}>{balans.toFixed(2)} AZN</span>
+          </div>
+        )}
 
         <div className={styles.tierGrid}>
           {TIERS.map((t) => (
@@ -75,9 +75,12 @@ export default function PromoteModal({ onClose, onConfirm }: PromoteModalProps) 
         {insufficientBalance && (
           <div className={styles.warning}>
             <p>Balansınız kifayət etmir. Zəhmət olmasa hesabınızı artırın.</p>
-            <button className={styles.topUpBtn} onClick={handleTopUp}>
-              Balansı artır
-            </button>
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className={styles.warning}>
+            <p>{errorMessage}</p>
           </div>
         )}
 

@@ -5,9 +5,12 @@ import {
   getMyListings,
   apiListingToUserListing,
   deleteUserListing,
+  promoteRealUserListing,
+  InsufficientBalanceError,
   UserUnauthorizedError,
 } from '../../api/auth';
-import type { UserListing, İstifadəçiElanStatusu } from '../../types';
+import type { PromoTier, UserListing, İstifadəçiElanStatusu } from '../../types';
+import PromoteModal from '../../components/PromoteModal';
 import styles from './KabinetElanlarim.module.css';
 
 const STATUS_LABEL: Record<İstifadəçiElanStatusu, string> = {
@@ -44,6 +47,8 @@ export default function KabinetElanlarim() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>('hamısı');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [promotingListing, setPromotingListing] = useState<UserListing | null>(null);
+  const [promoteError, setPromoteError] = useState<string | null>(null);
 
   const loadListings = async () => {
     setLoading(true);
@@ -101,6 +106,22 @@ export default function KabinetElanlarim() {
     }
   };
 
+  const handlePromote = async (tier: PromoTier) => {
+    if (!promotingListing) return;
+    try {
+      await promoteRealUserListing(Number(promotingListing.listingId), tier);
+      setPromoteError(null);
+      await loadListings();
+    } catch (err) {
+      if (err instanceof InsufficientBalanceError) {
+        setPromoteError(`Balansınız kifayət etmir (${err.required} AZN lazımdır).`);
+      } else {
+        setPromoteError('Yüksəltmə zamanı xəta baş verdi.');
+      }
+      throw err;
+    }
+  };
+
   return (
     <div>
       <div className={styles.filterTabs}>
@@ -116,6 +137,7 @@ export default function KabinetElanlarim() {
       </div>
 
       {error && <p className={styles.empty}>{error}</p>}
+      {promoteError && <p className={styles.empty}>{promoteError}</p>}
 
       {!error && loading ? (
         <p className={styles.empty}>Yüklənir...</p>
@@ -149,12 +171,26 @@ export default function KabinetElanlarim() {
                   >
                     {deletingId === listing.id ? 'Silinir...' : '🗑 Sil'}
                   </button>
+                  <button
+                    className={styles.promoteBtn}
+                    onClick={() => setPromotingListing(listing)}
+                  >
+                    ↑ Yüksəlt
+                  </button>
                 </div>
               </div>
             </div>
           ))}
         </div>
       ) : null}
+
+      {promotingListing && (
+        <PromoteModal
+          onClose={() => setPromotingListing(null)}
+          onConfirm={handlePromote}
+          balans={Infinity}
+        />
+      )}
     </div>
   );
 }
