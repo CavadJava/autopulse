@@ -39,6 +39,9 @@ func (f *fakeShopRepo) AddProductImage(ctx context.Context, productID int64, min
 	return nil, nil
 }
 func (f *fakeShopRepo) IncrementViewCount(ctx context.Context, productID int64) error { return nil }
+func (f *fakeShopRepo) PromoteProduct(ctx context.Context, productID int64, tier string, price int) (*shop.Product, error) {
+	return nil, nil
+}
 func (f *fakeShopRepo) GetProductShopID(ctx context.Context, productID int64) (int64, error) {
 	return 0, nil
 }
@@ -81,6 +84,9 @@ func (f *fakeUserRepo) AddProductImage(ctx context.Context, productID int64, min
 	return nil, nil
 }
 func (f *fakeUserRepo) IncrementViewCount(ctx context.Context, productID int64) error { return nil }
+func (f *fakeUserRepo) PromoteProduct(ctx context.Context, productID int64, tier string, price int) (*user.Product, error) {
+	return nil, nil
+}
 func (f *fakeUserRepo) ListPendingProducts(ctx context.Context) ([]user.Product, error) {
 	return nil, nil
 }

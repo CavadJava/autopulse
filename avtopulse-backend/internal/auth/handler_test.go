@@ -89,6 +89,10 @@ func (f *fakeShopRepo) IncrementViewCount(ctx context.Context, productID int64) 
 	return nil
 }
 
+func (f *fakeShopRepo) PromoteProduct(ctx context.Context, productID int64, tier string, price int) (*shop.Product, error) {
+	return nil, nil
+}
+
 func (f *fakeShopRepo) GetProductShopID(ctx context.Context, productID int64) (int64, error) {
 	return 1, nil
 }

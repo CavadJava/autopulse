@@ -79,6 +79,10 @@ func (f *fakeUserRepo) IncrementViewCount(ctx context.Context, productID int64) 
 	return nil
 }
 
+func (f *fakeUserRepo) PromoteProduct(ctx context.Context, productID int64, tier string, price int) (*Product, error) {
+	return nil, nil
+}
+
 func (f *fakeUserRepo) ListPendingProducts(ctx context.Context) ([]Product, error) {
 	out := []Product{}
 	for _, p := range f.products {
