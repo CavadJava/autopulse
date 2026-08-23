@@ -8,6 +8,8 @@ import { getMyShopProducts, promoteShopListing } from '../api/shop';
 import InteractiveGallery from '../components/InteractiveGallery';
 import ListingDetailTabs from '../components/ListingDetailTabs';
 import PromoteModal from '../components/PromoteModal';
+import IndividualSellerCard from '../components/IndividualSellerCard';
+import BusinessSellerCard from '../components/BusinessSellerCard';
 import styles from './RealListingDetail.module.css';
 
 // Maps a real backend listing (ApiListing) onto the mock Listing shape that
@@ -44,7 +46,7 @@ function apiListingToMockShape(l: ApiListing): Listing {
     qapılarŞəkillər: l.images.filter((i) => i.kind === 'doors').map((i) => i.minioUrl || i.s3Url),
     satıcıAd: d.satıcıAd ?? l.sellerName,
     satıcıZəng: d.satıcıZəng ?? '',
-    satıcıÜzvlükTarixi: new Date().toISOString(),
+    satıcıÜzvlükTarixi: l.sellerCreatedAt,
     tarix: new Date().toISOString(),
     baxışSayı: l.viewCount,
     vipTier: l.vipTier,
@@ -64,10 +66,10 @@ function apiListingToMockShape(l: ApiListing): Listing {
 export default function RealListingDetail() {
   const { id } = useParams<{ id: string }>();
   const [listing, setListing] = useState<Listing | null>(null);
+  const [apiListing, setApiListing] = useState<ApiListing | null>(null);
   const [sellerName, setSellerName] = useState('');
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [phoneRevealed, setPhoneRevealed] = useState(false);
   const [listingNumber, setListingNumber] = useState('');
   const [isOwner, setIsOwner] = useState(false);
   const [promoteOpen, setPromoteOpen] = useState(false);
@@ -77,7 +79,6 @@ export default function RealListingDetail() {
     (async () => {
       setLoading(true);
       setNotFound(false);
-      setPhoneRevealed(false);
       if (!id) return;
 
       const [source, numericIdStr] = id.split('-');
@@ -94,6 +95,7 @@ export default function RealListingDetail() {
           setNotFound(true);
         } else {
           setListing(apiListingToMockShape(detail));
+          setApiListing(detail);
           setSellerName(detail.sellerName);
           setListingNumber(String(numericId).padStart(8, '0'));
 
@@ -135,7 +137,10 @@ export default function RealListingDetail() {
       }
       setPromoteError(null);
       const detail = await getRealListingById(source as 'shop' | 'user', numericId);
-      if (detail) setListing(apiListingToMockShape(detail));
+      if (detail) {
+        setListing(apiListingToMockShape(detail));
+        setApiListing(detail);
+      }
     } catch (err) {
       if (err instanceof InsufficientBalanceError) {
         setPromoteError(`Balansınız kifayət etmir (${err.required} AZN lazımdır).`);
@@ -149,9 +154,7 @@ export default function RealListingDetail() {
   if (loading) return <div className={styles.loading}>Yüklənir...</div>;
   if (notFound || !listing) return <div className={styles.error}>Elan tapılmadı.</div>;
 
-  const maskedPhone = listing.satıcıZəng
-    ? listing.satıcıZəng.replace(/(\+994\d{2})\d{3}(\d{2})(\d{2})/, '$1 XXX $2 $3')
-    : '';
+  const sourceKind = id?.split('-')[0] as 'shop' | 'user' | undefined;
 
   return (
     <div className={styles.page}>
@@ -187,59 +190,27 @@ export default function RealListingDetail() {
         </div>
 
         <aside className={styles.sidebar}>
-          <div className={styles.contactCard}>
-            <div className={styles.price}>{listing.qiymət.toLocaleString()} ₼</div>
-            <div className={styles.featureRow}>
-              {listing.kredit && <span className={styles.feature}>Kredit</span>}
-              {listing.barter && <span className={styles.feature}>Barter</span>}
-            </div>
-
-            <div className={styles.cardDivider} />
-
-            <div className={styles.sellerRow}>
-              <span className={styles.sellerTypeBadge}>
-                {listing.satıcıTipi === 'diler' ? 'Diler / Salon' : 'Şəxsi'}
-              </span>
-              {sellerName ? (
-                <Link to={`/magazalar/${sellerName}`} className={styles.sellerName}>
-                  {sellerName} →
-                </Link>
-              ) : (
-                listing.satıcıAd && <p className={styles.sellerName}>{listing.satıcıAd}</p>
-              )}
-            </div>
-
-            {listing.satıcıZəng && (
-              <button className={styles.btnCall} onClick={() => setPhoneRevealed(true)}>
-                📞 {phoneRevealed ? listing.satıcıZəng : `Nömrəni göstər · ${maskedPhone}`}
-              </button>
-            )}
-            <button className={styles.btnMessage}>💬 Mesaj yaz</button>
-
-            {isOwner && (
-              <>
-                <div className={styles.cardDivider} />
-                <div className={styles.promoGrid}>
-                  <button className={styles.promoTile} onClick={() => setPromoteOpen(true)}>
-                    <span className={styles.promoIcon}>↑</span>
-                    <span>İrəli çək</span>
-                    <span className={styles.promoPrice}>3 AZN</span>
-                  </button>
-                  <button className={styles.promoTile} onClick={() => setPromoteOpen(true)}>
-                    <span className={styles.promoIcon}>♦</span>
-                    <span>VIP</span>
-                    <span className={styles.promoPrice}>5 AZN</span>
-                  </button>
-                  <button className={styles.promoTile} onClick={() => setPromoteOpen(true)}>
-                    <span className={styles.promoIcon}>♛</span>
-                    <span>Premium</span>
-                    <span className={styles.promoPrice}>7 AZN</span>
-                  </button>
-                </div>
-                {promoteError && <p className={styles.promoteError}>{promoteError}</p>}
-              </>
-            )}
-          </div>
+          {sourceKind === 'shop' ? (
+            <BusinessSellerCard
+              listing={listing}
+              sellerName={sellerName}
+              logoUrl={apiListing?.sellerLogoUrl}
+              contactName={apiListing?.sellerContactName}
+              workTimes={apiListing?.sellerWorkTimes}
+              address={apiListing?.sellerAddress}
+              activeListingCount={apiListing?.sellerActiveListingCount}
+              qiymetUsd={apiListing?.qiymetUsd}
+              isOwner={isOwner}
+              onPromoteClick={() => setPromoteOpen(true)}
+            />
+          ) : (
+            <IndividualSellerCard
+              listing={listing}
+              isOwner={isOwner}
+              onPromoteClick={() => setPromoteOpen(true)}
+            />
+          )}
+          {promoteError && <p className={styles.promoteError}>{promoteError}</p>}
         </aside>
       </div>
 
