@@ -25,8 +25,8 @@ func NewHandler(userRepo user.Repository, shopRepo shop.Repository) http.Handler
 	return r
 }
 
-func toImageOut(minioURL, s3URL string, sira int) ImageOut {
-	return ImageOut{MinioURL: minioURL, S3URL: s3URL, Sira: sira}
+func toImageOut(minioURL, s3URL string, sira int, kind string) ImageOut {
+	return ImageOut{MinioURL: minioURL, S3URL: s3URL, Sira: sira, Kind: kind}
 }
 
 // PublicListings godoc
@@ -48,13 +48,14 @@ func (h *listingsHandlers) PublicListings(w http.ResponseWriter, req *http.Reque
 	for _, p := range shopProducts {
 		images := make([]ImageOut, len(p.Images))
 		for i, img := range p.Images {
-			images[i] = toImageOut(img.MinioURL, img.S3URL, img.Sira)
+			images[i] = toImageOut(img.MinioURL, img.S3URL, img.Sira, img.Kind)
 		}
 		out = append(out, PublicListing{
 			Source: "shop", ID: p.ID, Marka: p.Marka, Model: p.Model, Il: p.Il,
 			Qiymet: p.Qiymet, Yurus: p.Yurus, Yanacaq: p.Yanacaq, Ban: p.Ban,
 			Title: p.Title, Details: p.Details, Images: images,
 			SellerType: "diler", SellerName: p.ShopName,
+			DetailsJSON: p.DetailsJSON, ViewCount: p.ViewCount,
 		})
 	}
 
@@ -66,13 +67,14 @@ func (h *listingsHandlers) PublicListings(w http.ResponseWriter, req *http.Reque
 	for _, p := range userProducts {
 		images := make([]ImageOut, len(p.Images))
 		for i, img := range p.Images {
-			images[i] = toImageOut(img.MinioURL, img.S3URL, img.Sira)
+			images[i] = toImageOut(img.MinioURL, img.S3URL, img.Sira, img.Kind)
 		}
 		out = append(out, PublicListing{
 			Source: "user", ID: p.ID, Marka: p.Marka, Model: p.Model, Il: p.Il,
 			Qiymet: p.Qiymet, Yurus: p.Yurus, Yanacaq: p.Yanacaq, Ban: p.Ban,
 			Title: p.Title, Details: p.Details, Images: images,
 			SellerType: "şəxsi", SellerName: "",
+			DetailsJSON: p.DetailsJSON, ViewCount: p.ViewCount,
 		})
 	}
 
@@ -114,15 +116,17 @@ func (h *listingsHandlers) PublicListingDetail(w http.ResponseWriter, req *http.
 			if p.ID != id {
 				continue
 			}
+			_ = h.shopRepo.IncrementViewCount(req.Context(), p.ID)
 			images := make([]ImageOut, len(p.Images))
 			for i, img := range p.Images {
-				images[i] = toImageOut(img.MinioURL, img.S3URL, img.Sira)
+				images[i] = toImageOut(img.MinioURL, img.S3URL, img.Sira, img.Kind)
 			}
 			writeJSON(w, http.StatusOK, PublicListing{
 				Source: "shop", ID: p.ID, Marka: p.Marka, Model: p.Model, Il: p.Il,
 				Qiymet: p.Qiymet, Yurus: p.Yurus, Yanacaq: p.Yanacaq, Ban: p.Ban,
 				Title: p.Title, Details: p.Details, Images: images,
 				SellerType: "diler", SellerName: p.ShopName,
+				DetailsJSON: p.DetailsJSON, ViewCount: p.ViewCount + 1,
 			})
 			return
 		}
@@ -139,15 +143,17 @@ func (h *listingsHandlers) PublicListingDetail(w http.ResponseWriter, req *http.
 		if p.ID != id {
 			continue
 		}
+		_ = h.userRepo.IncrementViewCount(req.Context(), p.ID)
 		images := make([]ImageOut, len(p.Images))
 		for i, img := range p.Images {
-			images[i] = toImageOut(img.MinioURL, img.S3URL, img.Sira)
+			images[i] = toImageOut(img.MinioURL, img.S3URL, img.Sira, img.Kind)
 		}
 		writeJSON(w, http.StatusOK, PublicListing{
 			Source: "user", ID: p.ID, Marka: p.Marka, Model: p.Model, Il: p.Il,
 			Qiymet: p.Qiymet, Yurus: p.Yurus, Yanacaq: p.Yanacaq, Ban: p.Ban,
 			Title: p.Title, Details: p.Details, Images: images,
 			SellerType: "şəxsi", SellerName: "",
+			DetailsJSON: p.DetailsJSON, ViewCount: p.ViewCount + 1,
 		})
 		return
 	}
