@@ -157,6 +157,30 @@ export interface ApiListingImage {
   minioUrl: string;
   s3Url: string;
   sira: number;
+  kind: 'exterior' | 'interior' | 'features' | 'doors';
+}
+
+// Shape of the JSON details blob a real listing may carry — every field is
+// optional since older rows (pre-migration) store an empty `{}`.
+export interface ApiListingDetails {
+  şəhər?: string;
+  ötürücü?: string;
+  mühərrik?: string;
+  rəng?: string;
+  vəziyyət?: 'Yeni' | 'İşlənmiş';
+  kredit?: boolean;
+  barter?: boolean;
+  həcm?: number;
+  güc?: number;
+  sürətlərQutusu?: number;
+  yerlərSayı?: number;
+  bazarÜçünYığılıb?: string;
+  vuruğuVar?: boolean;
+  rənglənib?: boolean;
+  qəzalı?: boolean;
+  təchizat?: string[];
+  satıcıAd?: string;
+  satıcıZəng?: string;
 }
 
 export interface ApiListing {
@@ -174,6 +198,8 @@ export interface ApiListing {
   images: ApiListingImage[];
   sellerType: 'diler' | 'şəxsi';
   sellerName: string;
+  detailsJson: ApiListingDetails;
+  viewCount: number;
 }
 
 export async function getRealListings(): Promise<ApiListing[]> {
