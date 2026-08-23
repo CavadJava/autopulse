@@ -2,29 +2,19 @@ import { useEffect, useState } from 'react';
 import SearchHero from '../components/SearchHero';
 import StatsBar from '../components/StatsBar';
 import HowItWorks from '../components/HowItWorks';
-import ListingSection from '../components/ListingSection';
 import RealListingSection from '../components/RealListingSection';
-import { getListings, getRealListings } from '../api/listings';
+import { getRealListings } from '../api/listings';
 import type { ApiListing } from '../api/listings';
-import type { Listing } from '../types';
 import styles from './Home.module.css';
 
 export default function Home() {
-  const [listings, setListings] = useState<Listing[]>([]);
   const [realListings, setRealListings] = useState<ApiListing[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
-        const [data, realData] = await Promise.all([
-          getListings(),
-          getRealListings().catch((error) => {
-            console.error('Failed to fetch real listings:', error);
-            return [] as ApiListing[];
-          }),
-        ]);
-        setListings(data);
+        const realData = await getRealListings();
         setRealListings(realData);
       } catch (error) {
         console.error('Failed to fetch listings:', error);
@@ -34,10 +24,8 @@ export default function Home() {
     })();
   }, []);
 
-  const salonVip = listings.filter((l) => l.vipTier === 'premium_vip' && l.satıcıTipi === 'diler').slice(0, 4);
-  const vip = listings.filter((l) => l.vipTier === 'vip' || (l.vipTier === 'premium_vip' && l.satıcıTipi !== 'diler')).slice(0, 4);
-  const standard = listings.filter((l) => l.vipTier === 'standart').slice(0, 4);
-  const realFeatured = realListings.slice(0, 4);
+  const shopListings = realListings.filter((l) => l.source === 'shop').slice(0, 4);
+  const userListings = realListings.filter((l) => l.source === 'user').slice(0, 4);
 
   return (
     <main>
@@ -49,27 +37,15 @@ export default function Home() {
             <p>Yüklənir...</p>
           ) : (
             <>
-              <ListingSection
+              <RealListingSection
                 title="Salonların VIP Elanları"
-                listings={salonVip}
+                listings={shopListings}
                 viewAllHref="/elanlar"
                 viewAllLabel="Bütün salon elanları →"
               />
-              <ListingSection
-                title="VIP Elanlar"
-                listings={vip}
-                viewAllHref="/elanlar"
-                viewAllLabel="Bütün VIP elanlar →"
-              />
-              <ListingSection
-                title="Standard Elanlar"
-                listings={standard}
-                viewAllHref="/elanlar"
-                viewAllLabel="Hamısına bax →"
-              />
               <RealListingSection
-                title="Yeni Elanlar"
-                listings={realFeatured}
+                title="Standard Elanlar"
+                listings={userListings}
                 viewAllHref="/elanlar"
                 viewAllLabel="Hamısına bax →"
               />
