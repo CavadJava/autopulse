@@ -2,6 +2,7 @@ package shop
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 
 	"github.com/jackc/pgx/v5"
@@ -22,7 +23,7 @@ type Repository interface {
 	ListProducts(ctx context.Context, shopID int64, onlyStatus string) ([]Product, error)
 	GetPasswordHash(ctx context.Context, shopID int64) (string, error)
 	CreateProduct(ctx context.Context, shopID int64, input CreateProductInput) (*Product, error)
-	AddProductImage(ctx context.Context, productID int64, minioURL, s3URL string, sira int) (*ProductImage, error)
+	AddProductImage(ctx context.Context, productID int64, minioURL, s3URL string, sira int, kind string) (*ProductImage, error)
 	GetProductShopID(ctx context.Context, productID int64) (int64, error)
 	SetShopLogo(ctx context.Context, shopID int64, url string) error
 	UpdateProduct(ctx context.Context, productID int64, input CreateProductInput) (*Product, error)
@@ -32,6 +33,7 @@ type Repository interface {
 	DeleteProductImage(ctx context.Context, imageID int64) error
 	ListAllProducts(ctx context.Context) ([]Product, error)
 	ListActiveProducts(ctx context.Context) ([]ProductWithShopName, error)
+	IncrementViewCount(ctx context.Context, productID int64) error
 }
 
 type pgRepository struct {
@@ -132,7 +134,8 @@ func (r *pgRepository) CreateShop(ctx context.Context, input CreateShopInput) (*
 func (r *pgRepository) ListProducts(ctx context.Context, shopID int64, onlyStatus string) ([]Product, error) {
 	query := `SELECT id, name, title, COALESCE(details, ''),
 	                 COALESCE(marka, ''), COALESCE(model, ''), COALESCE(il, 0),
-	                 COALESCE(qiymet, 0), COALESCE(yurus, 0), COALESCE(yanacaq, ''), COALESCE(ban, ''), status
+	                 COALESCE(qiymet, 0), COALESCE(yurus, 0), COALESCE(yanacaq, ''), COALESCE(ban, ''), status,
+	                 details_json, view_count
 	          FROM avto444.shop_products WHERE shop_id = $1`
 	args := []any{shopID}
 	if onlyStatus != "" {
@@ -151,7 +154,8 @@ func (r *pgRepository) ListProducts(ctx context.Context, shopID int64, onlyStatu
 	for rows.Next() {
 		var p Product
 		if err := rows.Scan(&p.ID, &p.Name, &p.Title, &p.Details,
-			&p.Marka, &p.Model, &p.Il, &p.Qiymet, &p.Yurus, &p.Yanacaq, &p.Ban, &p.Status); err != nil {
+			&p.Marka, &p.Model, &p.Il, &p.Qiymet, &p.Yurus, &p.Yanacaq, &p.Ban, &p.Status,
+			&p.DetailsJSON, &p.ViewCount); err != nil {
 			return nil, err
 		}
 		out = append(out, p)
@@ -173,7 +177,7 @@ func (r *pgRepository) ListProducts(ctx context.Context, shopID int64, onlyStatu
 
 func (r *pgRepository) listProductImages(ctx context.Context, productID int64) ([]ProductImage, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, minio_url, COALESCE(s3_url, ''), sira FROM avto444.shop_product_images WHERE product_id = $1 ORDER BY sira, id`,
+		`SELECT id, minio_url, COALESCE(s3_url, ''), sira, kind FROM avto444.shop_product_images WHERE product_id = $1 ORDER BY sira, id`,
 		productID,
 	)
 	if err != nil {
@@ -184,7 +188,7 @@ func (r *pgRepository) listProductImages(ctx context.Context, productID int64) (
 	out := []ProductImage{}
 	for rows.Next() {
 		var img ProductImage
-		if err := rows.Scan(&img.ID, &img.MinioURL, &img.S3URL, &img.Sira); err != nil {
+		if err := rows.Scan(&img.ID, &img.MinioURL, &img.S3URL, &img.Sira, &img.Kind); err != nil {
 			return nil, err
 		}
 		out = append(out, img)
@@ -202,44 +206,64 @@ func (r *pgRepository) GetPasswordHash(ctx context.Context, shopID int64) (strin
 }
 
 func (r *pgRepository) CreateProduct(ctx context.Context, shopID int64, input CreateProductInput) (*Product, error) {
+	shopRow, err := r.GetShopByID(ctx, shopID)
+	if err != nil {
+		return nil, err
+	}
+
+	details := map[string]any{}
+	if len(input.DetailsJSON) > 0 {
+		if err := json.Unmarshal(input.DetailsJSON, &details); err != nil {
+			return nil, err
+		}
+	}
+	// Server-side doldurulur — istifadəçinin göndərdiyi saxta dəyərlər əvəz olunur.
+	details["satıcıAd"] = shopRow.Name
+	details["satıcıZəng"] = ""
+	detailsJSON, err := json.Marshal(details)
+	if err != nil {
+		return nil, err
+	}
+
 	var id int64
-	err := r.pool.QueryRow(ctx,
-		`INSERT INTO avto444.shop_products (name, title, details, marka, model, il, qiymet, yurus, yanacaq, ban, shop_id)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+	err = r.pool.QueryRow(ctx,
+		`INSERT INTO avto444.shop_products (name, title, details, marka, model, il, qiymet, yurus, yanacaq, ban, shop_id, details_json)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		 RETURNING id`,
-		input.Name, input.Title, input.Details, input.Marka, input.Model, input.Il, input.Qiymet, input.Yurus, input.Yanacaq, input.Ban, shopID,
+		input.Name, input.Title, input.Details, input.Marka, input.Model, input.Il, input.Qiymet, input.Yurus, input.Yanacaq, input.Ban, shopID, detailsJSON,
 	).Scan(&id)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Product{
-		ID:      id,
-		Name:    input.Name,
-		Title:   input.Title,
-		Details: input.Details,
-		Marka:   input.Marka,
-		Model:   input.Model,
-		Il:      input.Il,
-		Qiymet:  input.Qiymet,
-		Yurus:   input.Yurus,
-		Yanacaq: input.Yanacaq,
-		Ban:     input.Ban,
-		Status:  "saytda",
-		Images:  []ProductImage{},
+		ID:          id,
+		Name:        input.Name,
+		Title:       input.Title,
+		Details:     input.Details,
+		Marka:       input.Marka,
+		Model:       input.Model,
+		Il:          input.Il,
+		Qiymet:      input.Qiymet,
+		Yurus:       input.Yurus,
+		Yanacaq:     input.Yanacaq,
+		Ban:         input.Ban,
+		Status:      "saytda",
+		DetailsJSON: detailsJSON,
+		Images:      []ProductImage{},
 	}, nil
 }
 
-func (r *pgRepository) AddProductImage(ctx context.Context, productID int64, minioURL, s3URL string, sira int) (*ProductImage, error) {
+func (r *pgRepository) AddProductImage(ctx context.Context, productID int64, minioURL, s3URL string, sira int, kind string) (*ProductImage, error) {
 	var id int64
 	err := r.pool.QueryRow(ctx,
-		`INSERT INTO avto444.shop_product_images (product_id, minio_url, s3_url, sira) VALUES ($1, $2, $3, $4) RETURNING id`,
-		productID, minioURL, s3URL, sira,
+		`INSERT INTO avto444.shop_product_images (product_id, minio_url, s3_url, sira, kind) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+		productID, minioURL, s3URL, sira, kind,
 	).Scan(&id)
 	if err != nil {
 		return nil, err
 	}
-	return &ProductImage{ID: id, MinioURL: minioURL, S3URL: s3URL, Sira: sira}, nil
+	return &ProductImage{ID: id, MinioURL: minioURL, S3URL: s3URL, Sira: sira, Kind: kind}, nil
 }
 
 func (r *pgRepository) GetProductShopID(ctx context.Context, productID int64) (int64, error) {
@@ -260,10 +284,12 @@ func (r *pgRepository) UpdateProduct(ctx context.Context, productID int64, input
 	var status string
 	err := r.pool.QueryRow(ctx,
 		`UPDATE avto444.shop_products
-		 SET name = $1, title = $2, details = $3, marka = $4, model = $5, il = $6, qiymet = $7, yurus = $8, yanacaq = $9, ban = $10
-		 WHERE id = $11
+		 SET name = $1, title = $2, details = $3, marka = $4, model = $5, il = $6, qiymet = $7, yurus = $8, yanacaq = $9, ban = $10,
+		     details_json = details_json || $11::jsonb
+		 WHERE id = $12
 		 RETURNING status`,
-		input.Name, input.Title, input.Details, input.Marka, input.Model, input.Il, input.Qiymet, input.Yurus, input.Yanacaq, input.Ban, productID,
+		input.Name, input.Title, input.Details, input.Marka, input.Model, input.Il, input.Qiymet, input.Yurus, input.Yanacaq, input.Ban,
+		nonSellerFields(input.DetailsJSON), productID,
 	).Scan(&status)
 	if err != nil {
 		return nil, err
@@ -279,6 +305,26 @@ func (r *pgRepository) UpdateProduct(ctx context.Context, productID int64, input
 		Marka: input.Marka, Model: input.Model, Il: input.Il, Qiymet: input.Qiymet,
 		Yurus: input.Yurus, Yanacaq: input.Yanacaq, Ban: input.Ban, Status: status, Images: images,
 	}, nil
+}
+
+// nonSellerFields strips satıcıAd/satıcıZəng from a caller-supplied details
+// blob before merging it into the stored JSONB via `||` — those two fields
+// are server-owned and set only at CreateProduct time, never overwritable
+// by an edit.
+func nonSellerFields(raw json.RawMessage) json.RawMessage {
+	details := map[string]any{}
+	if len(raw) > 0 {
+		_ = json.Unmarshal(raw, &details)
+	}
+	delete(details, "satıcıAd")
+	delete(details, "satıcıZəng")
+	out, _ := json.Marshal(details)
+	return out
+}
+
+func (r *pgRepository) IncrementViewCount(ctx context.Context, productID int64) error {
+	_, err := r.pool.Exec(ctx, `UPDATE avto444.shop_products SET view_count = view_count + 1 WHERE id = $1`, productID)
+	return err
 }
 
 func (r *pgRepository) DeleteProduct(ctx context.Context, productID int64) error {
@@ -309,7 +355,8 @@ func (r *pgRepository) ListAllProducts(ctx context.Context) ([]Product, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT id, name, title, COALESCE(details, ''),
 		        COALESCE(marka, ''), COALESCE(model, ''), COALESCE(il, 0),
-		        COALESCE(qiymet, 0), COALESCE(yurus, 0), COALESCE(yanacaq, ''), COALESCE(ban, ''), status
+		        COALESCE(qiymet, 0), COALESCE(yurus, 0), COALESCE(yanacaq, ''), COALESCE(ban, ''), status,
+		        details_json, view_count
 		 FROM avto444.shop_products ORDER BY id`,
 	)
 	if err != nil {
@@ -321,7 +368,8 @@ func (r *pgRepository) ListAllProducts(ctx context.Context) ([]Product, error) {
 	for rows.Next() {
 		var p Product
 		if err := rows.Scan(&p.ID, &p.Name, &p.Title, &p.Details,
-			&p.Marka, &p.Model, &p.Il, &p.Qiymet, &p.Yurus, &p.Yanacaq, &p.Ban, &p.Status); err != nil {
+			&p.Marka, &p.Model, &p.Il, &p.Qiymet, &p.Yurus, &p.Yanacaq, &p.Ban, &p.Status,
+			&p.DetailsJSON, &p.ViewCount); err != nil {
 			return nil, err
 		}
 		out = append(out, p)
@@ -346,6 +394,7 @@ func (r *pgRepository) ListActiveProducts(ctx context.Context) ([]ProductWithSho
 		`SELECT sp.id, sp.name, sp.title, COALESCE(sp.details, ''),
 		        COALESCE(sp.marka, ''), COALESCE(sp.model, ''), COALESCE(sp.il, 0),
 		        COALESCE(sp.qiymet, 0), COALESCE(sp.yurus, 0), COALESCE(sp.yanacaq, ''), COALESCE(sp.ban, ''), sp.status,
+		        sp.details_json, sp.view_count,
 		        s.name
 		 FROM avto444.shop_products sp
 		 JOIN avto444.shop s ON s.id = sp.shop_id
@@ -362,6 +411,7 @@ func (r *pgRepository) ListActiveProducts(ctx context.Context) ([]ProductWithSho
 		var p ProductWithShopName
 		if err := rows.Scan(&p.ID, &p.Name, &p.Title, &p.Details,
 			&p.Marka, &p.Model, &p.Il, &p.Qiymet, &p.Yurus, &p.Yanacaq, &p.Ban, &p.Status,
+			&p.DetailsJSON, &p.ViewCount,
 			&p.ShopName); err != nil {
 			return nil, err
 		}
