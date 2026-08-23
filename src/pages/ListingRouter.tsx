@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom';
+import ListingDetail from './ListingDetail';
 import RealListingDetail from './RealListingDetail';
-import styles from './ListingDetail.module.css';
 
 export default function ListingRouter() {
   const { id } = useParams<{ id: string }>();
@@ -8,9 +8,8 @@ export default function ListingRouter() {
   if (id?.startsWith('shop-') || id?.startsWith('user-')) {
     return <RealListingDetail />;
   }
-  // No mock/sample listings exist anymore — every real listing goes through
-  // the shop-/user- prefixed path above. Anything else (including legacy
-  // "mock-*" links still produced by Compare.tsx's saved comparisons) has no
-  // real listing behind it.
-  return <div className={styles.error}>Elan tapılmadı.</div>;
+  // Mock (sample) listings always use a "mock-" prefixed id (e.g. /elan/mock-2)
+  // so their plain numeric ids ('1'-'12') can never collide with a real
+  // shop_products/user_products row sharing the same numeric id.
+  return <ListingDetail />;
 }

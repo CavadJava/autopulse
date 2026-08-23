@@ -348,15 +348,6 @@
   transform: none;
 }
 
-.navNextBtnDisabled {
-  opacity: 0.4;
-}
-
-.navNextBtnDisabled:hover {
-  box-shadow: none;
-  transform: none;
-}
-
 .card {
   background: var(--bg-secondary);
   border: 1px solid var(--border);

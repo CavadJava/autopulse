@@ -975,13 +975,7 @@ export default function NewListing() {
                 {saving ? 'Yadda saxlanılır...' : isEditMode ? 'Dəyişiklikləri yadda saxla' : 'Elan yerləşdir'}
               </button>
             ) : (
-              <button
-                type="button"
-                className={canGoNext ? styles.navNextBtn : `${styles.navNextBtn} ${styles.navNextBtnDisabled}`}
-                onClick={goNext}
-                aria-disabled={!canGoNext}
-                title={canGoNext ? undefined : 'Davam etmək üçün bu addımdakı bütün sahələri doldurun'}
-              >
+              <button type="button" className={styles.navNextBtn} onClick={goNext}>
                 İrəli ›
               </button>
             )}

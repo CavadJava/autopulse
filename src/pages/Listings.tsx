@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react';
 import FilterPanel from '../components/FilterPanel';
 import type { Filters } from '../components/FilterPanel';
 import QuickFilterBar from '../components/QuickFilterBar';
+import ListingSection from '../components/ListingSection';
 import RealListingSection from '../components/RealListingSection';
-import { getRealListings } from '../api/listings';
+import { getListings, getRealListings } from '../api/listings';
 import type { ApiListing } from '../api/listings';
+import type { Listing } from '../types';
 import styles from './Listings.module.css';
 
 export default function Listings() {
+  const [listings, setListings] = useState<Listing[]>([]);
   const [realListings, setRealListings] = useState<ApiListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Filters>({});
@@ -16,7 +19,14 @@ export default function Listings() {
     (async () => {
       setLoading(true);
       try {
-        const realData = await getRealListings();
+        const [mockData, realData] = await Promise.all([
+          getListings(filters),
+          getRealListings().catch((error) => {
+            console.error('Failed to fetch real listings:', error);
+            return [] as ApiListing[];
+          }),
+        ]);
+        setListings(mockData);
         setRealListings(realData);
       } catch (error) {
         console.error('Failed to fetch listings:', error);
@@ -30,8 +40,9 @@ export default function Listings() {
     setFilters(newFilters);
   };
 
-  const shopListings = realListings.filter((l) => l.source === 'shop');
-  const userListings = realListings.filter((l) => l.source === 'user');
+  const salonVip = listings.filter((l) => l.vipTier === 'premium_vip' && l.satıcıTipi === 'diler');
+  const vip = listings.filter((l) => l.vipTier === 'vip' || (l.vipTier === 'premium_vip' && l.satıcıTipi !== 'diler'));
+  const standard = listings.filter((l) => l.vipTier === 'standart');
 
   return (
     <div className={styles.page}>
@@ -39,7 +50,7 @@ export default function Listings() {
         <QuickFilterBar
           filters={filters}
           onFilterChange={handleFilterChange}
-          resultCount={realListings.length}
+          resultCount={listings.length + realListings.length}
           newTodayCount={1562}
         />
       </div>
@@ -49,15 +60,17 @@ export default function Listings() {
           <div className={styles.header}>
             <h1>Avtomobil Elanları</h1>
             <p className={styles.count}>
-              {loading ? 'Axtarılır...' : `${realListings.length} elan tapıldı`}
+              {loading ? 'Axtarılır...' : `${listings.length + realListings.length} elan tapıldı`}
             </p>
           </div>
           {loading ? (
             <p className={styles.loading}>Yüklənir...</p>
           ) : (
             <>
-              <RealListingSection title="Salonların VIP Elanları" listings={shopListings} />
-              <RealListingSection title="Standard Elanlar" listings={userListings} />
+              <ListingSection title="Salonların VIP Elanları" listings={salonVip} />
+              <ListingSection title="VIP Elanlar" listings={vip} />
+              <ListingSection title="Standard Elanlar" listings={standard} />
+              <RealListingSection title="Yeni Elanlar" listings={realListings} />
             </>
           )}
         </div>
