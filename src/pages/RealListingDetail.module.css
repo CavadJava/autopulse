@@ -37,14 +37,14 @@
 
 .gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: var(--space-3);
   margin-bottom: var(--space-6);
 }
 
 .galleryImage {
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 10;
   object-fit: cover;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
@@ -60,22 +60,24 @@
 }
 
 .title {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 800;
   font-family: var(--font-display);
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--space-3);
 }
 
 .meta {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-secondary);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border);
 }
 
 .details {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-primary);
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 .sidebar {
