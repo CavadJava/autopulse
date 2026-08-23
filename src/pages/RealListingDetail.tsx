@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getRealListingById } from '../api/listings';
 import type { ApiListing } from '../api/listings';
-import type { Listing } from '../types';
+import type { Listing, PromoTier } from '../types';
+import { getMyListings, promoteRealUserListing, InsufficientBalanceError } from '../api/auth';
+import { getMyShopProducts, promoteShopListing } from '../api/shop';
 import InteractiveGallery from '../components/InteractiveGallery';
 import ListingDetailTabs from '../components/ListingDetailTabs';
+import PromoteModal from '../components/PromoteModal';
 import styles from './RealListingDetail.module.css';
 
 // Maps a real backend listing (ApiListing) onto the mock Listing shape that
@@ -44,7 +47,7 @@ function apiListingToMockShape(l: ApiListing): Listing {
     satıcıÜzvlükTarixi: new Date().toISOString(),
     tarix: new Date().toISOString(),
     baxışSayı: l.viewCount,
-    vipTier: 'standart',
+    vipTier: l.vipTier,
     həcm: d.həcm ?? 0,
     güc: d.güc ?? 0,
     sürətlərQutusu: d.sürətlərQutusu ?? 0,
@@ -66,6 +69,9 @@ export default function RealListingDetail() {
   const [notFound, setNotFound] = useState(false);
   const [phoneRevealed, setPhoneRevealed] = useState(false);
   const [listingNumber, setListingNumber] = useState('');
+  const [isOwner, setIsOwner] = useState(false);
+  const [promoteOpen, setPromoteOpen] = useState(false);
+  const [promoteError, setPromoteError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -90,6 +96,24 @@ export default function RealListingDetail() {
           setListing(apiListingToMockShape(detail));
           setSellerName(detail.sellerName);
           setListingNumber(String(numericId).padStart(8, '0'));
+
+          // Sessiyasız istifadəçilər üçün hər iki çağırış səssizcə uğursuz
+          // olur, isOwner false qalır — promote kartı yalnız sahibə görünür.
+          if (source === 'shop') {
+            try {
+              const myProducts = await getMyShopProducts();
+              setIsOwner(myProducts.some((p) => p.id === numericId));
+            } catch {
+              setIsOwner(false);
+            }
+          } else {
+            try {
+              const myListings = await getMyListings();
+              setIsOwner(myListings.some((l) => l.id === numericId));
+            } catch {
+              setIsOwner(false);
+            }
+          }
         }
       } catch {
         setNotFound(true);
@@ -98,6 +122,29 @@ export default function RealListingDetail() {
       }
     })();
   }, [id]);
+
+  const handlePromote = async (tier: PromoTier) => {
+    if (!id) return;
+    const [source, numericIdStr] = id.split('-');
+    const numericId = Number(numericIdStr);
+    try {
+      if (source === 'shop') {
+        await promoteShopListing(numericId, tier);
+      } else {
+        await promoteRealUserListing(numericId, tier);
+      }
+      setPromoteError(null);
+      const detail = await getRealListingById(source as 'shop' | 'user', numericId);
+      if (detail) setListing(apiListingToMockShape(detail));
+    } catch (err) {
+      if (err instanceof InsufficientBalanceError) {
+        setPromoteError(`Balansınız kifayət etmir (${err.required} AZN lazımdır).`);
+      } else {
+        setPromoteError('Yüksəltmə zamanı xəta baş verdi.');
+      }
+      throw err;
+    }
+  };
 
   if (loading) return <div className={styles.loading}>Yüklənir...</div>;
   if (notFound || !listing) return <div className={styles.error}>Elan tapılmadı.</div>;
@@ -168,9 +215,41 @@ export default function RealListingDetail() {
               </button>
             )}
             <button className={styles.btnMessage}>💬 Mesaj yaz</button>
+
+            {isOwner && (
+              <>
+                <div className={styles.cardDivider} />
+                <div className={styles.promoGrid}>
+                  <button className={styles.promoTile} onClick={() => setPromoteOpen(true)}>
+                    <span className={styles.promoIcon}>↑</span>
+                    <span>İrəli çək</span>
+                    <span className={styles.promoPrice}>3 AZN</span>
+                  </button>
+                  <button className={styles.promoTile} onClick={() => setPromoteOpen(true)}>
+                    <span className={styles.promoIcon}>♦</span>
+                    <span>VIP</span>
+                    <span className={styles.promoPrice}>5 AZN</span>
+                  </button>
+                  <button className={styles.promoTile} onClick={() => setPromoteOpen(true)}>
+                    <span className={styles.promoIcon}>♛</span>
+                    <span>Premium</span>
+                    <span className={styles.promoPrice}>7 AZN</span>
+                  </button>
+                </div>
+                {promoteError && <p className={styles.promoteError}>{promoteError}</p>}
+              </>
+            )}
           </div>
         </aside>
       </div>
+
+      {promoteOpen && (
+        <PromoteModal
+          onClose={() => setPromoteOpen(false)}
+          onConfirm={handlePromote}
+          balans={Infinity}
+        />
+      )}
     </div>
   );
 }

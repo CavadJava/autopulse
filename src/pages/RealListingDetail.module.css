@@ -183,6 +183,49 @@
   margin-top: var(--space-2);
 }
 
+.promoGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.promoTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: var(--space-3) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.promoTile:hover {
+  border-color: var(--accent);
+  box-shadow: none;
+}
+
+.promoIcon {
+  font-size: 16px;
+  color: var(--gold);
+}
+
+.promoPrice {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.promoteError {
+  font-size: 12px;
+  color: var(--error);
+  margin-top: var(--space-2);
+}
+
 @media (max-width: 900px) {
   .container {
     grid-template-columns: 1fr;
