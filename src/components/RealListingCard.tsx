@@ -19,14 +19,21 @@ export default function RealListingCard({ listing }: { listing: ApiListing }) {
         </div>
       </div>
       <div className={styles.content}>
-        <h3>{listing.title || `${listing.marka} ${listing.model}`}</h3>
-        <p className={styles.meta}>
-          {listing.marka} {listing.model} · {listing.il} · {listing.yurus.toLocaleString()} km
-        </p>
-        <div className={styles.specs}>
-          <span>{listing.yanacaq}</span>
-          <span>{listing.ban}</span>
-        </div>
+        <h3>{listing.title || `${listing.marka} ${listing.model}`.trim()}</h3>
+        {(() => {
+          const metaParts = [
+            [listing.marka, listing.model].filter(Boolean).join(' '),
+            listing.il > 0 ? String(listing.il) : '',
+            listing.yurus > 0 ? `${listing.yurus.toLocaleString()} km` : '',
+          ].filter(Boolean);
+          return metaParts.length > 0 ? <p className={styles.meta}>{metaParts.join(' · ')}</p> : null;
+        })()}
+        {(listing.yanacaq || listing.ban) && (
+          <div className={styles.specs}>
+            {listing.yanacaq && <span>{listing.yanacaq}</span>}
+            {listing.ban && <span>{listing.ban}</span>}
+          </div>
+        )}
         <div className={styles.footer}>
           <div className={styles.price}>{listing.qiymet.toLocaleString()} ₼</div>
         </div>

@@ -45,9 +45,13 @@ export default function RealListingDetail() {
   return (
     <div className={styles.page}>
       <div className={styles.breadcrumb}>
-        <Link to="/elanlar">{listing.marka}</Link>
-        <span className={styles.breadcrumbSep}>·</span>
-        <span className={styles.breadcrumbCurrent}>{listing.model}</span>
+        <Link to="/elanlar">{listing.marka || 'Elanlar'}</Link>
+        {listing.model && (
+          <>
+            <span className={styles.breadcrumbSep}>·</span>
+            <span className={styles.breadcrumbCurrent}>{listing.model}</span>
+          </>
+        )}
       </div>
 
       <div className={styles.container}>
@@ -63,9 +67,18 @@ export default function RealListingDetail() {
           )}
 
           <h1 className={styles.title}>{listing.title}</h1>
-          <p className={styles.meta}>
-            {listing.marka} {listing.model} · {listing.il} · {listing.yurus.toLocaleString()} km · {listing.yanacaq} · {listing.ban}
-          </p>
+          {(() => {
+            const metaParts = [
+              [listing.marka, listing.model].filter(Boolean).join(' '),
+              listing.il > 0 ? String(listing.il) : '',
+              listing.yurus > 0 ? `${listing.yurus.toLocaleString()} km` : '',
+              listing.yanacaq,
+              listing.ban,
+            ].filter(Boolean);
+            return metaParts.length > 0 ? (
+              <p className={styles.meta}>{metaParts.join(' · ')}</p>
+            ) : null;
+          })()}
           {listing.details && <p className={styles.details}>{listing.details}</p>}
         </div>
 
