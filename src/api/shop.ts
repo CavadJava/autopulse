@@ -60,6 +60,7 @@ export interface CreateProductInput {
 export class ShopNotFoundError extends Error {}
 export class ShopLoginError extends Error {}
 export class ShopUnauthorizedError extends Error {}
+export class ShopRegisterError extends Error {}
 
 export async function getShops(): Promise<ShopSummary[]> {
   const res = await fetch(`${API_BASE}/api/shops`, { cache: 'no-store' });
@@ -91,18 +92,38 @@ export async function getShopProducts(shopId: number): Promise<ShopProduct[]> {
   return res.json();
 }
 
-export async function shopLogin(name: string, password: string): Promise<ShopSummary> {
+export async function shopLogin(email: string, password: string): Promise<ShopSummary> {
   const res = await fetch(`${API_BASE}/api/shops/login`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, password }),
+    body: JSON.stringify({ email, password }),
   });
   if (res.status === 401) {
-    throw new ShopLoginError('Ad və ya parol yanlışdır');
+    throw new ShopLoginError('Email və ya parol yanlışdır');
   }
   if (!res.ok) {
     throw new Error(`shopLogin failed: ${res.status}`);
+  }
+  const data = await res.json();
+  return data.shop;
+}
+
+export async function registerShop(name: string, title: string, email: string, password: string): Promise<ShopSummary> {
+  const res = await fetch(`${API_BASE}/api/shops/register`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, title, email, password }),
+  });
+  if (res.status === 409) {
+    throw new ShopRegisterError('Bu ad və ya email artıq istifadə olunur');
+  }
+  if (res.status === 400) {
+    throw new ShopRegisterError('Bütün sahələr tələb olunur');
+  }
+  if (!res.ok) {
+    throw new Error(`registerShop failed: ${res.status}`);
   }
   const data = await res.json();
   return data.shop;
