@@ -3,9 +3,10 @@ package user
 import "encoding/json"
 
 type User struct {
-	ID    int64  `json:"id"`
-	Name  string `json:"name"`
-	Phone string `json:"phone"`
+	ID     int64  `json:"id"`
+	Name   string `json:"name"`
+	Phone  string `json:"phone"`
+	Balans int    `json:"balans"`
 }
 
 type ProductImage struct {
@@ -32,6 +33,7 @@ type Product struct {
 
 	DetailsJSON json.RawMessage `json:"details"`
 	ViewCount   int             `json:"viewCount"`
+	VipTier     string          `json:"vipTier"`
 
 	Images []ProductImage `json:"images"`
 }

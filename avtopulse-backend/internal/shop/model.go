@@ -11,6 +11,7 @@ type Shop struct {
 	WorkTimes  string `json:"workTimes"`
 	LogoURL    string `json:"logoUrl"`
 	Email      string `json:"email"`
+	Balans     int    `json:"balans"`
 }
 
 type CreateShopInput struct {
@@ -50,6 +51,7 @@ type Product struct {
 
 	DetailsJSON json.RawMessage `json:"details"`
 	ViewCount   int             `json:"viewCount"`
+	VipTier     string          `json:"vipTier"`
 
 	Images []ProductImage `json:"images"`
 }
