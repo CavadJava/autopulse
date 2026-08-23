@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/CavadJava/avtopulse-backend/internal/shop"
 	"github.com/CavadJava/avtopulse-backend/internal/user"
@@ -45,17 +46,37 @@ func (h *listingsHandlers) PublicListings(w http.ResponseWriter, req *http.Reque
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
+
+	// Precompute each shop's active listing count from the same result set —
+	// no extra query needed, ListActiveProducts already only returns
+	// status='saytda' rows.
+	shopActiveCounts := map[string]int{}
+	for _, p := range shopProducts {
+		shopActiveCounts[p.ShopName]++
+	}
+
 	for _, p := range shopProducts {
 		images := make([]ImageOut, len(p.Images))
 		for i, img := range p.Images {
 			images[i] = toImageOut(img.MinioURL, img.S3URL, img.Sira, img.Kind)
 		}
+		shopInfo, err := h.shopRepo.GetShopByName(req.Context(), p.ShopName)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
 		out = append(out, PublicListing{
 			Source: "shop", ID: p.ID, Marka: p.Marka, Model: p.Model, Il: p.Il,
-			Qiymet: p.Qiymet, Yurus: p.Yurus, Yanacaq: p.Yanacaq, Ban: p.Ban,
+			Qiymet: p.Qiymet, QiymetUSD: p.QiymetUSD, Yurus: p.Yurus, Yanacaq: p.Yanacaq, Ban: p.Ban,
 			Title: p.Title, Details: p.Details, Images: images,
 			SellerType: "diler", SellerName: p.ShopName,
 			DetailsJSON: p.DetailsJSON, ViewCount: p.ViewCount, VipTier: p.VipTier,
+			SellerCreatedAt:          shopInfo.CreatedAt.UTC().Format(time.RFC3339),
+			SellerContactName:        shopInfo.ContactName,
+			SellerWorkTimes:          shopInfo.WorkTimes,
+			SellerAddress:            shopInfo.Address,
+			SellerLogoURL:            shopInfo.LogoURL,
+			SellerActiveListingCount: shopActiveCounts[p.ShopName],
 		})
 	}
 
@@ -69,12 +90,20 @@ func (h *listingsHandlers) PublicListings(w http.ResponseWriter, req *http.Reque
 		for i, img := range p.Images {
 			images[i] = toImageOut(img.MinioURL, img.S3URL, img.Sira, img.Kind)
 		}
+		userInfo, err := h.userRepo.GetUserByID(req.Context(), p.UserID)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
 		out = append(out, PublicListing{
 			Source: "user", ID: p.ID, Marka: p.Marka, Model: p.Model, Il: p.Il,
-			Qiymet: p.Qiymet, Yurus: p.Yurus, Yanacaq: p.Yanacaq, Ban: p.Ban,
+			Qiymet: p.Qiymet, QiymetUSD: p.QiymetUSD, Yurus: p.Yurus, Yanacaq: p.Yanacaq, Ban: p.Ban,
 			Title: p.Title, Details: p.Details, Images: images,
 			SellerType: "şəxsi", SellerName: "",
-			DetailsJSON: p.DetailsJSON, ViewCount: p.ViewCount, VipTier: p.VipTier,
+			DetailsJSON:     p.DetailsJSON,
+			ViewCount:       p.ViewCount,
+			VipTier:         p.VipTier,
+			SellerCreatedAt: userInfo.CreatedAt.UTC().Format(time.RFC3339),
 		})
 	}
 
@@ -121,12 +150,28 @@ func (h *listingsHandlers) PublicListingDetail(w http.ResponseWriter, req *http.
 			for i, img := range p.Images {
 				images[i] = toImageOut(img.MinioURL, img.S3URL, img.Sira, img.Kind)
 			}
+			shopInfo, err := h.shopRepo.GetShopByName(req.Context(), p.ShopName)
+			if err != nil {
+				http.Error(w, "internal error", http.StatusInternalServerError)
+				return
+			}
+			activeProducts, err := h.shopRepo.ListProducts(req.Context(), shopInfo.ID, "saytda")
+			if err != nil {
+				http.Error(w, "internal error", http.StatusInternalServerError)
+				return
+			}
 			writeJSON(w, http.StatusOK, PublicListing{
 				Source: "shop", ID: p.ID, Marka: p.Marka, Model: p.Model, Il: p.Il,
-				Qiymet: p.Qiymet, Yurus: p.Yurus, Yanacaq: p.Yanacaq, Ban: p.Ban,
+				Qiymet: p.Qiymet, QiymetUSD: p.QiymetUSD, Yurus: p.Yurus, Yanacaq: p.Yanacaq, Ban: p.Ban,
 				Title: p.Title, Details: p.Details, Images: images,
 				SellerType: "diler", SellerName: p.ShopName,
 				DetailsJSON: p.DetailsJSON, ViewCount: p.ViewCount + 1, VipTier: p.VipTier,
+				SellerCreatedAt:          shopInfo.CreatedAt.UTC().Format(time.RFC3339),
+				SellerContactName:        shopInfo.ContactName,
+				SellerWorkTimes:          shopInfo.WorkTimes,
+				SellerAddress:            shopInfo.Address,
+				SellerLogoURL:            shopInfo.LogoURL,
+				SellerActiveListingCount: len(activeProducts),
 			})
 			return
 		}
@@ -148,12 +193,20 @@ func (h *listingsHandlers) PublicListingDetail(w http.ResponseWriter, req *http.
 		for i, img := range p.Images {
 			images[i] = toImageOut(img.MinioURL, img.S3URL, img.Sira, img.Kind)
 		}
+		userInfo, err := h.userRepo.GetUserByID(req.Context(), p.UserID)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
 		writeJSON(w, http.StatusOK, PublicListing{
 			Source: "user", ID: p.ID, Marka: p.Marka, Model: p.Model, Il: p.Il,
-			Qiymet: p.Qiymet, Yurus: p.Yurus, Yanacaq: p.Yanacaq, Ban: p.Ban,
+			Qiymet: p.Qiymet, QiymetUSD: p.QiymetUSD, Yurus: p.Yurus, Yanacaq: p.Yanacaq, Ban: p.Ban,
 			Title: p.Title, Details: p.Details, Images: images,
 			SellerType: "şəxsi", SellerName: "",
-			DetailsJSON: p.DetailsJSON, ViewCount: p.ViewCount + 1, VipTier: p.VipTier,
+			DetailsJSON:     p.DetailsJSON,
+			ViewCount:       p.ViewCount + 1,
+			VipTier:         p.VipTier,
+			SellerCreatedAt: userInfo.CreatedAt.UTC().Format(time.RFC3339),
 		})
 		return
 	}

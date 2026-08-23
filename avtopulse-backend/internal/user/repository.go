@@ -26,6 +26,7 @@ type Repository interface {
 	ListActiveProducts(ctx context.Context) ([]Product, error)
 	IncrementViewCount(ctx context.Context, productID int64) error
 	PromoteProduct(ctx context.Context, productID int64, tier string, price int) (*Product, error)
+	GetUserByID(ctx context.Context, id int64) (*User, error)
 }
 
 type pgRepository struct {
@@ -221,6 +222,15 @@ func nonSellerFields(raw json.RawMessage) json.RawMessage {
 func (r *pgRepository) IncrementViewCount(ctx context.Context, productID int64) error {
 	_, err := r.pool.Exec(ctx, `UPDATE avto444.user_products SET view_count = view_count + 1 WHERE id = $1`, productID)
 	return err
+}
+
+func (r *pgRepository) GetUserByID(ctx context.Context, id int64) (*User, error) {
+	var u User
+	err := r.pool.QueryRow(ctx, `SELECT id, name, phone, created_at FROM avto444.user WHERE id = $1`, id).Scan(&u.ID, &u.Name, &u.Phone, &u.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	return &u, err
 }
 
 func (r *pgRepository) PromoteProduct(ctx context.Context, productID int64, tier string, price int) (*Product, error) {

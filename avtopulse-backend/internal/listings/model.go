@@ -16,6 +16,7 @@ type PublicListing struct {
 	Model       string          `json:"model"`
 	Il          int             `json:"il"`
 	Qiymet      int             `json:"qiymet"`
+	QiymetUSD   int             `json:"qiymetUsd"`
 	Yurus       int             `json:"yurus"`
 	Yanacaq     string          `json:"yanacaq"`
 	Ban         string          `json:"ban"`
@@ -27,4 +28,11 @@ type PublicListing struct {
 	DetailsJSON json.RawMessage `json:"detailsJson"`
 	ViewCount   int             `json:"viewCount"`
 	VipTier     string          `json:"vipTier"`
+
+	SellerCreatedAt          string `json:"sellerCreatedAt"`
+	SellerContactName        string `json:"sellerContactName,omitempty"`
+	SellerWorkTimes          string `json:"sellerWorkTimes,omitempty"`
+	SellerAddress            string `json:"sellerAddress,omitempty"`
+	SellerLogoURL            string `json:"sellerLogoUrl,omitempty"`
+	SellerActiveListingCount int    `json:"sellerActiveListingCount,omitempty"`
 }

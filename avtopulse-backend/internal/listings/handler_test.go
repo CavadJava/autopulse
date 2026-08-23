@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/CavadJava/avtopulse-backend/internal/shop"
 	"github.com/CavadJava/avtopulse-backend/internal/user"
@@ -17,7 +18,12 @@ type fakeShopRepo struct {
 
 func (f *fakeShopRepo) ListShops(ctx context.Context) ([]shop.ShopSummary, error) { return nil, nil }
 func (f *fakeShopRepo) GetShopByName(ctx context.Context, name string) (*shop.Shop, error) {
-	return nil, nil
+	for _, p := range f.active {
+		if p.ShopName == name {
+			return &shop.Shop{ID: 1, Name: name, CreatedAt: time.Now()}, nil
+		}
+	}
+	return nil, shop.ErrNotFound
 }
 func (f *fakeShopRepo) GetShopByID(ctx context.Context, id int64) (*shop.Shop, error) { return nil, nil }
 func (f *fakeShopRepo) GetShopByEmail(ctx context.Context, email string) (*shop.Shop, error) {
@@ -89,6 +95,9 @@ func (f *fakeUserRepo) AddProductImage(ctx context.Context, productID int64, min
 func (f *fakeUserRepo) IncrementViewCount(ctx context.Context, productID int64) error { return nil }
 func (f *fakeUserRepo) PromoteProduct(ctx context.Context, productID int64, tier string, price int) (*user.Product, error) {
 	return nil, nil
+}
+func (f *fakeUserRepo) GetUserByID(ctx context.Context, id int64) (*user.User, error) {
+	return &user.User{ID: id, CreatedAt: time.Now()}, nil
 }
 func (f *fakeUserRepo) ListPendingProducts(ctx context.Context) ([]user.Product, error) {
 	return nil, nil

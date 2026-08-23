@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 type fakeUserRepo struct {
@@ -81,6 +82,10 @@ func (f *fakeUserRepo) IncrementViewCount(ctx context.Context, productID int64) 
 
 func (f *fakeUserRepo) PromoteProduct(ctx context.Context, productID int64, tier string, price int) (*Product, error) {
 	return nil, nil
+}
+
+func (f *fakeUserRepo) GetUserByID(ctx context.Context, id int64) (*User, error) {
+	return &User{ID: id, CreatedAt: time.Now()}, nil
 }
 
 func (f *fakeUserRepo) ListPendingProducts(ctx context.Context) ([]Product, error) {
