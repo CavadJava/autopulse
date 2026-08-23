@@ -88,7 +88,7 @@ export default function Compare() {
                     <button className={styles.removeCar} onClick={() => remove(l.id)}>
                       ✕
                     </button>
-                    <Link to={`/elan/${l.id}`} className={styles.carLink}>
+                    <Link to={`/elan/mock-${l.id}`} className={styles.carLink}>
                       <img src={l.şəkillər[0]} alt={`${l.marka} ${l.model}`} />
                       <span className={styles.carTitle}>
                         {l.marka} {l.model}

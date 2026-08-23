@@ -20,7 +20,11 @@ function memberSince(iso: string) {
 }
 
 export default function ListingDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { id: rawId } = useParams<{ id: string }>();
+  // Mock listing links always carry a "mock-" prefix (see ListingRouter.tsx) to
+  // avoid colliding with real shop_products/user_products ids — strip it back
+  // to the plain id the mock data/API actually uses.
+  const id = rawId?.startsWith('mock-') ? rawId.slice('mock-'.length) : rawId;
   const { user, login } = useAuth();
   const [listing, setListing] = useState<Listing | null>(null);
   const [similar, setSimilar] = useState<Listing[]>([]);

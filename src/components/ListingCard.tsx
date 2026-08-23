@@ -20,7 +20,7 @@ export default function ListingCard({ listing }: { listing: Listing }) {
   };
 
   return (
-    <Link to={`/elan/${listing.id}`} className={styles.card}>
+    <Link to={`/elan/mock-${listing.id}`} className={styles.card}>
       <div className={styles.imageContainer}>
         <img src={listing.şəkillər[0]} alt={`${listing.marka} ${listing.model}`} />
         {listing.vipTier !== 'standart' && (

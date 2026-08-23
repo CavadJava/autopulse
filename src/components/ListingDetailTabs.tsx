@@ -184,7 +184,7 @@ export default function ListingDetailTabs({ listing, similar }: ListingDetailTab
           ) : (
             <div className={styles.moreGrid}>
               {similar.map((l) => (
-                <Link key={l.id} to={`/elan/${l.id}`} className={styles.moreCard}>
+                <Link key={l.id} to={`/elan/mock-${l.id}`} className={styles.moreCard}>
                   <img src={l.şəkillər[0]} alt={`${l.marka} ${l.model}`} />
                   <div className={styles.moreCardBody}>
                     <span className={styles.moreCardTitle}>

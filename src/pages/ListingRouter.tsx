@@ -8,5 +8,8 @@ export default function ListingRouter() {
   if (id?.startsWith('shop-') || id?.startsWith('user-')) {
     return <RealListingDetail />;
   }
+  // Mock (sample) listings always use a "mock-" prefixed id (e.g. /elan/mock-2)
+  // so their plain numeric ids ('1'-'12') can never collide with a real
+  // shop_products/user_products row sharing the same numeric id.
   return <ListingDetail />;
 }
