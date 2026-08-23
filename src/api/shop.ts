@@ -28,6 +28,9 @@ export interface Shop {
   details: string;
   workTimes: string;
   logoUrl: string;
+  address: string;
+  contactName: string;
+  createdAt: string;
 }
 
 export interface ShopProduct {
@@ -39,6 +42,7 @@ export interface ShopProduct {
   model: string;
   il: number;
   qiymet: number;
+  qiymetUsd: number;
   yurus: number;
   yanacaq: string;
   ban: string;
@@ -55,6 +59,7 @@ export interface CreateProductInput {
   model: string;
   il: number;
   qiymet: number;
+  qiymetUsd?: number;
   yurus: number;
   yanacaq: string;
   ban: string;
@@ -203,6 +208,21 @@ export async function uploadShopLogo(file: File): Promise<{ logoUrl: string }> {
     throw new Error(`uploadShopLogo failed: ${res.status}`);
   }
   return res.json();
+}
+
+export async function updateShopProfile(address: string, contactName: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/shops/me`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ address, contactName }),
+  });
+  if (res.status === 401) {
+    throw new ShopUnauthorizedError('Not logged in');
+  }
+  if (!res.ok) {
+    throw new Error(`updateShopProfile failed: ${res.status}`);
+  }
 }
 
 export async function updateShopProduct(id: number, input: CreateProductInput): Promise<ShopProduct> {

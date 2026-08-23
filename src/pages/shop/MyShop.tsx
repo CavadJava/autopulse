@@ -7,6 +7,7 @@ import {
   uploadProductImages,
   uploadShopLogo,
   updateShopProduct,
+  updateShopProfile,
   deleteShopProduct,
   deleteProductImage,
   restoreShopProduct,
@@ -27,6 +28,7 @@ const EMPTY_FORM = {
   model: '',
   il: '',
   qiymet: '',
+  qiymetUsd: '',
   yurus: '',
   yanacaq: '',
   ban: '',
@@ -63,6 +65,11 @@ export default function MyShop() {
   const [restoringProductId, setRestoringProductId] = useState<number | null>(null);
   const [promotingProduct, setPromotingProduct] = useState<ShopProduct | null>(null);
   const [promoteError, setPromoteError] = useState<string | null>(null);
+
+  const [profileAddress, setProfileAddress] = useState('');
+  const [profileContactName, setProfileContactName] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   const loadProducts = async () => {
     setLoading(true);
@@ -114,6 +121,7 @@ export default function MyShop() {
         model: form.model,
         il: form.il ? parseInt(form.il, 10) : 0,
         qiymet: form.qiymet ? parseInt(form.qiymet, 10) : 0,
+        qiymetUsd: form.qiymetUsd ? parseInt(form.qiymetUsd, 10) : 0,
         yurus: form.yurus ? parseInt(form.yurus, 10) : 0,
         yanacaq: form.yanacaq,
         ban: form.ban,
@@ -159,6 +167,7 @@ export default function MyShop() {
       model: product.model,
       il: String(product.il || ''),
       qiymet: String(product.qiymet || ''),
+      qiymetUsd: String(product.qiymetUsd || ''),
       yurus: String(product.yurus || ''),
       yanacaq: product.yanacaq,
       ban: product.ban,
@@ -192,6 +201,7 @@ export default function MyShop() {
         model: editForm.model,
         il: editForm.il ? parseInt(editForm.il, 10) : 0,
         qiymet: editForm.qiymet ? parseInt(editForm.qiymet, 10) : 0,
+        qiymetUsd: editForm.qiymetUsd ? parseInt(editForm.qiymetUsd, 10) : 0,
         yurus: editForm.yurus ? parseInt(editForm.yurus, 10) : 0,
         yanacaq: editForm.yanacaq,
         ban: editForm.ban,
@@ -285,6 +295,22 @@ export default function MyShop() {
     }
   };
 
+  const handleProfileSave = async () => {
+    setProfileSaving(true);
+    setProfileError(null);
+    try {
+      await updateShopProfile(profileAddress, profileContactName);
+    } catch (err) {
+      if (err instanceof ShopUnauthorizedError) {
+        navigate('/magaza-giris');
+        return;
+      }
+      setProfileError('Profil yenilənərkən xəta baş verdi.');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
   const handlePromote = async (tier: PromoTier) => {
     if (!promotingProduct) return;
     try {
@@ -347,6 +373,26 @@ export default function MyShop() {
         {logoError && <p className={styles.formError}>{logoError}</p>}
       </div>
 
+      <div className={styles.logoSection}>
+        <div className={styles.logoLabel}>Ünvan və əlaqə şəxsi</div>
+        <input
+          className={styles.input}
+          placeholder="Ünvan"
+          value={profileAddress}
+          onChange={(e) => setProfileAddress(e.target.value)}
+        />
+        <input
+          className={styles.input}
+          placeholder="Əlaqə şəxsinin adı (Ad Soyad)"
+          value={profileContactName}
+          onChange={(e) => setProfileContactName(e.target.value)}
+        />
+        <button className={styles.uploadBtn} onClick={handleProfileSave} disabled={profileSaving}>
+          {profileSaving ? 'Yadda saxlanılır...' : 'Yadda saxla'}
+        </button>
+        {profileError && <p className={styles.formError}>{profileError}</p>}
+      </div>
+
       <button className={styles.toggleFormBtn} onClick={() => setShowForm((v) => !v)}>
         {showForm ? '− Formu bağla' : '+ Yeni məhsul əlavə et'}
       </button>
@@ -390,6 +436,13 @@ export default function MyShop() {
             placeholder="Qiymət (AZN)"
             value={form.qiymet}
             onChange={(e) => setForm({ ...form, qiymet: e.target.value })}
+          />
+          <input
+            className={styles.input}
+            type="number"
+            placeholder="Qiymət (USD, opsional)"
+            value={form.qiymetUsd}
+            onChange={(e) => setForm({ ...form, qiymetUsd: e.target.value })}
           />
           <input
             className={styles.input}
@@ -499,6 +552,13 @@ export default function MyShop() {
                     placeholder="Qiymət (AZN)"
                     value={editForm.qiymet}
                     onChange={(e) => setEditForm({ ...editForm, qiymet: e.target.value })}
+                  />
+                  <input
+                    className={styles.input}
+                    type="number"
+                    placeholder="Qiymət (USD, opsional)"
+                    value={editForm.qiymetUsd}
+                    onChange={(e) => setEditForm({ ...editForm, qiymetUsd: e.target.value })}
                   />
                   <input
                     className={styles.input}
