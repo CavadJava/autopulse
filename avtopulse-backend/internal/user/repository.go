@@ -39,9 +39,9 @@ func NewRepository(pool *pgxpool.Pool) Repository {
 func (r *pgRepository) FindOrCreateByPhone(ctx context.Context, phone string) (*User, error) {
 	var u User
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, name, phone FROM avto444.user WHERE phone = $1`,
+		`SELECT id, name, phone, created_at FROM avto444.user WHERE phone = $1`,
 		phone,
-	).Scan(&u.ID, &u.Name, &u.Phone)
+	).Scan(&u.ID, &u.Name, &u.Phone, &u.CreatedAt)
 	if err == nil {
 		return &u, nil
 	}
@@ -50,9 +50,9 @@ func (r *pgRepository) FindOrCreateByPhone(ctx context.Context, phone string) (*
 	}
 
 	err = r.pool.QueryRow(ctx,
-		`INSERT INTO avto444.user (name, phone) VALUES ('', $1) RETURNING id, name, phone`,
+		`INSERT INTO avto444.user (name, phone) VALUES ('', $1) RETURNING id, name, phone, created_at`,
 		phone,
-	).Scan(&u.ID, &u.Name, &u.Phone)
+	).Scan(&u.ID, &u.Name, &u.Phone, &u.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (r *pgRepository) ListMyProducts(ctx context.Context, userID int64) ([]Prod
 	rows, err := r.pool.Query(ctx,
 		`SELECT id, user_id, COALESCE(marka, ''), COALESCE(model, ''), COALESCE(il, 0),
 		        COALESCE(qiymet, 0), COALESCE(yurus, 0), COALESCE(yanacaq, ''), COALESCE(ban, ''),
-		        title, COALESCE(details, ''), status, details_json, view_count, vip_tier
+		        title, COALESCE(details, ''), status, details_json, view_count, vip_tier, qiymet_usd
 		 FROM avto444.user_products WHERE user_id = $1 ORDER BY id`,
 		userID,
 	)
@@ -77,7 +77,7 @@ func (r *pgRepository) ListMyProducts(ctx context.Context, userID int64) ([]Prod
 		var p Product
 		if err := rows.Scan(&p.ID, &p.UserID, &p.Marka, &p.Model, &p.Il, &p.Qiymet,
 			&p.Yurus, &p.Yanacaq, &p.Ban, &p.Title, &p.Details, &p.Status,
-			&p.DetailsJSON, &p.ViewCount, &p.VipTier); err != nil {
+			&p.DetailsJSON, &p.ViewCount, &p.VipTier, &p.QiymetUSD); err != nil {
 			return nil, err
 		}
 		out = append(out, p)
@@ -141,10 +141,10 @@ func (r *pgRepository) CreateProduct(ctx context.Context, userID int64, input Cr
 
 	var id int64
 	err = r.pool.QueryRow(ctx,
-		`INSERT INTO avto444.user_products (user_id, marka, model, il, qiymet, yurus, yanacaq, ban, title, details, status, details_json)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'gozlemede', $11)
+		`INSERT INTO avto444.user_products (user_id, marka, model, il, qiymet, yurus, yanacaq, ban, title, details, status, details_json, qiymet_usd)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'gozlemede', $11, $12)
 		 RETURNING id`,
-		userID, input.Marka, input.Model, input.Il, input.Qiymet, input.Yurus, input.Yanacaq, input.Ban, input.Title, input.Details, detailsJSON,
+		userID, input.Marka, input.Model, input.Il, input.Qiymet, input.Yurus, input.Yanacaq, input.Ban, input.Title, input.Details, detailsJSON, input.QiymetUSD,
 	).Scan(&id)
 	if err != nil {
 		return nil, err
@@ -154,7 +154,7 @@ func (r *pgRepository) CreateProduct(ctx context.Context, userID int64, input Cr
 		ID: id, UserID: userID, Marka: input.Marka, Model: input.Model, Il: input.Il,
 		Qiymet: input.Qiymet, Yurus: input.Yurus, Yanacaq: input.Yanacaq, Ban: input.Ban,
 		Title: input.Title, Details: input.Details, Status: "gozlemede",
-		DetailsJSON: detailsJSON, VipTier: "standart", Images: []ProductImage{},
+		DetailsJSON: detailsJSON, VipTier: "standart", QiymetUSD: input.QiymetUSD, Images: []ProductImage{},
 	}, nil
 }
 
@@ -180,11 +180,11 @@ func (r *pgRepository) UpdateProduct(ctx context.Context, productID int64, input
 	err = r.pool.QueryRow(ctx,
 		`UPDATE avto444.user_products
 		 SET marka = $1, model = $2, il = $3, qiymet = $4, yurus = $5, yanacaq = $6, ban = $7, title = $8, details = $9, status = $10, updated_at = now(),
-		     details_json = details_json || $11::jsonb
-		 WHERE id = $12
+		     details_json = details_json || $11::jsonb, qiymet_usd = $12
+		 WHERE id = $13
 		 RETURNING user_id, vip_tier`,
 		input.Marka, input.Model, input.Il, input.Qiymet, input.Yurus, input.Yanacaq, input.Ban, input.Title, input.Details, newStatus,
-		nonSellerFields(input.DetailsJSON), productID,
+		nonSellerFields(input.DetailsJSON), input.QiymetUSD, productID,
 	).Scan(&userID, &vipTier)
 	if err != nil {
 		return nil, err
@@ -198,7 +198,8 @@ func (r *pgRepository) UpdateProduct(ctx context.Context, productID int64, input
 	return &Product{
 		ID: productID, UserID: userID, Marka: input.Marka, Model: input.Model, Il: input.Il,
 		Qiymet: input.Qiymet, Yurus: input.Yurus, Yanacaq: input.Yanacaq, Ban: input.Ban,
-		Title: input.Title, Details: input.Details, Status: newStatus, VipTier: vipTier, Images: images,
+		Title: input.Title, Details: input.Details, Status: newStatus, VipTier: vipTier,
+		QiymetUSD: input.QiymetUSD, Images: images,
 	}, nil
 }
 
@@ -318,7 +319,7 @@ func (r *pgRepository) ListPendingProducts(ctx context.Context) ([]Product, erro
 	rows, err := r.pool.Query(ctx,
 		`SELECT id, user_id, COALESCE(marka, ''), COALESCE(model, ''), COALESCE(il, 0),
 		        COALESCE(qiymet, 0), COALESCE(yurus, 0), COALESCE(yanacaq, ''), COALESCE(ban, ''),
-		        title, COALESCE(details, ''), status, details_json, view_count, vip_tier
+		        title, COALESCE(details, ''), status, details_json, view_count, vip_tier, qiymet_usd
 		 FROM avto444.user_products WHERE status = 'gozlemede' ORDER BY id`,
 	)
 	if err != nil {
@@ -331,7 +332,7 @@ func (r *pgRepository) ListPendingProducts(ctx context.Context) ([]Product, erro
 		var p Product
 		if err := rows.Scan(&p.ID, &p.UserID, &p.Marka, &p.Model, &p.Il, &p.Qiymet,
 			&p.Yurus, &p.Yanacaq, &p.Ban, &p.Title, &p.Details, &p.Status,
-			&p.DetailsJSON, &p.ViewCount, &p.VipTier); err != nil {
+			&p.DetailsJSON, &p.ViewCount, &p.VipTier, &p.QiymetUSD); err != nil {
 			return nil, err
 		}
 		out = append(out, p)
@@ -365,7 +366,7 @@ func (r *pgRepository) ListActiveProducts(ctx context.Context) ([]Product, error
 	rows, err := r.pool.Query(ctx,
 		`SELECT id, user_id, COALESCE(marka, ''), COALESCE(model, ''), COALESCE(il, 0),
 		        COALESCE(qiymet, 0), COALESCE(yurus, 0), COALESCE(yanacaq, ''), COALESCE(ban, ''),
-		        title, COALESCE(details, ''), status, details_json, view_count, vip_tier
+		        title, COALESCE(details, ''), status, details_json, view_count, vip_tier, qiymet_usd
 		 FROM avto444.user_products WHERE status = 'saytda' ORDER BY id`,
 	)
 	if err != nil {
@@ -378,7 +379,7 @@ func (r *pgRepository) ListActiveProducts(ctx context.Context) ([]Product, error
 		var p Product
 		if err := rows.Scan(&p.ID, &p.UserID, &p.Marka, &p.Model, &p.Il, &p.Qiymet,
 			&p.Yurus, &p.Yanacaq, &p.Ban, &p.Title, &p.Details, &p.Status,
-			&p.DetailsJSON, &p.ViewCount, &p.VipTier); err != nil {
+			&p.DetailsJSON, &p.ViewCount, &p.VipTier, &p.QiymetUSD); err != nil {
 			return nil, err
 		}
 		out = append(out, p)
