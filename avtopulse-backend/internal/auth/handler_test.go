@@ -93,6 +93,10 @@ func (f *fakeShopRepo) PromoteProduct(ctx context.Context, productID int64, tier
 	return nil, nil
 }
 
+func (f *fakeShopRepo) UpdateShopProfile(ctx context.Context, shopID int64, address, contactName string) error {
+	return nil
+}
+
 func (f *fakeShopRepo) GetProductShopID(ctx context.Context, productID int64) (int64, error) {
 	return 1, nil
 }

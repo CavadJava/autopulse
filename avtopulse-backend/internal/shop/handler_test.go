@@ -105,6 +105,10 @@ func (f *fakeRepo) PromoteProduct(ctx context.Context, productID int64, tier str
 	return nil, nil
 }
 
+func (f *fakeRepo) UpdateShopProfile(ctx context.Context, shopID int64, address, contactName string) error {
+	return nil
+}
+
 func (f *fakeRepo) GetProductShopID(ctx context.Context, productID int64) (int64, error) {
 	for shopID, products := range f.products {
 		for _, p := range products {

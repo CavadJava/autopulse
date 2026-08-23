@@ -36,6 +36,7 @@ type Repository interface {
 	ListActiveProducts(ctx context.Context) ([]ProductWithShopName, error)
 	IncrementViewCount(ctx context.Context, productID int64) error
 	PromoteProduct(ctx context.Context, productID int64, tier string, price int) (*Product, error)
+	UpdateShopProfile(ctx context.Context, shopID int64, address, contactName string) error
 }
 
 type pgRepository struct {
@@ -67,9 +68,12 @@ func (r *pgRepository) ListShops(ctx context.Context) ([]ShopSummary, error) {
 func (r *pgRepository) GetShopByName(ctx context.Context, name string) (*Shop, error) {
 	var s Shop
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, name, customer_id, title, COALESCE(details, ''), COALESCE(work_times, ''), COALESCE(logo_url, ''), email FROM avto444.shop WHERE name = $1`,
+		`SELECT id, name, customer_id, title, COALESCE(details, ''), COALESCE(work_times, ''), COALESCE(logo_url, ''), email,
+		        COALESCE(address, ''), COALESCE(contact_name, ''), created_at
+		 FROM avto444.shop WHERE name = $1`,
 		name,
-	).Scan(&s.ID, &s.Name, &s.CustomerID, &s.Title, &s.Details, &s.WorkTimes, &s.LogoURL, &s.Email)
+	).Scan(&s.ID, &s.Name, &s.CustomerID, &s.Title, &s.Details, &s.WorkTimes, &s.LogoURL, &s.Email,
+		&s.Address, &s.ContactName, &s.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -82,9 +86,12 @@ func (r *pgRepository) GetShopByName(ctx context.Context, name string) (*Shop, e
 func (r *pgRepository) GetShopByID(ctx context.Context, id int64) (*Shop, error) {
 	var s Shop
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, name, customer_id, title, COALESCE(details, ''), COALESCE(work_times, ''), COALESCE(logo_url, ''), email, balans FROM avto444.shop WHERE id = $1`,
+		`SELECT id, name, customer_id, title, COALESCE(details, ''), COALESCE(work_times, ''), COALESCE(logo_url, ''), email, balans,
+		        COALESCE(address, ''), COALESCE(contact_name, ''), created_at
+		 FROM avto444.shop WHERE id = $1`,
 		id,
-	).Scan(&s.ID, &s.Name, &s.CustomerID, &s.Title, &s.Details, &s.WorkTimes, &s.LogoURL, &s.Email, &s.Balans)
+	).Scan(&s.ID, &s.Name, &s.CustomerID, &s.Title, &s.Details, &s.WorkTimes, &s.LogoURL, &s.Email, &s.Balans,
+		&s.Address, &s.ContactName, &s.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -97,9 +104,12 @@ func (r *pgRepository) GetShopByID(ctx context.Context, id int64) (*Shop, error)
 func (r *pgRepository) GetShopByEmail(ctx context.Context, email string) (*Shop, error) {
 	var s Shop
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, name, customer_id, title, COALESCE(details, ''), COALESCE(work_times, ''), COALESCE(logo_url, ''), email FROM avto444.shop WHERE email = $1`,
+		`SELECT id, name, customer_id, title, COALESCE(details, ''), COALESCE(work_times, ''), COALESCE(logo_url, ''), email,
+		        COALESCE(address, ''), COALESCE(contact_name, ''), created_at
+		 FROM avto444.shop WHERE email = $1`,
 		email,
-	).Scan(&s.ID, &s.Name, &s.CustomerID, &s.Title, &s.Details, &s.WorkTimes, &s.LogoURL, &s.Email)
+	).Scan(&s.ID, &s.Name, &s.CustomerID, &s.Title, &s.Details, &s.WorkTimes, &s.LogoURL, &s.Email,
+		&s.Address, &s.ContactName, &s.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -137,7 +147,7 @@ func (r *pgRepository) ListProducts(ctx context.Context, shopID int64, onlyStatu
 	query := `SELECT id, name, title, COALESCE(details, ''),
 	                 COALESCE(marka, ''), COALESCE(model, ''), COALESCE(il, 0),
 	                 COALESCE(qiymet, 0), COALESCE(yurus, 0), COALESCE(yanacaq, ''), COALESCE(ban, ''), status,
-	                 details_json, view_count, vip_tier
+	                 details_json, view_count, vip_tier, qiymet_usd
 	          FROM avto444.shop_products WHERE shop_id = $1`
 	args := []any{shopID}
 	if onlyStatus != "" {
@@ -157,7 +167,7 @@ func (r *pgRepository) ListProducts(ctx context.Context, shopID int64, onlyStatu
 		var p Product
 		if err := rows.Scan(&p.ID, &p.Name, &p.Title, &p.Details,
 			&p.Marka, &p.Model, &p.Il, &p.Qiymet, &p.Yurus, &p.Yanacaq, &p.Ban, &p.Status,
-			&p.DetailsJSON, &p.ViewCount, &p.VipTier); err != nil {
+			&p.DetailsJSON, &p.ViewCount, &p.VipTier, &p.QiymetUSD); err != nil {
 			return nil, err
 		}
 		out = append(out, p)
@@ -229,10 +239,10 @@ func (r *pgRepository) CreateProduct(ctx context.Context, shopID int64, input Cr
 
 	var id int64
 	err = r.pool.QueryRow(ctx,
-		`INSERT INTO avto444.shop_products (name, title, details, marka, model, il, qiymet, yurus, yanacaq, ban, shop_id, details_json)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		`INSERT INTO avto444.shop_products (name, title, details, marka, model, il, qiymet, yurus, yanacaq, ban, shop_id, details_json, qiymet_usd)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		 RETURNING id`,
-		input.Name, input.Title, input.Details, input.Marka, input.Model, input.Il, input.Qiymet, input.Yurus, input.Yanacaq, input.Ban, shopID, detailsJSON,
+		input.Name, input.Title, input.Details, input.Marka, input.Model, input.Il, input.Qiymet, input.Yurus, input.Yanacaq, input.Ban, shopID, detailsJSON, input.QiymetUSD,
 	).Scan(&id)
 	if err != nil {
 		return nil, err
@@ -253,6 +263,7 @@ func (r *pgRepository) CreateProduct(ctx context.Context, shopID int64, input Cr
 		Status:      "saytda",
 		DetailsJSON: detailsJSON,
 		VipTier:     "standart",
+		QiymetUSD:   input.QiymetUSD,
 		Images:      []ProductImage{},
 	}, nil
 }
@@ -283,17 +294,25 @@ func (r *pgRepository) SetShopLogo(ctx context.Context, shopID int64, url string
 	return err
 }
 
+func (r *pgRepository) UpdateShopProfile(ctx context.Context, shopID int64, address, contactName string) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE avto444.shop SET address = $1, contact_name = $2 WHERE id = $3`,
+		address, contactName, shopID,
+	)
+	return err
+}
+
 func (r *pgRepository) UpdateProduct(ctx context.Context, productID int64, input CreateProductInput) (*Product, error) {
 	var status string
 	var vipTier string
 	err := r.pool.QueryRow(ctx,
 		`UPDATE avto444.shop_products
 		 SET name = $1, title = $2, details = $3, marka = $4, model = $5, il = $6, qiymet = $7, yurus = $8, yanacaq = $9, ban = $10,
-		     details_json = details_json || $11::jsonb
-		 WHERE id = $12
+		     details_json = details_json || $11::jsonb, qiymet_usd = $12
+		 WHERE id = $13
 		 RETURNING status, vip_tier`,
 		input.Name, input.Title, input.Details, input.Marka, input.Model, input.Il, input.Qiymet, input.Yurus, input.Yanacaq, input.Ban,
-		nonSellerFields(input.DetailsJSON), productID,
+		nonSellerFields(input.DetailsJSON), input.QiymetUSD, productID,
 	).Scan(&status, &vipTier)
 	if err != nil {
 		return nil, err
@@ -308,7 +327,7 @@ func (r *pgRepository) UpdateProduct(ctx context.Context, productID int64, input
 		ID: productID, Name: input.Name, Title: input.Title, Details: input.Details,
 		Marka: input.Marka, Model: input.Model, Il: input.Il, Qiymet: input.Qiymet,
 		Yurus: input.Yurus, Yanacaq: input.Yanacaq, Ban: input.Ban, Status: status,
-		VipTier: vipTier, Images: images,
+		VipTier: vipTier, QiymetUSD: input.QiymetUSD, Images: images,
 	}, nil
 }
 
@@ -429,7 +448,7 @@ func (r *pgRepository) ListAllProducts(ctx context.Context) ([]Product, error) {
 		`SELECT id, name, title, COALESCE(details, ''),
 		        COALESCE(marka, ''), COALESCE(model, ''), COALESCE(il, 0),
 		        COALESCE(qiymet, 0), COALESCE(yurus, 0), COALESCE(yanacaq, ''), COALESCE(ban, ''), status,
-		        details_json, view_count, vip_tier
+		        details_json, view_count, vip_tier, qiymet_usd
 		 FROM avto444.shop_products ORDER BY id`,
 	)
 	if err != nil {
@@ -442,7 +461,7 @@ func (r *pgRepository) ListAllProducts(ctx context.Context) ([]Product, error) {
 		var p Product
 		if err := rows.Scan(&p.ID, &p.Name, &p.Title, &p.Details,
 			&p.Marka, &p.Model, &p.Il, &p.Qiymet, &p.Yurus, &p.Yanacaq, &p.Ban, &p.Status,
-			&p.DetailsJSON, &p.ViewCount, &p.VipTier); err != nil {
+			&p.DetailsJSON, &p.ViewCount, &p.VipTier, &p.QiymetUSD); err != nil {
 			return nil, err
 		}
 		out = append(out, p)
@@ -467,7 +486,7 @@ func (r *pgRepository) ListActiveProducts(ctx context.Context) ([]ProductWithSho
 		`SELECT sp.id, sp.name, sp.title, COALESCE(sp.details, ''),
 		        COALESCE(sp.marka, ''), COALESCE(sp.model, ''), COALESCE(sp.il, 0),
 		        COALESCE(sp.qiymet, 0), COALESCE(sp.yurus, 0), COALESCE(sp.yanacaq, ''), COALESCE(sp.ban, ''), sp.status,
-		        sp.details_json, sp.view_count, sp.vip_tier,
+		        sp.details_json, sp.view_count, sp.vip_tier, sp.qiymet_usd,
 		        s.name
 		 FROM avto444.shop_products sp
 		 JOIN avto444.shop s ON s.id = sp.shop_id
@@ -484,7 +503,7 @@ func (r *pgRepository) ListActiveProducts(ctx context.Context) ([]ProductWithSho
 		var p ProductWithShopName
 		if err := rows.Scan(&p.ID, &p.Name, &p.Title, &p.Details,
 			&p.Marka, &p.Model, &p.Il, &p.Qiymet, &p.Yurus, &p.Yanacaq, &p.Ban, &p.Status,
-			&p.DetailsJSON, &p.ViewCount, &p.VipTier,
+			&p.DetailsJSON, &p.ViewCount, &p.VipTier, &p.QiymetUSD,
 			&p.ShopName); err != nil {
 			return nil, err
 		}
