@@ -452,7 +452,7 @@ const docTemplate = `{
         },
         "/login": {
             "post": {
-                "description": "Authenticates a shop by name+password and sets an HttpOnly shop_session cookie on success.",
+                "description": "Authenticates a shop by email+password and sets an HttpOnly shop_session cookie on success.",
                 "consumes": [
                     "application/json"
                 ],
@@ -465,7 +465,7 @@ const docTemplate = `{
                 "summary": "Shop owner login",
                 "parameters": [
                     {
-                        "description": "Shop name and password",
+                        "description": "Shop email and password",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -488,7 +488,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "invalid name or password",
+                        "description": "invalid email or password",
                         "schema": {
                             "type": "string"
                         }
@@ -954,6 +954,58 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "product not found or not owned by this shop",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/register": {
+            "post": {
+                "description": "Publicly creates a new shop account and immediately logs it in (sets an HttpOnly shop_session cookie), same as /login. No email verification is performed.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Register a new shop account",
+                "parameters": [
+                    {
+                        "description": "New shop's name, title, email, and password",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.registerRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/auth.loginResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "409": {
+                        "description": "name or email already in use",
                         "schema": {
                             "type": "string"
                         }
@@ -1455,7 +1507,7 @@ const docTemplate = `{
         "auth.loginRequest": {
             "type": "object",
             "properties": {
-                "name": {
+                "email": {
                     "type": "string"
                 },
                 "password": {
@@ -1468,6 +1520,23 @@ const docTemplate = `{
             "properties": {
                 "shop": {
                     "$ref": "#/definitions/shop.ShopSummary"
+                }
+            }
+        },
+        "auth.registerRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
                 }
             }
         },
@@ -1644,6 +1713,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "details": {
+                    "type": "string"
+                },
+                "email": {
                     "type": "string"
                 },
                 "id": {

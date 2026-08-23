@@ -19,7 +19,7 @@ import (
 const cookieName = "shop_session"
 
 type loginRequest struct {
-	Name     string `json:"name"`
+	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
@@ -38,6 +38,7 @@ func NewHandler(shopRepo shop.Repository, sessions SessionStore, storageClient s
 	r := chi.NewRouter()
 
 	r.Post("/login", h.Login)
+	r.Post("/register", h.Register)
 	r.Get("/me/products", h.MeProducts)
 	r.Post("/me/products", h.CreateProduct)
 	r.Put("/me/products/{id}", h.UpdateProduct)
@@ -53,14 +54,14 @@ func NewHandler(shopRepo shop.Repository, sessions SessionStore, storageClient s
 
 // Login godoc
 // @Summary      Shop owner login
-// @Description  Authenticates a shop by name+password and sets an HttpOnly shop_session cookie on success.
+// @Description  Authenticates a shop by email+password and sets an HttpOnly shop_session cookie on success.
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        body  body      loginRequest  true  "Shop name and password"
+// @Param        body  body      loginRequest  true  "Shop email and password"
 // @Success      200   {object}  loginResponse
 // @Failure      400   {string}  string  "invalid request body"
-// @Failure      401   {string}  string  "invalid name or password"
+// @Failure      401   {string}  string  "invalid email or password"
 // @Failure      500   {string}  string  "internal error"
 // @Router       /login [post]
 func (h *authHandlers) Login(w http.ResponseWriter, req *http.Request) {
@@ -70,9 +71,9 @@ func (h *authHandlers) Login(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	s, err := h.shopRepo.GetShopByName(req.Context(), body.Name)
+	s, err := h.shopRepo.GetShopByEmail(req.Context(), body.Email)
 	if errors.Is(err, shop.ErrNotFound) {
-		http.Error(w, "invalid name or password", http.StatusUnauthorized)
+		http.Error(w, "invalid email or password", http.StatusUnauthorized)
 		return
 	}
 	if err != nil {
@@ -82,7 +83,7 @@ func (h *authHandlers) Login(w http.ResponseWriter, req *http.Request) {
 
 	hash, err := h.shopRepo.GetPasswordHash(req.Context(), s.ID)
 	if errors.Is(err, shop.ErrNotFound) {
-		http.Error(w, "invalid name or password", http.StatusUnauthorized)
+		http.Error(w, "invalid email or password", http.StatusUnauthorized)
 		return
 	}
 	if err != nil {
@@ -91,7 +92,7 @@ func (h *authHandlers) Login(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(body.Password)); err != nil {
-		http.Error(w, "invalid name or password", http.StatusUnauthorized)
+		http.Error(w, "invalid email or password", http.StatusUnauthorized)
 		return
 	}
 
@@ -112,6 +113,69 @@ func (h *authHandlers) Login(w http.ResponseWriter, req *http.Request) {
 	})
 
 	writeJSON(w, http.StatusOK, loginResponse{
+		Shop: shop.ShopSummary{ID: s.ID, Name: s.Name, Title: s.Title},
+	})
+}
+
+type registerRequest struct {
+	Name     string `json:"name"`
+	Title    string `json:"title"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+// Register godoc
+// @Summary      Register a new shop account
+// @Description  Publicly creates a new shop account and immediately logs it in (sets an HttpOnly shop_session cookie), same as /login. No email verification is performed.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body      registerRequest  true  "New shop's name, title, email, and password"
+// @Success      201   {object}  loginResponse
+// @Failure      400   {string}  string  "invalid request body"
+// @Failure      409   {string}  string  "name or email already in use"
+// @Failure      500   {string}  string  "internal error"
+// @Router       /register [post]
+func (h *authHandlers) Register(w http.ResponseWriter, req *http.Request) {
+	var body registerRequest
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	if body.Name == "" || body.Title == "" || body.Email == "" || body.Password == "" {
+		http.Error(w, "name, title, email, and password are all required", http.StatusBadRequest)
+		return
+	}
+
+	s, err := h.shopRepo.CreateShop(req.Context(), shop.CreateShopInput{
+		Name: body.Name, Title: body.Title, Email: body.Email, Password: body.Password,
+	})
+	if errors.Is(err, shop.ErrDuplicate) {
+		http.Error(w, "name or email already in use", http.StatusConflict)
+		return
+	}
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	token, err := h.sessions.Create(req.Context(), s.ID)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     cookieName,
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   7 * 24 * 60 * 60,
+	})
+
+	writeJSON(w, http.StatusCreated, loginResponse{
 		Shop: shop.ShopSummary{ID: s.ID, Name: s.Name, Title: s.Title},
 	})
 }
