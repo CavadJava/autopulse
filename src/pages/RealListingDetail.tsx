@@ -59,7 +59,7 @@ export default function RealListingDetail() {
           {listing.images.length > 0 ? (
             <div className={styles.gallery}>
               {listing.images.map((img, i) => (
-                <img key={i} src={img.s3Url || img.minioUrl} alt={listing.title} className={styles.galleryImage} />
+                <img key={i} src={img.minioUrl || img.s3Url} alt={listing.title} className={styles.galleryImage} />
               ))}
             </div>
           ) : (

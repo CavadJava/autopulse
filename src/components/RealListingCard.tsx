@@ -10,7 +10,7 @@ export default function RealListingCard({ listing }: { listing: ApiListing }) {
     <Link to={href} className={styles.card}>
       <div className={styles.imageContainer}>
         {image ? (
-          <img src={image.s3Url || image.minioUrl} alt={listing.title} />
+          <img src={image.minioUrl || image.s3Url} alt={listing.title} />
         ) : (
           <div className={styles.placeholderImage} />
         )}
