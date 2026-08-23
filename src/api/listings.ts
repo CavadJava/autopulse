@@ -146,3 +146,51 @@ export async function updateListing(id: string, patch: Partial<Listing>): Promis
   mockListings[idx] = { ...mockListings[idx], ...patch };
   return mockListings[idx];
 }
+
+// --- Real backend API (Task 2: GET /api/listings, GET /api/listings/{source}/{id}) ---
+// These are new, additive functions alongside the mock ones above; they fetch the
+// real shop+user listings feed and do not affect the mock data path in any way.
+
+const API_BASE = import.meta.env.VITE_AVTOPULSE_API_BASE ?? '';
+
+export interface ApiListingImage {
+  minioUrl: string;
+  s3Url: string;
+  sira: number;
+}
+
+export interface ApiListing {
+  source: 'shop' | 'user';
+  id: number;
+  marka: string;
+  model: string;
+  il: number;
+  qiymet: number;
+  yurus: number;
+  yanacaq: string;
+  ban: string;
+  title: string;
+  details: string;
+  images: ApiListingImage[];
+  sellerType: 'diler' | 'şəxsi';
+  sellerName: string;
+}
+
+export async function getRealListings(): Promise<ApiListing[]> {
+  const res = await fetch(`${API_BASE}/api/listings`, { cache: 'no-store' });
+  if (!res.ok) {
+    throw new Error(`getRealListings failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function getRealListingById(source: 'shop' | 'user', id: number): Promise<ApiListing | null> {
+  const res = await fetch(`${API_BASE}/api/listings/${source}/${id}`, { cache: 'no-store' });
+  if (res.status === 404) {
+    return null;
+  }
+  if (!res.ok) {
+    throw new Error(`getRealListingById failed: ${res.status}`);
+  }
+  return res.json();
+}
