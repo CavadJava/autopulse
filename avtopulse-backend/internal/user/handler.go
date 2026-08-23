@@ -176,15 +176,16 @@ func (h *userHandlers) MeProducts(w http.ResponseWriter, req *http.Request) {
 }
 
 type createProductRequest struct {
-	Marka   string `json:"marka"`
-	Model   string `json:"model"`
-	Il      int    `json:"il"`
-	Qiymet  int    `json:"qiymet"`
-	Yurus   int    `json:"yurus"`
-	Yanacaq string `json:"yanacaq"`
-	Ban     string `json:"ban"`
-	Title   string `json:"title"`
-	Details string `json:"details"`
+	Marka     string `json:"marka"`
+	Model     string `json:"model"`
+	Il        int    `json:"il"`
+	Qiymet    int    `json:"qiymet"`
+	QiymetUsd int    `json:"qiymetUsd"`
+	Yurus     int    `json:"yurus"`
+	Yanacaq   string `json:"yanacaq"`
+	Ban       string `json:"ban"`
+	Title     string `json:"title"`
+	Details   string `json:"details"`
 
 	DetailsJson json.RawMessage `json:"detailsJson"`
 }
@@ -215,7 +216,7 @@ func (h *userHandlers) CreateProduct(w http.ResponseWriter, req *http.Request) {
 	}
 
 	product, err := h.repo.CreateProduct(req.Context(), userID, CreateProductInput{
-		Marka: body.Marka, Model: body.Model, Il: body.Il, Qiymet: body.Qiymet,
+		Marka: body.Marka, Model: body.Model, Il: body.Il, Qiymet: body.Qiymet, QiymetUSD: body.QiymetUsd,
 		Yurus: body.Yurus, Yanacaq: body.Yanacaq, Ban: body.Ban, Title: body.Title, Details: body.Details,
 		DetailsJSON: body.DetailsJson,
 	})
@@ -271,7 +272,7 @@ func (h *userHandlers) UpdateProduct(w http.ResponseWriter, req *http.Request) {
 	}
 
 	product, err := h.repo.UpdateProduct(req.Context(), productID, CreateProductInput{
-		Marka: body.Marka, Model: body.Model, Il: body.Il, Qiymet: body.Qiymet,
+		Marka: body.Marka, Model: body.Model, Il: body.Il, Qiymet: body.Qiymet, QiymetUSD: body.QiymetUsd,
 		Yurus: body.Yurus, Yanacaq: body.Yanacaq, Ban: body.Ban, Title: body.Title, Details: body.Details,
 		DetailsJSON: body.DetailsJson,
 	})

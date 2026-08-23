@@ -235,16 +235,17 @@ func (h *authHandlers) Logout(w http.ResponseWriter, req *http.Request) {
 }
 
 type createProductRequest struct {
-	Name    string `json:"name"`
-	Title   string `json:"title"`
-	Details string `json:"details"`
-	Marka   string `json:"marka"`
-	Model   string `json:"model"`
-	Il      int    `json:"il"`
-	Qiymet  int    `json:"qiymet"`
-	Yurus   int    `json:"yurus"`
-	Yanacaq string `json:"yanacaq"`
-	Ban     string `json:"ban"`
+	Name      string `json:"name"`
+	Title     string `json:"title"`
+	Details   string `json:"details"`
+	Marka     string `json:"marka"`
+	Model     string `json:"model"`
+	Il        int    `json:"il"`
+	Qiymet    int    `json:"qiymet"`
+	QiymetUsd int    `json:"qiymetUsd"`
+	Yurus     int    `json:"yurus"`
+	Yanacaq   string `json:"yanacaq"`
+	Ban       string `json:"ban"`
 
 	DetailsJson json.RawMessage `json:"detailsJson"`
 }
@@ -277,7 +278,7 @@ func (h *authHandlers) CreateProduct(w http.ResponseWriter, req *http.Request) {
 	product, err := h.shopRepo.CreateProduct(req.Context(), shopID, shop.CreateProductInput{
 		Name: body.Name, Title: body.Title, Details: body.Details,
 		Marka: body.Marka, Model: body.Model, Il: body.Il,
-		Qiymet: body.Qiymet, Yurus: body.Yurus, Yanacaq: body.Yanacaq, Ban: body.Ban,
+		Qiymet: body.Qiymet, QiymetUSD: body.QiymetUsd, Yurus: body.Yurus, Yanacaq: body.Yanacaq, Ban: body.Ban,
 		DetailsJSON: body.DetailsJson,
 	})
 	if err != nil {
@@ -413,16 +414,17 @@ func (h *authHandlers) UploadLogo(w http.ResponseWriter, req *http.Request) {
 }
 
 type updateProductRequest struct {
-	Name    string `json:"name"`
-	Title   string `json:"title"`
-	Details string `json:"details"`
-	Marka   string `json:"marka"`
-	Model   string `json:"model"`
-	Il      int    `json:"il"`
-	Qiymet  int    `json:"qiymet"`
-	Yurus   int    `json:"yurus"`
-	Yanacaq string `json:"yanacaq"`
-	Ban     string `json:"ban"`
+	Name      string `json:"name"`
+	Title     string `json:"title"`
+	Details   string `json:"details"`
+	Marka     string `json:"marka"`
+	Model     string `json:"model"`
+	Il        int    `json:"il"`
+	Qiymet    int    `json:"qiymet"`
+	QiymetUsd int    `json:"qiymetUsd"`
+	Yurus     int    `json:"yurus"`
+	Yanacaq   string `json:"yanacaq"`
+	Ban       string `json:"ban"`
 
 	DetailsJson json.RawMessage `json:"detailsJson"`
 }
@@ -473,7 +475,7 @@ func (h *authHandlers) UpdateProduct(w http.ResponseWriter, req *http.Request) {
 	product, err := h.shopRepo.UpdateProduct(req.Context(), productID, shop.CreateProductInput{
 		Name: body.Name, Title: body.Title, Details: body.Details,
 		Marka: body.Marka, Model: body.Model, Il: body.Il,
-		Qiymet: body.Qiymet, Yurus: body.Yurus, Yanacaq: body.Yanacaq, Ban: body.Ban,
+		Qiymet: body.Qiymet, QiymetUSD: body.QiymetUsd, Yurus: body.Yurus, Yanacaq: body.Yanacaq, Ban: body.Ban,
 		DetailsJSON: body.DetailsJson,
 	})
 	if err != nil {
