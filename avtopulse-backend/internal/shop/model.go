@@ -1,5 +1,7 @@
 package shop
 
+import "encoding/json"
+
 type Shop struct {
 	ID         int64  `json:"id"`
 	Name       string `json:"name"`
@@ -29,6 +31,7 @@ type ProductImage struct {
 	MinioURL string `json:"minioUrl"`
 	S3URL    string `json:"s3Url"`
 	Sira     int    `json:"sira"`
+	Kind     string `json:"kind"`
 }
 
 type Product struct {
@@ -44,6 +47,9 @@ type Product struct {
 	Yanacaq string `json:"yanacaq"`
 	Ban     string `json:"ban"`
 	Status  string `json:"status"`
+
+	DetailsJSON json.RawMessage `json:"details"`
+	ViewCount   int             `json:"viewCount"`
 
 	Images []ProductImage `json:"images"`
 }
@@ -64,4 +70,6 @@ type CreateProductInput struct {
 	Yurus   int    `json:"yurus"`
 	Yanacaq string `json:"yanacaq"`
 	Ban     string `json:"ban"`
+
+	DetailsJSON json.RawMessage `json:"details"`
 }

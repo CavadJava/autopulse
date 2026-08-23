@@ -1,5 +1,7 @@
 package user
 
+import "encoding/json"
+
 type User struct {
 	ID    int64  `json:"id"`
 	Name  string `json:"name"`
@@ -11,6 +13,7 @@ type ProductImage struct {
 	MinioURL string `json:"minioUrl"`
 	S3URL    string `json:"s3Url"`
 	Sira     int    `json:"sira"`
+	Kind     string `json:"kind"`
 }
 
 type Product struct {
@@ -27,6 +30,9 @@ type Product struct {
 	Details string `json:"details"`
 	Status  string `json:"status"`
 
+	DetailsJSON json.RawMessage `json:"details"`
+	ViewCount   int             `json:"viewCount"`
+
 	Images []ProductImage `json:"images"`
 }
 
@@ -40,4 +46,6 @@ type CreateProductInput struct {
 	Ban     string `json:"ban"`
 	Title   string `json:"title"`
 	Details string `json:"details"`
+
+	DetailsJSON json.RawMessage `json:"details"`
 }
