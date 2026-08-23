@@ -3,7 +3,7 @@ import type { ApiListing } from '../api/listings';
 import styles from './ListingCard.module.css';
 
 export default function RealListingCard({ listing }: { listing: ApiListing }) {
-  const image = listing.images[0];
+  const image = listing.images.find((img) => img.kind === 'exterior') ?? listing.images[0];
   const href = `/elan/${listing.source}-${listing.id}`;
 
   return (
