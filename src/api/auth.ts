@@ -1,7 +1,13 @@
 import type { AccountKind, PromoTier, SavedCard, User, UserListing, VIPTier } from '../types';
-import { updateListing } from './listings';
+import { updateListing as updateMockListing } from './listings';
 
-const MOCK_OTP = '1234';
+// Real HTTP client for the avtopulse-backend Go service's fərdi (individual)
+// user endpoints — OTP login/session + "Mənim elanlarım" listing CRUD. This
+// mirrors src/api/shop.ts's conventions (API_BASE, credentials: 'include',
+// cache: 'no-store' on GETs, typed error classes). Business/biznes-account
+// login and other still-mock utilities below remain untouched — they are
+// out of this feature's scope.
+const API_BASE = import.meta.env.VITE_AVTOPULSE_API_BASE ?? '';
 
 // Fixed prices, AZN — matches the İrəli çək / VIP / Premium tiles shown on
 // the listing detail page and in Kabinet > Mənim elanlarım.
@@ -27,19 +33,209 @@ export interface BusinessLoginPayload {
   parol: string;
 }
 
-// In-memory mock "backend" — a real backend would issue/verify OTPs and sessions.
-function buildFərdiUser(zəng: string): User {
+export interface UserSummary {
+  id: number;
+  name: string;
+  phone: string;
+}
+
+export interface UserProductImage {
+  id: number;
+  minioUrl: string;
+  s3Url: string;
+  sira: number;
+}
+
+export interface UserListingApi {
+  id: number;
+  userId: number;
+  marka: string;
+  model: string;
+  il: number;
+  qiymet: number;
+  yurus: number;
+  yanacaq: string;
+  ban: string;
+  title: string;
+  details: string;
+  status: string;
+  images: UserProductImage[];
+}
+
+export interface CreateListingInput {
+  marka: string;
+  model: string;
+  il: number;
+  qiymet: number;
+  yurus: number;
+  yanacaq: string;
+  ban: string;
+  title: string;
+  details: string;
+}
+
+export class UserUnauthorizedError extends Error {}
+export class UserOtpError extends Error {}
+
+function summaryToUser(summary: UserSummary): User {
   return {
-    id: 'user-fərdi-1',
-    ad: 'Demo İstifadəçi',
+    id: String(summary.id),
+    ad: summary.name,
     hesabTipi: 'fərdi',
-    zəng,
+    zəng: summary.phone,
     subscriptionPlan: 'free',
-    elanlarSayı: 2,
+    elanlarSayı: 0,
     məhdudiyyət: 5,
     balans: 0,
   };
 }
+
+export async function requestOtp(phone: string): Promise<{ sent: boolean }> {
+  const res = await fetch(`${API_BASE}/api/users/otp/request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone }),
+  });
+  if (!res.ok) {
+    throw new Error(`requestOtp failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function verifyOtp(phone: string, code: string): Promise<User> {
+  const res = await fetch(`${API_BASE}/api/users/otp/verify`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone, code }),
+  });
+  if (res.status === 401) {
+    throw new UserOtpError('Kod yanlışdır');
+  }
+  if (!res.ok) {
+    throw new Error(`verifyOtp failed: ${res.status}`);
+  }
+  const data = await res.json();
+  return summaryToUser(data.user as UserSummary);
+}
+
+export async function userLogout(): Promise<void> {
+  await fetch(`${API_BASE}/api/users/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+}
+
+export function apiListingToUserListing(l: UserListingApi): UserListing {
+  return {
+    id: String(l.id),
+    listingId: String(l.id),
+    başlıq: l.title,
+    qiymət: l.qiymet,
+    şəkil: l.images?.[0]?.minioUrl ?? '',
+    status: apiStatusToLocal(l.status),
+    tarix: '',
+    vipTier: 'standart',
+  };
+}
+
+// Backend statuses (gozlemede/saytda/legv_edilib) → the app's existing
+// İstifadəçiElanStatusu union used across UI (Kabinet, badges, filters).
+function apiStatusToLocal(status: string): UserListing['status'] {
+  switch (status) {
+    case 'saytda':
+      return 'saytda';
+    case 'gozlemede':
+      return 'gözləmədə';
+    case 'legv_edilib':
+      return 'imtina_olunub';
+    default:
+      return 'gözləmədə';
+  }
+}
+
+export async function getMyListings(): Promise<UserListingApi[]> {
+  const res = await fetch(`${API_BASE}/api/users/me/products`, {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+  if (res.status === 401) {
+    throw new UserUnauthorizedError('Not logged in');
+  }
+  if (!res.ok) {
+    throw new Error(`getMyListings failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function createListing(input: CreateListingInput): Promise<UserListingApi> {
+  const res = await fetch(`${API_BASE}/api/users/me/products`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (res.status === 401) {
+    throw new UserUnauthorizedError('Not logged in');
+  }
+  if (!res.ok) {
+    throw new Error(`createListing failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function updateUserListing(id: number, input: CreateListingInput): Promise<UserListingApi> {
+  const res = await fetch(`${API_BASE}/api/users/me/products/${id}`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (res.status === 401) {
+    throw new UserUnauthorizedError('Not logged in');
+  }
+  if (!res.ok) {
+    throw new Error(`updateUserListing failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteUserListing(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/users/me/products/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  if (res.status === 401) {
+    throw new UserUnauthorizedError('Not logged in');
+  }
+  if (!res.ok) {
+    throw new Error(`deleteUserListing failed: ${res.status}`);
+  }
+}
+
+export async function uploadListingImages(listingId: number, files: File[]): Promise<UserProductImage[]> {
+  const form = new FormData();
+  files.forEach((file) => form.append('images', file));
+
+  const res = await fetch(`${API_BASE}/api/users/me/products/${listingId}/images`, {
+    method: 'POST',
+    credentials: 'include',
+    body: form,
+  });
+  if (res.status === 401) {
+    throw new UserUnauthorizedError('Not logged in');
+  }
+  if (!res.ok) {
+    throw new Error(`uploadListingImages failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+// ---------------------------------------------------------------------------
+// Everything below remains mock-backed — biznes-account login and other
+// features not in this plan's scope (later phase). Left intentionally
+// unchanged so still-working code isn't deleted.
+// ---------------------------------------------------------------------------
 
 function buildBiznesUser(payload: BusinessLoginPayload): User {
   return {
@@ -55,21 +251,6 @@ function buildBiznesUser(payload: BusinessLoginPayload): User {
   };
 }
 
-export async function requestOtp(zəng: string): Promise<{ sent: true }> {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  // Mock: always "sends" successfully. Real backend would rate-limit + dispatch SMS.
-  console.log(`Mock SMS-kod ${zəng} nömrəsinə göndərildi: ${MOCK_OTP}`);
-  return { sent: true };
-}
-
-export async function verifyOtp(zəng: string, code: string): Promise<User> {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  if (code !== MOCK_OTP) {
-    throw new Error('Yanlış kod. Yenidən cəhd edin.');
-  }
-  return buildFərdiUser(zəng);
-}
-
 export async function loginBusiness(payload: BusinessLoginPayload): Promise<User> {
   await new Promise((resolve) => setTimeout(resolve, 500));
   if (!payload.email || !payload.ünvan || !payload.parol) {
@@ -79,6 +260,12 @@ export async function loginBusiness(payload: BusinessLoginPayload): Promise<User
   return buildBiznesUser(payload);
 }
 
+// Mock promotable listings, keyed by account type — this is the same seed
+// data the old getMyListings(hesabTipi) used to read. Fərdi's "Mənim
+// elanlarım" page now reads real backend listings instead (see
+// getMyListings() above), but ListingDetail.tsx's "reklam et" flow still
+// promotes generic mock Listing records (from src/api/listings.ts) for any
+// logged-in account type, so both keys are kept intact here.
 const mockUserListingsByAccount: Record<AccountKind, UserListing[]> = {
   fərdi: [
     {
@@ -116,11 +303,6 @@ const mockUserListingsByAccount: Record<AccountKind, UserListing[]> = {
   ],
 };
 
-export async function getMyListings(hesabTipi: AccountKind): Promise<UserListing[]> {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  return mockUserListingsByAccount[hesabTipi];
-}
-
 export async function getMyCards(): Promise<SavedCard[]> {
   await new Promise((resolve) => setTimeout(resolve, 200));
   return [];
@@ -147,7 +329,7 @@ export async function promoteListing(
   }
   const nextVipTier = promoTierToVipTier(tier);
   listings[idx] = { ...listings[idx], vipTier: nextVipTier };
-  await updateListing(listingId, { vipTier: nextVipTier }).catch(() => {
+  await updateMockListing(listingId, { vipTier: nextVipTier }).catch(() => {
     // Listing may not exist in mockListings (e.g. seeded only as a UserListing) — non-fatal.
   });
   return listings[idx];

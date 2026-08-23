@@ -87,6 +87,10 @@ func (f *fakeShopRepo) GetImageProductID(ctx context.Context, imageID int64) (in
 	return 1, nil
 }
 
+func (f *fakeShopRepo) ListAllProducts(ctx context.Context) ([]shop.Product, error) {
+	return nil, nil
+}
+
 func (f *fakeShopRepo) DeleteProductImage(ctx context.Context, imageID int64) error {
 	return nil
 }

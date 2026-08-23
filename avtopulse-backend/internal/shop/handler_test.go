@@ -134,6 +134,14 @@ func (f *fakeRepo) DeleteProductImage(ctx context.Context, imageID int64) error 
 	return nil
 }
 
+func (f *fakeRepo) ListAllProducts(ctx context.Context) ([]Product, error) {
+	out := []Product{}
+	for _, products := range f.products {
+		out = append(out, products...)
+	}
+	return out, nil
+}
+
 func newFakeRepo() *fakeRepo {
 	s := &Shop{ID: 1, Name: "avto444", Title: "Avto 444"}
 	hash, _ := bcrypt.GenerateFromPassword([]byte("test-pass"), 4)

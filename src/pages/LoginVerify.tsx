@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { requestOtp, verifyOtp } from '../api/auth';
+import { requestOtp, verifyOtp, UserOtpError } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 import styles from './Login.module.css';
 import verifyStyles from './LoginVerify.module.css';
@@ -30,7 +30,7 @@ export default function LoginVerify() {
       login(user);
       navigate('/kabinet');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Kod yanlışdır.');
+      setError(err instanceof UserOtpError ? err.message : 'Kod yanlışdır.');
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,6 @@ export default function LoginVerify() {
         </div>
 
         <p className={verifyStyles.hint}>{zəng} nömrəsinə SMS-kod göndərildi</p>
-        <p className={verifyStyles.mockHint}>Mock kod: 1234</p>
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <label className={styles.label}>SMS-kod</label>

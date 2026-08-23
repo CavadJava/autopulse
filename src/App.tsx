@@ -18,6 +18,8 @@ import KabinetOverview from './pages/kabinet/KabinetOverview';
 import KabinetElanlarim from './pages/kabinet/KabinetElanlarim';
 import KabinetProfil from './pages/kabinet/KabinetProfil';
 import KabinetKartlarim from './pages/kabinet/KabinetKartlarim';
+import AdminLogin from './pages/AdminLogin';
+import AdminDashboard from './pages/AdminDashboard';
 import Header from './components/Header';
 import CompareBar from './components/CompareBar';
 import { AuthProvider } from './context/AuthContext';
@@ -53,6 +55,8 @@ export default function App() {
               <Route path="profil" element={<KabinetProfil />} />
               <Route path="kartlarim" element={<KabinetKartlarim />} />
             </Route>
+            <Route path="/admin" element={<AdminLogin />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
           </Routes>
           <CompareBar />
         </Router>
