@@ -142,6 +142,18 @@ func (f *fakeRepo) ListAllProducts(ctx context.Context) ([]Product, error) {
 	return out, nil
 }
 
+func (f *fakeRepo) ListActiveProducts(ctx context.Context) ([]ProductWithShopName, error) {
+	out := []ProductWithShopName{}
+	for _, products := range f.products {
+		for _, p := range products {
+			if p.Status == "saytda" {
+				out = append(out, ProductWithShopName{Product: p, ShopName: "test-shop"})
+			}
+		}
+	}
+	return out, nil
+}
+
 func newFakeRepo() *fakeRepo {
 	s := &Shop{ID: 1, Name: "avto444", Title: "Avto 444"}
 	hash, _ := bcrypt.GenerateFromPassword([]byte("test-pass"), 4)

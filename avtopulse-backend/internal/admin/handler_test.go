@@ -56,6 +56,9 @@ func (f *fakeUserRepo) RejectProduct(ctx context.Context, productID int64) error
 	f.products[productID] = p
 	return nil
 }
+func (f *fakeUserRepo) ListActiveProducts(ctx context.Context) ([]user.Product, error) {
+	return nil, nil
+}
 
 type fakeShopRepo struct {
 	products map[int64]shop.Product
@@ -96,6 +99,9 @@ func (f *fakeShopRepo) GetImageProductID(ctx context.Context, imageID int64) (in
 	return 0, nil
 }
 func (f *fakeShopRepo) DeleteProductImage(ctx context.Context, imageID int64) error { return nil }
+func (f *fakeShopRepo) ListActiveProducts(ctx context.Context) ([]shop.ProductWithShopName, error) {
+	return nil, nil
+}
 func (f *fakeShopRepo) ListAllProducts(ctx context.Context) ([]shop.Product, error) {
 	out := []shop.Product{}
 	for _, p := range f.products {

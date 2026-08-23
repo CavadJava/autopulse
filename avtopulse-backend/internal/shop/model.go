@@ -40,6 +40,11 @@ type Product struct {
 	Images []ProductImage `json:"images"`
 }
 
+type ProductWithShopName struct {
+	Product
+	ShopName string `json:"shopName"`
+}
+
 type CreateProductInput struct {
 	Name    string `json:"name"`
 	Title   string `json:"title"`
