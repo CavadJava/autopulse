@@ -26,6 +26,7 @@ type Repository interface {
 	GetImageProductID(ctx context.Context, imageID int64) (int64, error)
 	DeleteProductImage(ctx context.Context, imageID int64) error
 	ListAllProducts(ctx context.Context) ([]Product, error)
+	ListActiveProducts(ctx context.Context) ([]ProductWithShopName, error)
 }
 
 type pgRepository struct {
@@ -277,6 +278,47 @@ func (r *pgRepository) ListAllProducts(ctx context.Context) ([]Product, error) {
 		var p Product
 		if err := rows.Scan(&p.ID, &p.Name, &p.Title, &p.Details,
 			&p.Marka, &p.Model, &p.Il, &p.Qiymet, &p.Yurus, &p.Yanacaq, &p.Ban, &p.Status); err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	for i := range out {
+		images, err := r.listProductImages(ctx, out[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		out[i].Images = images
+	}
+
+	return out, nil
+}
+
+func (r *pgRepository) ListActiveProducts(ctx context.Context) ([]ProductWithShopName, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT sp.id, sp.name, sp.title, COALESCE(sp.details, ''),
+		        COALESCE(sp.marka, ''), COALESCE(sp.model, ''), COALESCE(sp.il, 0),
+		        COALESCE(sp.qiymet, 0), COALESCE(sp.yurus, 0), COALESCE(sp.yanacaq, ''), COALESCE(sp.ban, ''), sp.status,
+		        s.name
+		 FROM avto444.shop_products sp
+		 JOIN avto444.shop s ON s.id = sp.shop_id
+		 WHERE sp.status = 'saytda'
+		 ORDER BY sp.id`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []ProductWithShopName{}
+	for rows.Next() {
+		var p ProductWithShopName
+		if err := rows.Scan(&p.ID, &p.Name, &p.Title, &p.Details,
+			&p.Marka, &p.Model, &p.Il, &p.Qiymet, &p.Yurus, &p.Yanacaq, &p.Ban, &p.Status,
+			&p.ShopName); err != nil {
 			return nil, err
 		}
 		out = append(out, p)

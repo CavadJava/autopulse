@@ -30,6 +30,12 @@
   transition: transform 0.3s ease;
 }
 
+.placeholderImage {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-elevated);
+}
+
 .card:hover .imageContainer img {
   transform: scale(1.04);
 }
@@ -54,6 +60,12 @@
 .badgePremiumVip {
   background: var(--gold-solidish);
   color: var(--bg-primary);
+}
+
+.badgeReal {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
 }
 
 .compareBtn,

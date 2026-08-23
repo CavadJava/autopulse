@@ -367,6 +367,89 @@ const docTemplate = `{
                 }
             }
         },
+        "/listings": {
+            "get": {
+                "description": "Fully public — no authentication required. Only status='saytda' listings are included.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "listings"
+                ],
+                "summary": "List every approved listing across shops and individual users",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/listings.PublicListing"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/listings/{source}/{id}": {
+            "get": {
+                "description": "Fully public — no authentication required. source must be \"shop\" or \"user\". Only status='saytda' listings are visible.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "listings"
+                ],
+                "summary": "Get one approved listing's detail, by source and id",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "shop or user",
+                        "name": "source",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Listing id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/listings.PublicListing"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid source or id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "listing not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/login": {
             "post": {
                 "description": "Authenticates a shop by name+password and sets an HttpOnly shop_session cookie on success.",
@@ -1411,6 +1494,73 @@ const docTemplate = `{
                 },
                 "qiymet": {
                     "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "yanacaq": {
+                    "type": "string"
+                },
+                "yurus": {
+                    "type": "integer"
+                }
+            }
+        },
+        "listings.ImageOut": {
+            "type": "object",
+            "properties": {
+                "minioUrl": {
+                    "type": "string"
+                },
+                "s3Url": {
+                    "type": "string"
+                },
+                "sira": {
+                    "type": "integer"
+                }
+            }
+        },
+        "listings.PublicListing": {
+            "type": "object",
+            "properties": {
+                "ban": {
+                    "type": "string"
+                },
+                "details": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "il": {
+                    "type": "integer"
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/listings.ImageOut"
+                    }
+                },
+                "marka": {
+                    "type": "string"
+                },
+                "model": {
+                    "type": "string"
+                },
+                "qiymet": {
+                    "type": "integer"
+                },
+                "sellerName": {
+                    "description": "shop name, or \"\" for user listings",
+                    "type": "string"
+                },
+                "sellerType": {
+                    "description": "\"diler\" or \"şəxsi\"",
+                    "type": "string"
+                },
+                "source": {
+                    "description": "\"shop\" or \"user\"",
+                    "type": "string"
                 },
                 "title": {
                     "type": "string"

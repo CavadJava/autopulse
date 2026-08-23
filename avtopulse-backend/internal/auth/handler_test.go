@@ -91,6 +91,10 @@ func (f *fakeShopRepo) ListAllProducts(ctx context.Context) ([]shop.Product, err
 	return nil, nil
 }
 
+func (f *fakeShopRepo) ListActiveProducts(ctx context.Context) ([]shop.ProductWithShopName, error) {
+	return nil, nil
+}
+
 func (f *fakeShopRepo) DeleteProductImage(ctx context.Context, imageID int64) error {
 	return nil
 }

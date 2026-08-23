@@ -105,6 +105,16 @@ func (f *fakeUserRepo) RejectProduct(ctx context.Context, productID int64) error
 	return nil
 }
 
+func (f *fakeUserRepo) ListActiveProducts(ctx context.Context) ([]Product, error) {
+	out := []Product{}
+	for _, p := range f.products {
+		if p.Status == "saytda" {
+			out = append(out, p)
+		}
+	}
+	return out, nil
+}
+
 type fakeStorageClient struct{}
 
 func (f *fakeStorageClient) Upload(ctx context.Context, path string, data io.Reader, size int64, contentType string) (string, error) {
