@@ -39,6 +39,7 @@ func NewHandler(shopRepo shop.Repository, sessions SessionStore, storageClient s
 
 	r.Post("/login", h.Login)
 	r.Post("/register", h.Register)
+	r.Put("/me", h.UpdateShopProfile)
 	r.Get("/me/products", h.MeProducts)
 	r.Post("/me/products", h.CreateProduct)
 	r.Put("/me/products/{id}", h.UpdateProduct)
@@ -567,6 +568,44 @@ func (h *authHandlers) RestoreProduct(w http.ResponseWriter, req *http.Request) 
 	}
 
 	writeJSON(w, http.StatusOK, map[string]bool{"restored": true})
+}
+
+type updateShopProfileRequest struct {
+	Address     string `json:"address"`
+	ContactName string `json:"contactName"`
+}
+
+// UpdateShopProfile godoc
+// @Summary      Update the logged-in shop's address and contact person name
+// @Description  Requires a valid shop_session cookie.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body  updateShopProfileRequest  true  "Address and contact name"
+// @Success      200   {object}  map[string]bool
+// @Failure      400   {string}  string  "invalid request body"
+// @Failure      401   {string}  string  "unauthorized"
+// @Failure      500   {string}  string  "internal error"
+// @Router       /me [put]
+func (h *authHandlers) UpdateShopProfile(w http.ResponseWriter, req *http.Request) {
+	shopID, err := requireSession(req, h.sessions)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var body updateShopProfileRequest
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.shopRepo.UpdateShopProfile(req.Context(), shopID, body.Address, body.ContactName); err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]bool{"updated": true})
 }
 
 // Server-side, fixed prices — never trusted from the client. Matches the

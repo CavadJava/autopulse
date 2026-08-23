@@ -550,6 +550,34 @@ func TestDeleteProductImage_Success(t *testing.T) {
 	}
 }
 
+func TestUpdateShopProfile_Success(t *testing.T) {
+	sessions := newFakeSessionStore()
+	token, _ := sessions.Create(context.Background(), 1)
+
+	h := NewHandler(newFakeShopRepo(), sessions, &fakeStorageClient{})
+	req := httptest.NewRequest(http.MethodPut, "/me", bytes.NewReader([]byte(`{"address":"Bakı, Nizami 10","contactName":"Sənan Vəliyev"}`)))
+	req.AddCookie(&http.Cookie{Name: cookieName, Value: token})
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d, body: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestUpdateShopProfile_NoCookie(t *testing.T) {
+	sessions := newFakeSessionStore()
+
+	h := NewHandler(newFakeShopRepo(), sessions, &fakeStorageClient{})
+	req := httptest.NewRequest(http.MethodPut, "/me", bytes.NewReader([]byte(`{"address":"x"}`)))
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", rec.Code)
+	}
+}
+
 func TestRestoreProduct_Success(t *testing.T) {
 	sessions := newFakeSessionStore()
 	token, _ := sessions.Create(context.Background(), 1)
