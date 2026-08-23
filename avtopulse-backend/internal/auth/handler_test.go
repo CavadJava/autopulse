@@ -32,6 +32,14 @@ func (f *fakeShopRepo) GetShopByName(ctx context.Context, name string) (*shop.Sh
 	return s, nil
 }
 
+func (f *fakeShopRepo) GetShopByEmail(ctx context.Context, email string) (*shop.Shop, error) {
+	return nil, shop.ErrNotFound
+}
+
+func (f *fakeShopRepo) CreateShop(ctx context.Context, input shop.CreateShopInput) (*shop.Shop, error) {
+	return nil, shop.ErrNotFound
+}
+
 func (f *fakeShopRepo) GetShopByID(ctx context.Context, id int64) (*shop.Shop, error) {
 	s, ok := f.byID[id]
 	if !ok {

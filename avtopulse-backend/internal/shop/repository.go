@@ -5,15 +5,20 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var ErrNotFound = errors.New("shop: not found")
+var ErrDuplicate = errors.New("shop: name or email already in use")
 
 type Repository interface {
 	ListShops(ctx context.Context) ([]ShopSummary, error)
 	GetShopByName(ctx context.Context, name string) (*Shop, error)
 	GetShopByID(ctx context.Context, id int64) (*Shop, error)
+	GetShopByEmail(ctx context.Context, email string) (*Shop, error)
+	CreateShop(ctx context.Context, input CreateShopInput) (*Shop, error)
 	ListProducts(ctx context.Context, shopID int64, onlyStatus string) ([]Product, error)
 	GetPasswordHash(ctx context.Context, shopID int64) (string, error)
 	CreateProduct(ctx context.Context, shopID int64, input CreateProductInput) (*Product, error)
@@ -58,9 +63,9 @@ func (r *pgRepository) ListShops(ctx context.Context) ([]ShopSummary, error) {
 func (r *pgRepository) GetShopByName(ctx context.Context, name string) (*Shop, error) {
 	var s Shop
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, name, customer_id, title, COALESCE(details, ''), COALESCE(work_times, ''), COALESCE(logo_url, '') FROM avto444.shop WHERE name = $1`,
+		`SELECT id, name, customer_id, title, COALESCE(details, ''), COALESCE(work_times, ''), COALESCE(logo_url, ''), email FROM avto444.shop WHERE name = $1`,
 		name,
-	).Scan(&s.ID, &s.Name, &s.CustomerID, &s.Title, &s.Details, &s.WorkTimes, &s.LogoURL)
+	).Scan(&s.ID, &s.Name, &s.CustomerID, &s.Title, &s.Details, &s.WorkTimes, &s.LogoURL, &s.Email)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -73,9 +78,9 @@ func (r *pgRepository) GetShopByName(ctx context.Context, name string) (*Shop, e
 func (r *pgRepository) GetShopByID(ctx context.Context, id int64) (*Shop, error) {
 	var s Shop
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, name, customer_id, title, COALESCE(details, ''), COALESCE(work_times, ''), COALESCE(logo_url, '') FROM avto444.shop WHERE id = $1`,
+		`SELECT id, name, customer_id, title, COALESCE(details, ''), COALESCE(work_times, ''), COALESCE(logo_url, ''), email FROM avto444.shop WHERE id = $1`,
 		id,
-	).Scan(&s.ID, &s.Name, &s.CustomerID, &s.Title, &s.Details, &s.WorkTimes, &s.LogoURL)
+	).Scan(&s.ID, &s.Name, &s.CustomerID, &s.Title, &s.Details, &s.WorkTimes, &s.LogoURL, &s.Email)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -83,6 +88,45 @@ func (r *pgRepository) GetShopByID(ctx context.Context, id int64) (*Shop, error)
 		return nil, err
 	}
 	return &s, nil
+}
+
+func (r *pgRepository) GetShopByEmail(ctx context.Context, email string) (*Shop, error) {
+	var s Shop
+	err := r.pool.QueryRow(ctx,
+		`SELECT id, name, customer_id, title, COALESCE(details, ''), COALESCE(work_times, ''), COALESCE(logo_url, ''), email FROM avto444.shop WHERE email = $1`,
+		email,
+	).Scan(&s.ID, &s.Name, &s.CustomerID, &s.Title, &s.Details, &s.WorkTimes, &s.LogoURL, &s.Email)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &s, nil
+}
+
+func (r *pgRepository) CreateShop(ctx context.Context, input CreateShopInput) (*Shop, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+
+	var id int64
+	err = r.pool.QueryRow(ctx,
+		`INSERT INTO avto444.shop (name, customer_id, title, password_hash, email)
+		 VALUES ($1, 0, $2, $3, $4)
+		 RETURNING id`,
+		input.Name, input.Title, string(hash), input.Email,
+	).Scan(&id)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return nil, ErrDuplicate
+		}
+		return nil, err
+	}
+
+	return &Shop{ID: id, Name: input.Name, Title: input.Title, Email: input.Email}, nil
 }
 
 func (r *pgRepository) ListProducts(ctx context.Context, shopID int64, onlyStatus string) ([]Product, error) {
