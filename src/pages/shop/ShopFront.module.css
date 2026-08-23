@@ -64,10 +64,18 @@
 }
 
 .productCard {
+  display: block;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: var(--space-5);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease;
+}
+
+.productCard:hover {
+  border-color: var(--accent);
 }
 
 .productTitle {

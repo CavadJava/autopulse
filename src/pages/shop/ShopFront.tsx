@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { getShopByName, getShopProducts, ShopNotFoundError } from '../../api/shop';
 import type { Shop, ShopProduct } from '../../api/shop';
 import styles from './ShopFront.module.css';
@@ -85,7 +85,7 @@ export default function ShopFront() {
       ) : (
         <div className={styles.grid}>
           {products.map((product) => (
-            <div key={product.id} className={styles.productCard}>
+            <Link key={product.id} to={`/elan/shop-${product.id}`} className={styles.productCard}>
               {product.images?.[0] && (
                 <img
                   src={product.images[0].minioUrl}
@@ -95,7 +95,7 @@ export default function ShopFront() {
               )}
               <div className={styles.productTitle}>{product.title}</div>
               {product.details && <div className={styles.productDetails}>{product.details}</div>}
-            </div>
+            </Link>
           ))}
         </div>
       )}
