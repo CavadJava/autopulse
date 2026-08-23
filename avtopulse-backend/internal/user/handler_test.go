@@ -71,8 +71,12 @@ func (f *fakeUserRepo) GetProductUserID(ctx context.Context, productID int64) (i
 	return p.UserID, nil
 }
 
-func (f *fakeUserRepo) AddProductImage(ctx context.Context, productID int64, minioURL, s3URL string, sira int) (*ProductImage, error) {
-	return &ProductImage{ID: int64(sira + 1), MinioURL: minioURL, S3URL: s3URL, Sira: sira}, nil
+func (f *fakeUserRepo) AddProductImage(ctx context.Context, productID int64, minioURL, s3URL string, sira int, kind string) (*ProductImage, error) {
+	return &ProductImage{ID: int64(sira + 1), MinioURL: minioURL, S3URL: s3URL, Sira: sira, Kind: kind}, nil
+}
+
+func (f *fakeUserRepo) IncrementViewCount(ctx context.Context, productID int64) error {
+	return nil
 }
 
 func (f *fakeUserRepo) ListPendingProducts(ctx context.Context) ([]Product, error) {
