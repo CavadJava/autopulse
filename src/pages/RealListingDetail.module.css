@@ -122,9 +122,15 @@
 }
 
 .sellerName {
+  display: inline-block;
   font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);
+  text-decoration: none;
+}
+
+.sellerName:hover {
+  color: var(--accent);
 }
 
 @media (max-width: 900px) {

@@ -92,7 +92,11 @@ export default function RealListingDetail() {
               <span className={styles.sellerTypeBadge}>
                 {listing.sellerType === 'diler' ? 'Diler / Salon' : 'Şəxsi'}
               </span>
-              {listing.sellerName && <p className={styles.sellerName}>{listing.sellerName}</p>}
+              {listing.sellerName && (
+                <Link to={`/magazalar/${listing.sellerName}`} className={styles.sellerName}>
+                  {listing.sellerName} →
+                </Link>
+              )}
             </div>
           </div>
         </aside>
