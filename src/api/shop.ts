@@ -42,6 +42,7 @@ export interface ShopProduct {
   ban: string;
   status: string;
   images: ProductImage[];
+  vipTier: 'standart' | 'vip' | 'premium_vip';
 }
 
 export interface CreateProductInput {

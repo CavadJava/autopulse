@@ -62,6 +62,7 @@ export interface UserListingApi {
   status: string;
   images: UserProductImage[];
   detailsJson?: ApiListingDetails;
+  vipTier: 'standart' | 'vip' | 'premium_vip';
 }
 
 export interface CreateListingInput {
@@ -138,7 +139,7 @@ export function apiListingToUserListing(l: UserListingApi): UserListing {
     şəkil: l.images?.[0]?.minioUrl ?? '',
     status: apiStatusToLocal(l.status),
     tarix: '',
-    vipTier: 'standart',
+    vipTier: l.vipTier,
   };
 }
 

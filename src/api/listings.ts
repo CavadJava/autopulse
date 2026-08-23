@@ -200,6 +200,7 @@ export interface ApiListing {
   sellerName: string;
   detailsJson: ApiListingDetails;
   viewCount: number;
+  vipTier: 'standart' | 'vip' | 'premium_vip';
 }
 
 export async function getRealListings(): Promise<ApiListing[]> {
