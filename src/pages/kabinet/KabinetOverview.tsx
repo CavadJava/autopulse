@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { topUpBalance } from '../../api/auth';
+import { topUpBalance, getMe, getMyListings } from '../../api/auth';
 import styles from './KabinetOverview.module.css';
 
 const TOPUP_PRESETS = [12, 20, 50];
@@ -26,6 +26,33 @@ export default function KabinetOverview() {
   const [amount, setAmount] = useState(20);
   const [loading, setLoading] = useState(false);
 
+  // Real backend counterparts — the rest of this page (hero greeting, plan
+  // badge, top-up flow) stays on the mock AuthContext, since a real
+  // user_session account has no subscriptionPlan/hesabTipi concept. Only
+  // the numbers that DO have a real source (balance, listing counts) are
+  // swapped in here.
+  const [realBalans, setRealBalans] = useState<number | null>(null);
+  const [statusCounts, setStatusCounts] = useState<{ saytda: number; gozlemede: number; legvEdilib: number } | null>(
+    null
+  );
+
+  useEffect(() => {
+    getMe()
+      .then((me) => setRealBalans(me.balans))
+      .catch(() => setRealBalans(null));
+    getMyListings()
+      .then((listings) => {
+        const counts = { saytda: 0, gozlemede: 0, legvEdilib: 0 };
+        listings.forEach((l) => {
+          if (l.status === 'saytda') counts.saytda++;
+          else if (l.status === 'gozlemede') counts.gozlemede++;
+          else if (l.status === 'legv_edilib') counts.legvEdilib++;
+        });
+        setStatusCounts(counts);
+      })
+      .catch(() => setStatusCounts(null));
+  }, []);
+
   if (!user) return null;
 
   const handleTopUp = async () => {
@@ -40,7 +67,8 @@ export default function KabinetOverview() {
   };
 
   const initial = user.ad?.trim().charAt(0).toUpperCase() || 'A';
-  const quotaUsed = Math.min(user.elanlarSayı, user.məhdudiyyət);
+  const activeListings = statusCounts?.saytda ?? user.elanlarSayı;
+  const quotaUsed = Math.min(activeListings, user.məhdudiyyət);
   const quotaPct = user.məhdudiyyət > 0 ? Math.round((quotaUsed / user.məhdudiyyət) * 100) : 0;
 
   return (
@@ -74,7 +102,7 @@ export default function KabinetOverview() {
           <div className={styles.statGlow} />
           <div className={styles.statLabel}>💰 Şəxsi hesab</div>
           <div className={styles.balanceRow}>
-            <div className={styles.balanceValue}>{user.balans.toFixed(2)} <span className={styles.currency}>AZN</span></div>
+            <div className={styles.balanceValue}>{(realBalans ?? user.balans).toFixed(2)} <span className={styles.currency}>AZN</span></div>
             <button className={styles.topUpBtn} onClick={() => setModalOpen(true)}>
               Artır
             </button>
@@ -96,11 +124,13 @@ export default function KabinetOverview() {
           <div className={styles.statLabel}>📈 Elanların statistikası</div>
           <div className={styles.summaryGrid}>
             <div>
-              <div className={styles.summaryValue}>{user.elanlarSayı}</div>
+              <div className={styles.summaryValue}>{statusCounts?.saytda ?? user.elanlarSayı}</div>
               <div className={styles.summaryLabel}>Saytda</div>
             </div>
             <div>
-              <div className={styles.summaryValue}>{Math.max(user.elanlarSayı - 1, 0)}</div>
+              <div className={styles.summaryValue}>
+                {statusCounts?.legvEdilib ?? Math.max(user.elanlarSayı - 1, 0)}
+              </div>
               <div className={styles.summaryLabel}>İmtina olunmuş</div>
             </div>
             <div>

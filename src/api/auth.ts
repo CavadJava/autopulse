@@ -165,6 +165,28 @@ function apiStatusToLocal(status: string): UserListing['status'] {
   }
 }
 
+export interface RealUserAccount {
+  id: number;
+  name: string;
+  phone: string;
+  balans: number;
+  createdAt: string;
+}
+
+export async function getMe(): Promise<RealUserAccount> {
+  const res = await fetch(`${API_BASE}/api/users/me`, {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+  if (res.status === 401) {
+    throw new UserUnauthorizedError('Not logged in');
+  }
+  if (!res.ok) {
+    throw new Error(`getMe failed: ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function getMyListings(): Promise<UserListingApi[]> {
   const res = await fetch(`${API_BASE}/api/users/me/products`, {
     credentials: 'include',
