@@ -1,12 +1,16 @@
 package user
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 type User struct {
-	ID     int64  `json:"id"`
-	Name   string `json:"name"`
-	Phone  string `json:"phone"`
-	Balans int    `json:"balans"`
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	Phone     string    `json:"phone"`
+	Balans    int       `json:"balans"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 type ProductImage struct {
@@ -34,6 +38,7 @@ type Product struct {
 	DetailsJSON json.RawMessage `json:"details"`
 	ViewCount   int             `json:"viewCount"`
 	VipTier     string          `json:"vipTier"`
+	QiymetUSD   int             `json:"qiymetUsd"`
 
 	Images []ProductImage `json:"images"`
 }
@@ -50,4 +55,5 @@ type CreateProductInput struct {
 	Details string `json:"details"`
 
 	DetailsJSON json.RawMessage `json:"details"`
+	QiymetUSD   int             `json:"qiymetUsd"`
 }

@@ -1,17 +1,23 @@
 package shop
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 type Shop struct {
-	ID         int64  `json:"id"`
-	Name       string `json:"name"`
-	CustomerID int64  `json:"customerId"`
-	Title      string `json:"title"`
-	Details    string `json:"details"`
-	WorkTimes  string `json:"workTimes"`
-	LogoURL    string `json:"logoUrl"`
-	Email      string `json:"email"`
-	Balans     int    `json:"balans"`
+	ID          int64     `json:"id"`
+	Name        string    `json:"name"`
+	CustomerID  int64     `json:"customerId"`
+	Title       string    `json:"title"`
+	Details     string    `json:"details"`
+	WorkTimes   string    `json:"workTimes"`
+	LogoURL     string    `json:"logoUrl"`
+	Email       string    `json:"email"`
+	Balans      int       `json:"balans"`
+	Address     string    `json:"address"`
+	ContactName string    `json:"contactName"`
+	CreatedAt   time.Time `json:"createdAt"`
 }
 
 type CreateShopInput struct {
@@ -52,6 +58,7 @@ type Product struct {
 	DetailsJSON json.RawMessage `json:"details"`
 	ViewCount   int             `json:"viewCount"`
 	VipTier     string          `json:"vipTier"`
+	QiymetUSD   int             `json:"qiymetUsd"`
 
 	Images []ProductImage `json:"images"`
 }
@@ -74,4 +81,5 @@ type CreateProductInput struct {
 	Ban     string `json:"ban"`
 
 	DetailsJSON json.RawMessage `json:"details"`
+	QiymetUSD   int             `json:"qiymetUsd"`
 }
