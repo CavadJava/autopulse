@@ -12,6 +12,7 @@ import (
 
 	_ "github.com/CavadJava/avtopulse-backend/docs"
 	"github.com/CavadJava/avtopulse-backend/internal/admin"
+	"github.com/CavadJava/avtopulse-backend/internal/adminnotify"
 	"github.com/CavadJava/avtopulse-backend/internal/auth"
 	"github.com/CavadJava/avtopulse-backend/internal/chat"
 	"github.com/CavadJava/avtopulse-backend/internal/db"
@@ -217,7 +218,7 @@ func main() {
 		http.StripPrefix("/api/users", userHandler).ServeHTTP(w, req)
 	})
 
-	adminHandler := admin.NewHandler(userRepo, shopRepo, adminUsername, adminPassword)
+	adminHandler, adminHandlerHooks := admin.NewHandlerWithHooks(userRepo, shopRepo, adminUsername, adminPassword)
 	r.Post("/api/admin/login", func(w http.ResponseWriter, req *http.Request) {
 		http.StripPrefix("/api/admin", adminHandler).ServeHTTP(w, req)
 	})
@@ -238,6 +239,40 @@ func main() {
 	})
 	r.Post("/api/admin/shop-products/{id}/cancel", func(w http.ResponseWriter, req *http.Request) {
 		http.StripPrefix("/api/admin", adminHandler).ServeHTTP(w, req)
+	})
+
+	adminNotifyRepo := adminnotify.NewRepository(pool)
+	adminNotifyAdminHandler := adminnotify.NewAdminHandler(adminNotifyRepo, adminHandlerHooks.RequireAdminMiddleware())
+	r.Post("/api/admin/notifications/preview", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/admin/notifications", adminNotifyAdminHandler).ServeHTTP(w, req)
+	})
+	r.Post("/api/admin/notifications", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/admin/notifications", adminNotifyAdminHandler).ServeHTTP(w, req)
+	})
+	r.Get("/api/admin/notifications/sent", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/admin/notifications", adminNotifyAdminHandler).ServeHTTP(w, req)
+	})
+
+	adminNotifyUserHandler := adminnotify.NewUserHandler(adminNotifyRepo, userSessions)
+	r.Get("/api/users/me/notifications", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/users/me/notifications", adminNotifyUserHandler).ServeHTTP(w, req)
+	})
+	r.Get("/api/users/me/notifications/unread-count", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/users/me/notifications", adminNotifyUserHandler).ServeHTTP(w, req)
+	})
+	r.Post("/api/users/me/notifications/{id}/read", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/users/me/notifications", adminNotifyUserHandler).ServeHTTP(w, req)
+	})
+
+	adminNotifyShopHandler := adminnotify.NewShopHandler(adminNotifyRepo, sessions)
+	r.Get("/api/shops/me/notifications", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/shops/me/notifications", adminNotifyShopHandler).ServeHTTP(w, req)
+	})
+	r.Get("/api/shops/me/notifications/unread-count", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/shops/me/notifications", adminNotifyShopHandler).ServeHTTP(w, req)
+	})
+	r.Post("/api/shops/me/notifications/{id}/read", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/shops/me/notifications", adminNotifyShopHandler).ServeHTTP(w, req)
 	})
 
 	addr := ":" + port
