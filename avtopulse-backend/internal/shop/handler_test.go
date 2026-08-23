@@ -101,6 +101,10 @@ func (f *fakeRepo) IncrementViewCount(ctx context.Context, productID int64) erro
 	return nil
 }
 
+func (f *fakeRepo) PromoteProduct(ctx context.Context, productID int64, tier string, price int) (*Product, error) {
+	return nil, nil
+}
+
 func (f *fakeRepo) GetProductShopID(ctx context.Context, productID int64) (int64, error) {
 	for shopID, products := range f.products {
 		for _, p := range products {
