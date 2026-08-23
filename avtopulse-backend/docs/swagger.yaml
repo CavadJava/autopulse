@@ -65,6 +65,51 @@ definitions:
       yurus:
         type: integer
     type: object
+  listings.ImageOut:
+    properties:
+      minioUrl:
+        type: string
+      s3Url:
+        type: string
+      sira:
+        type: integer
+    type: object
+  listings.PublicListing:
+    properties:
+      ban:
+        type: string
+      details:
+        type: string
+      id:
+        type: integer
+      il:
+        type: integer
+      images:
+        items:
+          $ref: '#/definitions/listings.ImageOut'
+        type: array
+      marka:
+        type: string
+      model:
+        type: string
+      qiymet:
+        type: integer
+      sellerName:
+        description: shop name, or "" for user listings
+        type: string
+      sellerType:
+        description: '"diler" or "şəxsi"'
+        type: string
+      source:
+        description: '"shop" or "user"'
+        type: string
+      title:
+        type: string
+      yanacaq:
+        type: string
+      yurus:
+        type: integer
+    type: object
   shop.Product:
     properties:
       ban:
@@ -500,6 +545,63 @@ paths:
       summary: Get a shop by its name
       tags:
       - shops
+  /listings:
+    get:
+      description: Fully public — no authentication required. Only status='saytda'
+        listings are included.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/listings.PublicListing'
+            type: array
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: List every approved listing across shops and individual users
+      tags:
+      - listings
+  /listings/{source}/{id}:
+    get:
+      description: Fully public — no authentication required. source must be "shop"
+        or "user". Only status='saytda' listings are visible.
+      parameters:
+      - description: shop or user
+        in: path
+        name: source
+        required: true
+        type: string
+      - description: Listing id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/listings.PublicListing'
+        "400":
+          description: invalid source or id
+          schema:
+            type: string
+        "404":
+          description: listing not found
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Get one approved listing's detail, by source and id
+      tags:
+      - listings
   /login:
     post:
       consumes:

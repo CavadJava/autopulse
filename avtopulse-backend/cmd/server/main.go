@@ -14,6 +14,7 @@ import (
 	"github.com/CavadJava/avtopulse-backend/internal/admin"
 	"github.com/CavadJava/avtopulse-backend/internal/auth"
 	"github.com/CavadJava/avtopulse-backend/internal/db"
+	"github.com/CavadJava/avtopulse-backend/internal/listings"
 	"github.com/CavadJava/avtopulse-backend/internal/shop"
 	"github.com/CavadJava/avtopulse-backend/internal/storage"
 	"github.com/CavadJava/avtopulse-backend/internal/user"
@@ -140,6 +141,8 @@ func main() {
 	})
 
 	r.Mount("/api/shops", shop.NewHandler(shopRepo))
+
+	r.Mount("/api/listings", listings.NewHandler(userRepo, shopRepo))
 
 	userHandler := user.NewHandler(userRepo, userSessions, storageClient)
 	r.Post("/api/users/otp/request", func(w http.ResponseWriter, req *http.Request) {
