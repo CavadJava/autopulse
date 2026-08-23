@@ -44,6 +44,7 @@ func NewHandler(shopRepo shop.Repository, sessions SessionStore, storageClient s
 	r.Put("/me/products/{id}", h.UpdateProduct)
 	r.Delete("/me/products/{id}", h.DeleteProduct)
 	r.Post("/me/products/{id}/restore", h.RestoreProduct)
+	r.Post("/me/products/{id}/promote", h.PromoteProduct)
 	r.Post("/me/products/{id}/images", h.UploadProductImages)
 	r.Delete("/me/products/{id}/images/{imageId}", h.DeleteProductImage)
 	r.Post("/me/logo", h.UploadLogo)
@@ -566,6 +567,78 @@ func (h *authHandlers) RestoreProduct(w http.ResponseWriter, req *http.Request) 
 	}
 
 	writeJSON(w, http.StatusOK, map[string]bool{"restored": true})
+}
+
+// Server-side, fixed prices — never trusted from the client. Matches the
+// mock system's PROMO_PRICES exactly.
+var promoPrices = map[string]int{"ireli_cek": 3, "vip": 5, "premium_vip": 7}
+
+type promoteRequest struct {
+	Tier string `json:"tier"`
+}
+
+// PromoteProduct godoc
+// @Summary      Promote a listing (İrəli çək/VIP/Premium) by deducting the shop's balance
+// @Description  Requires a valid shop_session cookie. The product must belong to the authenticated shop. Price is server-side, not client-supplied.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        id    path  int              true  "Product id"
+// @Param        body  body  promoteRequest   true  "Tier: ireli_cek, vip, or premium_vip"
+// @Success      200   {object}  shop.Product
+// @Failure      400   {string}  string  "invalid tier"
+// @Failure      401   {string}  string  "unauthorized"
+// @Failure      402   {object}  map[string]any  "insufficient balance"
+// @Failure      404   {string}  string  "product not found or not owned by this shop"
+// @Failure      500   {string}  string  "internal error"
+// @Router       /me/products/{id}/promote [post]
+func (h *authHandlers) PromoteProduct(w http.ResponseWriter, req *http.Request) {
+	shopID, err := requireSession(req, h.sessions)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	productID, err := strconv.ParseInt(chi.URLParam(req, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid product id", http.StatusBadRequest)
+		return
+	}
+
+	ownerShopID, err := h.shopRepo.GetProductShopID(req.Context(), productID)
+	if errors.Is(err, shop.ErrNotFound) || ownerShopID != shopID {
+		http.Error(w, "product not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	var body promoteRequest
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	price, ok := promoPrices[body.Tier]
+	if !ok {
+		http.Error(w, "invalid tier", http.StatusBadRequest)
+		return
+	}
+
+	product, err := h.shopRepo.PromoteProduct(req.Context(), productID, body.Tier, price)
+	if errors.Is(err, shop.ErrInsufficientBalance) {
+		writeJSON(w, http.StatusPaymentRequired, map[string]any{
+			"error": "insufficient_balance", "required": price,
+		})
+		return
+	}
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, product)
 }
 
 // DeleteProductImage godoc
