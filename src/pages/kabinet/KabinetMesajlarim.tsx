@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { getMyConversations, getMessages, sendMessage, ChatUnauthorizedError } from '../../api/chat';
 import type { Conversation, ChatMessage } from '../../api/chat';
+import { getRealListingById } from '../../api/listings';
+import type { ApiListing } from '../../api/listings';
 import styles from './KabinetMesajlarim.module.css';
 
 const POLL_INTERVAL_MS = 4000;
@@ -13,6 +15,7 @@ export default function KabinetMesajlarim() {
     searchParams.get('c') ? Number(searchParams.get('c')) : null
   );
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [selectedListing, setSelectedListing] = useState<ApiListing | null>(null);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +36,17 @@ export default function KabinetMesajlarim() {
     loadConversations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const conv = conversations.find((c) => c.id === selectedId);
+    if (!conv) {
+      setSelectedListing(null);
+      return;
+    }
+    getRealListingById(conv.source, conv.listingId)
+      .then(setSelectedListing)
+      .catch(() => setSelectedListing(null));
+  }, [selectedId, conversations]);
 
   useEffect(() => {
     if (selectedId === null) {
@@ -101,6 +115,22 @@ export default function KabinetMesajlarim() {
             <p className={styles.empty}>Bir konuşma seçin.</p>
           ) : (
             <>
+              {selectedListing && (
+                <Link
+                  to={`/elan/${selectedListing.source}-${selectedListing.id}`}
+                  className={styles.listingHeader}
+                >
+                  {selectedListing.images[0] && (
+                    <img
+                      src={selectedListing.images[0].minioUrl || selectedListing.images[0].s3Url}
+                      alt={selectedListing.title}
+                      className={styles.listingHeaderImage}
+                    />
+                  )}
+                  <span className={styles.listingHeaderTitle}>{selectedListing.title}</span>
+                  <span className={styles.listingHeaderLink}>Elana bax →</span>
+                </Link>
+              )}
               <div className={styles.messages}>
                 {messages.map((m) => (
                   <div

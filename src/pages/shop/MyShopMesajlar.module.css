@@ -45,6 +45,42 @@
   gap: var(--space-3);
 }
 
+.listingHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  text-decoration: none;
+  color: var(--text-primary);
+}
+
+.listingHeader:hover {
+  border-color: var(--accent);
+}
+
+.listingHeaderImage {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.listingHeaderTitle {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.listingHeaderLink {
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .messages {
   flex: 1;
   display: flex;
