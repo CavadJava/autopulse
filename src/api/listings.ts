@@ -190,6 +190,7 @@ export interface ApiListing {
   model: string;
   il: number;
   qiymet: number;
+  qiymetUsd: number;
   yurus: number;
   yanacaq: string;
   ban: string;
@@ -201,6 +202,12 @@ export interface ApiListing {
   detailsJson: ApiListingDetails;
   viewCount: number;
   vipTier: 'standart' | 'vip' | 'premium_vip';
+  sellerCreatedAt: string;
+  sellerContactName?: string;
+  sellerWorkTimes?: string;
+  sellerAddress?: string;
+  sellerLogoUrl?: string;
+  sellerActiveListingCount?: number;
 }
 
 export async function getRealListings(): Promise<ApiListing[]> {
