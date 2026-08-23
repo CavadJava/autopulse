@@ -13,6 +13,7 @@ import (
 	_ "github.com/CavadJava/avtopulse-backend/docs"
 	"github.com/CavadJava/avtopulse-backend/internal/admin"
 	"github.com/CavadJava/avtopulse-backend/internal/auth"
+	"github.com/CavadJava/avtopulse-backend/internal/chat"
 	"github.com/CavadJava/avtopulse-backend/internal/db"
 	"github.com/CavadJava/avtopulse-backend/internal/listings"
 	"github.com/CavadJava/avtopulse-backend/internal/shop"
@@ -55,6 +56,10 @@ func main() {
 
 	userRepo := user.NewRepository(pool)
 	userSessions := user.NewSessionStore(pool)
+
+	chatRepo := chat.NewRepository(pool)
+	userChatHandler := chat.NewUserHandler(chatRepo, shopRepo, userRepo, userSessions)
+	shopChatHandler := chat.NewShopHandler(chatRepo, sessions)
 
 	adminUsername := os.Getenv("ADMIN_USERNAME")
 	adminPassword := os.Getenv("ADMIN_PASSWORD")
@@ -142,6 +147,18 @@ func main() {
 	r.Post("/api/shops/me/products/{id}/promote", func(w http.ResponseWriter, req *http.Request) {
 		http.StripPrefix("/api/shops", authHandler).ServeHTTP(w, req)
 	})
+	r.Get("/api/shops/me/conversations", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/shops/me", shopChatHandler).ServeHTTP(w, req)
+	})
+	r.Get("/api/shops/me/conversations/unread-count", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/shops/me", shopChatHandler).ServeHTTP(w, req)
+	})
+	r.Get("/api/shops/me/conversations/{id}/messages", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/shops/me", shopChatHandler).ServeHTTP(w, req)
+	})
+	r.Post("/api/shops/me/conversations/{id}/messages", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/shops/me", shopChatHandler).ServeHTTP(w, req)
+	})
 	r.Delete("/api/shops/me/products/{id}/images/{imageId}", func(w http.ResponseWriter, req *http.Request) {
 		http.StripPrefix("/api/shops", authHandler).ServeHTTP(w, req)
 	})
@@ -177,6 +194,21 @@ func main() {
 	})
 	r.Post("/api/users/me/products/{id}/promote", func(w http.ResponseWriter, req *http.Request) {
 		http.StripPrefix("/api/users", userHandler).ServeHTTP(w, req)
+	})
+	r.Post("/api/users/me/conversations", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/users/me", userChatHandler).ServeHTTP(w, req)
+	})
+	r.Get("/api/users/me/conversations", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/users/me", userChatHandler).ServeHTTP(w, req)
+	})
+	r.Get("/api/users/me/conversations/unread-count", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/users/me", userChatHandler).ServeHTTP(w, req)
+	})
+	r.Get("/api/users/me/conversations/{id}/messages", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/users/me", userChatHandler).ServeHTTP(w, req)
+	})
+	r.Post("/api/users/me/conversations/{id}/messages", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/users/me", userChatHandler).ServeHTTP(w, req)
 	})
 	r.Post("/api/users/me/products/{id}/images", func(w http.ResponseWriter, req *http.Request) {
 		http.StripPrefix("/api/users", userHandler).ServeHTTP(w, req)
