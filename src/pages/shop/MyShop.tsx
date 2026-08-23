@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   getMyShopProducts,
   shopLogout,
@@ -16,6 +16,7 @@ import {
 } from '../../api/shop';
 import type { ShopProduct } from '../../api/shop';
 import { InsufficientBalanceError } from '../../api/auth';
+import { getShopUnreadCount } from '../../api/chat';
 import type { PromoTier } from '../../types';
 import PromoteModal from '../../components/PromoteModal';
 import styles from './MyShop.module.css';
@@ -66,6 +67,8 @@ export default function MyShop() {
   const [promotingProduct, setPromotingProduct] = useState<ShopProduct | null>(null);
   const [promoteError, setPromoteError] = useState<string | null>(null);
 
+  const [unreadCount, setUnreadCount] = useState(0);
+
   const [profileAddress, setProfileAddress] = useState('');
   const [profileContactName, setProfileContactName] = useState('');
   const [profileSaving, setProfileSaving] = useState(false);
@@ -91,6 +94,19 @@ export default function MyShop() {
   useEffect(() => {
     loadProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const poll = async () => {
+      try {
+        setUnreadCount(await getShopUnreadCount());
+      } catch {
+        // Non-fatal.
+      }
+    };
+    poll();
+    const interval = setInterval(poll, 4000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleLogout = async () => {
@@ -348,9 +364,14 @@ export default function MyShop() {
     <div className={styles.page}>
       <div className={styles.headerRow}>
         <h1 className={styles.title}>Mənim mağazam</h1>
-        <button className={styles.logoutBtn} onClick={handleLogout}>
-          Çıxış
-        </button>
+        <div className={styles.headerActions}>
+          <Link to="/magazam/mesajlar" className={styles.logoutBtn}>
+            💬 Mesajlar {unreadCount > 0 && <span className={styles.badge}>{unreadCount}</span>}
+          </Link>
+          <button className={styles.logoutBtn} onClick={handleLogout}>
+            Çıxış
+          </button>
+        </div>
       </div>
 
       {notice && <p className={styles.formError}>{notice}</p>}
