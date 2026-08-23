@@ -172,6 +172,9 @@ func main() {
 	r.Delete("/api/users/me/products/{id}", func(w http.ResponseWriter, req *http.Request) {
 		http.StripPrefix("/api/users", userHandler).ServeHTTP(w, req)
 	})
+	r.Post("/api/users/me/products/{id}/promote", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/users", userHandler).ServeHTTP(w, req)
+	})
 	r.Post("/api/users/me/products/{id}/images", func(w http.ResponseWriter, req *http.Request) {
 		http.StripPrefix("/api/users", userHandler).ServeHTTP(w, req)
 	})
