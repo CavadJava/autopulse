@@ -65,6 +65,7 @@ export default function RealListingDetail() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [phoneRevealed, setPhoneRevealed] = useState(false);
+  const [listingNumber, setListingNumber] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -88,6 +89,7 @@ export default function RealListingDetail() {
         } else {
           setListing(apiListingToMockShape(detail));
           setSellerName(detail.sellerName);
+          setListingNumber(String(numericId).padStart(8, '0'));
         }
       } catch {
         setNotFound(true);
@@ -112,6 +114,12 @@ export default function RealListingDetail() {
           <>
             <span className={styles.breadcrumbSep}>·</span>
             <span className={styles.breadcrumbCurrent}>{listing.model}</span>
+          </>
+        )}
+        {listingNumber && (
+          <>
+            <span className={styles.breadcrumbSep}>·</span>
+            <span className={styles.breadcrumbId}>Elan № {listingNumber}</span>
           </>
         )}
       </div>
@@ -159,6 +167,7 @@ export default function RealListingDetail() {
                 📞 {phoneRevealed ? listing.satıcıZəng : `Nömrəni göstər · ${maskedPhone}`}
               </button>
             )}
+            <button className={styles.btnMessage}>💬 Mesaj yaz</button>
           </div>
         </aside>
       </div>

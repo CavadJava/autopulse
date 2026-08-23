@@ -29,6 +29,10 @@
   font-weight: 600;
 }
 
+.breadcrumbId {
+  color: var(--text-tertiary);
+}
+
 .container {
   display: grid;
   grid-template-columns: 1fr 320px;
@@ -169,6 +173,14 @@
 .btnCall:hover {
   box-shadow: none;
   opacity: 0.92;
+}
+
+.btnMessage {
+  width: 100%;
+  background: var(--accent);
+  color: var(--bg-primary);
+  padding: var(--space-3);
+  margin-top: var(--space-2);
 }
 
 @media (max-width: 900px) {
