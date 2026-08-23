@@ -12,6 +12,7 @@ import (
 type s3Client struct {
 	mc     *minio.Client
 	bucket string
+	region string
 }
 
 // NewS3Client connects to a real AWS S3 bucket. Unlike NewClient (MinIO),
@@ -30,7 +31,7 @@ func NewS3Client(ctx context.Context, region, accessKey, secretKey, bucket strin
 		return nil, fmt.Errorf("storage: connecting to aws s3: %w", err)
 	}
 
-	return &s3Client{mc: mc, bucket: bucket}, nil
+	return &s3Client{mc: mc, bucket: bucket, region: region}, nil
 }
 
 func (c *s3Client) Upload(ctx context.Context, path string, data io.Reader, size int64, contentType string) (string, error) {
@@ -40,7 +41,10 @@ func (c *s3Client) Upload(ctx context.Context, path string, data io.Reader, size
 	if err != nil {
 		return "", fmt.Errorf("storage: uploading %q to s3: %w", path, err)
 	}
-	return fmt.Sprintf("https://%s.s3.amazonaws.com/%s", c.bucket, path), nil
+	// Virtual-hosted-style URL must include the region for any bucket outside
+	// us-east-1 — the region-less form (`{bucket}.s3.amazonaws.com`) serves a
+	// TLS cert scoped to a different region's wildcard and fails to verify.
+	return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", c.bucket, c.region, path), nil
 }
 
 func (c *s3Client) UploadDual(ctx context.Context, path string, data io.Reader, size int64, contentType string) (string, string, error) {
