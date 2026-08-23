@@ -30,6 +30,7 @@ func NewHandler(repo Repository, sessions SessionStore, storageClient storage.Cl
 	r.Post("/otp/request", h.RequestOTP)
 	r.Post("/otp/verify", h.VerifyOTP)
 	r.Post("/logout", h.Logout)
+	r.Get("/me", h.Me)
 	r.Get("/me/products", h.MeProducts)
 	r.Post("/me/products", h.CreateProduct)
 	r.Put("/me/products/{id}", h.UpdateProduct)
@@ -173,6 +174,30 @@ func (h *userHandlers) MeProducts(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, products)
+}
+
+// Me godoc
+// @Summary      Get the logged-in user's own account (name, phone, balance, created at)
+// @Description  Requires a valid user_session cookie.
+// @Tags         user
+// @Produce      json
+// @Success      200  {object}  User
+// @Failure      401  {string}  string  "unauthorized"
+// @Failure      500  {string}  string  "internal error"
+// @Router       /users/me [get]
+func (h *userHandlers) Me(w http.ResponseWriter, req *http.Request) {
+	userID, err := requireSession(req, h.sessions)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	u, err := h.repo.GetUserByID(req.Context(), userID)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, u)
 }
 
 type createProductRequest struct {

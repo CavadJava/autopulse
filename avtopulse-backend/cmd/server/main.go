@@ -180,6 +180,9 @@ func main() {
 	r.Post("/api/users/logout", func(w http.ResponseWriter, req *http.Request) {
 		http.StripPrefix("/api/users", userHandler).ServeHTTP(w, req)
 	})
+	r.Get("/api/users/me", func(w http.ResponseWriter, req *http.Request) {
+		http.StripPrefix("/api/users", userHandler).ServeHTTP(w, req)
+	})
 	r.Get("/api/users/me/products", func(w http.ResponseWriter, req *http.Request) {
 		http.StripPrefix("/api/users", userHandler).ServeHTTP(w, req)
 	})
