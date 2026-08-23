@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import Listings from './pages/Listings';
-import ListingDetail from './pages/ListingDetail';
+import ListingRouter from './pages/ListingRouter';
 import Pricing from './pages/Pricing';
 import CheckoutPage from './pages/CheckoutPage';
 import BusinessDashboard from './pages/BusinessDashboard';
@@ -36,7 +36,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/elanlar" element={<Listings />} />
-            <Route path="/elan/:id" element={<ListingDetail />} />
+            <Route path="/elan/:id" element={<ListingRouter />} />
             <Route path="/qiymetler" element={<Pricing />} />
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/business" element={<BusinessDashboard />} />
