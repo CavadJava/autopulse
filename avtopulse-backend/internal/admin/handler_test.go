@@ -32,8 +32,12 @@ func (f *fakeUserRepo) DeleteProduct(ctx context.Context, productID int64) error
 func (f *fakeUserRepo) GetProductUserID(ctx context.Context, productID int64) (int64, error) {
 	return 0, nil
 }
-func (f *fakeUserRepo) AddProductImage(ctx context.Context, productID int64, minioURL, s3URL string, sira int) (*user.ProductImage, error) {
+func (f *fakeUserRepo) AddProductImage(ctx context.Context, productID int64, minioURL, s3URL string, sira int, kind string) (*user.ProductImage, error) {
 	return nil, nil
+}
+
+func (f *fakeUserRepo) IncrementViewCount(ctx context.Context, productID int64) error {
+	return nil
 }
 func (f *fakeUserRepo) ListPendingProducts(ctx context.Context) ([]user.Product, error) {
 	out := []user.Product{}
@@ -84,8 +88,12 @@ func (f *fakeShopRepo) GetPasswordHash(ctx context.Context, shopID int64) (strin
 func (f *fakeShopRepo) CreateProduct(ctx context.Context, shopID int64, input shop.CreateProductInput) (*shop.Product, error) {
 	return nil, nil
 }
-func (f *fakeShopRepo) AddProductImage(ctx context.Context, productID int64, minioURL, s3URL string, sira int) (*shop.ProductImage, error) {
+func (f *fakeShopRepo) AddProductImage(ctx context.Context, productID int64, minioURL, s3URL string, sira int, kind string) (*shop.ProductImage, error) {
 	return nil, nil
+}
+
+func (f *fakeShopRepo) IncrementViewCount(ctx context.Context, productID int64) error {
+	return nil
 }
 func (f *fakeShopRepo) GetProductShopID(ctx context.Context, productID int64) (int64, error) {
 	return 0, nil

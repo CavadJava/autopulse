@@ -81,8 +81,12 @@ func (f *fakeShopRepo) CreateProduct(ctx context.Context, shopID int64, input sh
 	return &shop.Product{ID: 999, Name: input.Name, Title: input.Title, Marka: input.Marka, Model: input.Model, Il: input.Il, Qiymet: input.Qiymet, Images: []shop.ProductImage{}}, nil
 }
 
-func (f *fakeShopRepo) AddProductImage(ctx context.Context, productID int64, minioURL, s3URL string, sira int) (*shop.ProductImage, error) {
-	return &shop.ProductImage{ID: int64(sira + 1), MinioURL: minioURL, S3URL: s3URL, Sira: sira}, nil
+func (f *fakeShopRepo) AddProductImage(ctx context.Context, productID int64, minioURL, s3URL string, sira int, kind string) (*shop.ProductImage, error) {
+	return &shop.ProductImage{ID: int64(sira + 1), MinioURL: minioURL, S3URL: s3URL, Sira: sira, Kind: kind}, nil
+}
+
+func (f *fakeShopRepo) IncrementViewCount(ctx context.Context, productID int64) error {
+	return nil
 }
 
 func (f *fakeShopRepo) GetProductShopID(ctx context.Context, productID int64) (int64, error) {

@@ -184,6 +184,8 @@ type createProductRequest struct {
 	Ban     string `json:"ban"`
 	Title   string `json:"title"`
 	Details string `json:"details"`
+
+	DetailsJson json.RawMessage `json:"detailsJson"`
 }
 
 // CreateProduct godoc
@@ -214,6 +216,7 @@ func (h *userHandlers) CreateProduct(w http.ResponseWriter, req *http.Request) {
 	product, err := h.repo.CreateProduct(req.Context(), userID, CreateProductInput{
 		Marka: body.Marka, Model: body.Model, Il: body.Il, Qiymet: body.Qiymet,
 		Yurus: body.Yurus, Yanacaq: body.Yanacaq, Ban: body.Ban, Title: body.Title, Details: body.Details,
+		DetailsJSON: body.DetailsJson,
 	})
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -269,6 +272,7 @@ func (h *userHandlers) UpdateProduct(w http.ResponseWriter, req *http.Request) {
 	product, err := h.repo.UpdateProduct(req.Context(), productID, CreateProductInput{
 		Marka: body.Marka, Model: body.Model, Il: body.Il, Qiymet: body.Qiymet,
 		Yurus: body.Yurus, Yanacaq: body.Yanacaq, Ban: body.Ban, Title: body.Title, Details: body.Details,
+		DetailsJSON: body.DetailsJson,
 	})
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -367,6 +371,10 @@ func (h *userHandlers) UploadProductImages(w http.ResponseWriter, req *http.Requ
 		http.Error(w, "no files provided", http.StatusBadRequest)
 		return
 	}
+	kind := req.FormValue("kind")
+	if kind == "" {
+		kind = "exterior"
+	}
 
 	var results []ProductImage
 	for i, fh := range files {
@@ -384,7 +392,7 @@ func (h *userHandlers) UploadProductImages(w http.ResponseWriter, req *http.Requ
 			return
 		}
 
-		img, err := h.repo.AddProductImage(req.Context(), productID, minioURL, s3URL, i)
+		img, err := h.repo.AddProductImage(req.Context(), productID, minioURL, s3URL, i, kind)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
