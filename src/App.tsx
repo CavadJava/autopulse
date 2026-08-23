@@ -17,6 +17,7 @@ import MyShop from './pages/shop/MyShop';
 import KabinetLayout from './pages/kabinet/KabinetLayout';
 import KabinetOverview from './pages/kabinet/KabinetOverview';
 import KabinetElanlarim from './pages/kabinet/KabinetElanlarim';
+import KabinetMesajlarim from './pages/kabinet/KabinetMesajlarim';
 import KabinetProfil from './pages/kabinet/KabinetProfil';
 import KabinetKartlarim from './pages/kabinet/KabinetKartlarim';
 import AdminLogin from './pages/AdminLogin';
@@ -54,6 +55,7 @@ export default function App() {
             <Route path="/kabinet" element={<KabinetLayout />}>
               <Route index element={<KabinetOverview />} />
               <Route path="elanlarim" element={<KabinetElanlarim />} />
+              <Route path="mesajlarim" element={<KabinetMesajlarim />} />
               <Route path="profil" element={<KabinetProfil />} />
               <Route path="kartlarim" element={<KabinetKartlarim />} />
             </Route>
