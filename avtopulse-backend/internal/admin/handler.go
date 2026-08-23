@@ -84,6 +84,26 @@ func NewHandler(userRepo user.Repository, shopRepo shop.Repository, adminUsernam
 	return r
 }
 
+// NewHandlerWithHooks is like NewHandler but also returns the underlying
+// *adminHandlers so callers (main.go) can extract RequireAdminMiddleware()
+// for other packages, without exposing adminHandlers itself.
+func NewHandlerWithHooks(userRepo user.Repository, shopRepo shop.Repository, adminUsername, adminPassword string) (http.Handler, *adminHandlers) {
+	h := &adminHandlers{
+		userRepo: userRepo, shopRepo: shopRepo,
+		username: adminUsername, password: adminPassword,
+		sessions: newAdminSessions(),
+	}
+	r := chi.NewRouter()
+	r.Post("/login", h.Login)
+	r.Post("/logout", h.Logout)
+	r.Get("/products/pending", h.requireAdmin(h.PendingProducts))
+	r.Post("/products/{id}/approve", h.requireAdmin(h.ApproveProduct))
+	r.Post("/products/{id}/reject", h.requireAdmin(h.RejectProduct))
+	r.Get("/shop-products", h.requireAdmin(h.ListShopProducts))
+	r.Post("/shop-products/{id}/cancel", h.requireAdmin(h.CancelShopProduct))
+	return r, h
+}
+
 type loginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -155,6 +175,14 @@ func (h *adminHandlers) requireAdmin(next http.HandlerFunc) http.HandlerFunc {
 		}
 		next(w, req)
 	}
+}
+
+// RequireAdminMiddleware exposes this handler's admin-session check to other
+// packages (e.g. internal/adminnotify) that need to gate their own routes
+// behind the same admin_session cookie, without duplicating the session
+// store or the login flow.
+func (h *adminHandlers) RequireAdminMiddleware() func(http.HandlerFunc) http.HandlerFunc {
+	return h.requireAdmin
 }
 
 // PendingProducts godoc
