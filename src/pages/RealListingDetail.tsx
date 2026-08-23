@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getRealListingById } from '../api/listings';
 import type { ApiListing } from '../api/listings';
 import type { Listing, PromoTier } from '../types';
 import { getMyListings, promoteRealUserListing, InsufficientBalanceError } from '../api/auth';
 import { getMyShopProducts, promoteShopListing } from '../api/shop';
+import { startConversation, ChatUnauthorizedError } from '../api/chat';
 import InteractiveGallery from '../components/InteractiveGallery';
 import ListingDetailTabs from '../components/ListingDetailTabs';
 import PromoteModal from '../components/PromoteModal';
@@ -65,6 +66,7 @@ function apiListingToMockShape(l: ApiListing): Listing {
 
 export default function RealListingDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [listing, setListing] = useState<Listing | null>(null);
   const [apiListing, setApiListing] = useState<ApiListing | null>(null);
   const [sellerName, setSellerName] = useState('');
@@ -151,6 +153,22 @@ export default function RealListingDetail() {
     }
   };
 
+  const handleMessageClick = async () => {
+    if (!id) return;
+    const [source, numericIdStr] = id.split('-');
+    const numericId = Number(numericIdStr);
+    try {
+      const conv = await startConversation(source as 'shop' | 'user', numericId);
+      navigate(`/kabinet/mesajlarim?c=${conv.id}`);
+    } catch (err) {
+      if (err instanceof ChatUnauthorizedError) {
+        navigate('/giris');
+        return;
+      }
+      setPromoteError('Mesaj başlatarkən xəta baş verdi.');
+    }
+  };
+
   if (loading) return <div className={styles.loading}>Yüklənir...</div>;
   if (notFound || !listing) return <div className={styles.error}>Elan tapılmadı.</div>;
 
@@ -202,12 +220,14 @@ export default function RealListingDetail() {
               qiymetUsd={apiListing?.qiymetUsd}
               isOwner={isOwner}
               onPromoteClick={() => setPromoteOpen(true)}
+              onMessageClick={handleMessageClick}
             />
           ) : (
             <IndividualSellerCard
               listing={listing}
               isOwner={isOwner}
               onPromoteClick={() => setPromoteOpen(true)}
+              onMessageClick={handleMessageClick}
             />
           )}
           {promoteError && <p className={styles.promoteError}>{promoteError}</p>}

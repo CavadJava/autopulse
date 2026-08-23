@@ -6,6 +6,7 @@ interface IndividualSellerCardProps {
   listing: Listing;
   isOwner: boolean;
   onPromoteClick: () => void;
+  onMessageClick: () => void;
 }
 
 function memberSince(iso: string) {
@@ -14,7 +15,7 @@ function memberSince(iso: string) {
   return d.toLocaleDateString('az-AZ', { month: '2-digit', year: 'numeric' });
 }
 
-export default function IndividualSellerCard({ listing, isOwner, onPromoteClick }: IndividualSellerCardProps) {
+export default function IndividualSellerCard({ listing, isOwner, onPromoteClick, onMessageClick }: IndividualSellerCardProps) {
   const [phoneRevealed, setPhoneRevealed] = useState(false);
 
   const maskedPhone = listing.satıcıZəng
@@ -47,7 +48,7 @@ export default function IndividualSellerCard({ listing, isOwner, onPromoteClick 
           📞 {phoneRevealed ? listing.satıcıZəng : `Nömrəni göstər · ${maskedPhone}`}
         </button>
       )}
-      <button className={styles.btnMessage}>💬 Mesaj yaz</button>
+      <button className={styles.btnMessage} onClick={onMessageClick}>💬 Mesaj yaz</button>
 
       {isOwner && (
         <>

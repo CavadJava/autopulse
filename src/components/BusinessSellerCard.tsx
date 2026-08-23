@@ -14,6 +14,7 @@ interface BusinessSellerCardProps {
   qiymetUsd?: number;
   isOwner: boolean;
   onPromoteClick: () => void;
+  onMessageClick: () => void;
 }
 
 function memberSince(iso: string) {
@@ -33,6 +34,7 @@ export default function BusinessSellerCard({
   qiymetUsd,
   isOwner,
   onPromoteClick,
+  onMessageClick,
 }: BusinessSellerCardProps) {
   const [phoneRevealed, setPhoneRevealed] = useState(false);
 
@@ -78,7 +80,7 @@ export default function BusinessSellerCard({
           📞 {phoneRevealed ? listing.satıcıZəng : `Nömrəni göstər · ${maskedPhone}`}
         </button>
       )}
-      <button className={styles.btnMessage}>💬 Mesaj yaz</button>
+      <button className={styles.btnMessage} onClick={onMessageClick}>💬 Mesaj yaz</button>
 
       {sellerName && (
         <Link to={`/magazalar/${sellerName}`} className={styles.shopLink}>
