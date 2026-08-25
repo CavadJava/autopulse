@@ -62,22 +62,53 @@ func ParseWorkbook(r io.Reader) ([]ParsedRow, error) {
 			return nil, fmt.Errorf("parts: reading sheet %q: %w", sheetName, err)
 		}
 
+		// GetPictureCells walks the sheet's drawing relationships once and
+		// returns every anchored picture cell ref directly (e.g. "B3",
+		// "B7", ...) — linear in the number of pictures, unlike calling
+		// GetPictures per row (which re-walks the drawing relationships on
+		// every call and was the dominant cost of a large upload).
+		pictureCellRefs, err := f.GetPictureCells(sheetName)
+		if err != nil {
+			return nil, fmt.Errorf("parts: getting picture cells for sheet %q: %w", sheetName, err)
+		}
+
 		pictureCells := map[string][]byte{} // cell ref, e.g. "B3" -> image bytes
 		pictureExts := map[string]string{}
-		for rowIdx := range rows {
-			cellRef := fmt.Sprintf("B%d", rowIdx+1)
-			pics, err := f.GetPictures(sheetName, cellRef)
+		maxPictureRow := 0
+		for _, ref := range pictureCellRefs {
+			pics, err := f.GetPictures(sheetName, ref)
 			if err != nil || len(pics) == 0 {
 				continue
 			}
-			pictureCells[cellRef] = pics[0].File
-			pictureExts[cellRef] = "." + strings.TrimPrefix(pics[0].Extension, ".")
+			pictureCells[ref] = pics[0].File
+			pictureExts[ref] = "." + strings.TrimPrefix(pics[0].Extension, ".")
+
+			if _, rowNum, err := excelize.CellNameToCoordinates(ref); err == nil && rowNum > maxPictureRow {
+				maxPictureRow = rowNum
+			}
 		}
 
-		for i, row := range rows {
+		// Picture cell refs are independent of GetRows's row list, so a row
+		// that contains only an image (no other cell values) can have a
+		// higher row number than GetRows ever reports. We iterate the row
+		// space up to max(len(rows), maxPictureRow) rather than just
+		// len(rows), so those image-only trailing rows still produce a
+		// ParsedRow (with nil for all non-image fields) instead of being
+		// silently dropped.
+		rowCount := len(rows)
+		if maxPictureRow > rowCount {
+			rowCount = maxPictureRow
+		}
+
+		for i := 0; i < rowCount; i++ {
 			rowNum := i + 1
 			if rowNum < 3 {
 				continue // rows 1-2 are title/header
+			}
+
+			var row []string
+			if i < len(rows) {
+				row = rows[i]
 			}
 			get := func(colIdx int) string {
 				if colIdx < len(row) {
@@ -92,7 +123,10 @@ func ParseWorkbook(r io.Reader) ([]ParsedRow, error) {
 			year := get(4)
 			price := get(5)
 
-			if noStr == "" && oem == "" && desc == "" && price == "" {
+			cellRef := fmt.Sprintf("B%d", rowNum)
+			imgBytes, hasImage := pictureCells[cellRef]
+
+			if noStr == "" && oem == "" && desc == "" && year == "" && price == "" && !hasImage {
 				continue
 			}
 
@@ -111,13 +145,21 @@ func ParseWorkbook(r io.Reader) ([]ParsedRow, error) {
 				Prices:      ParsePriceText(price),
 			}
 
-			cellRef := fmt.Sprintf("B%d", rowNum)
-			if imgBytes, ok := pictureCells[cellRef]; ok {
+			if hasImage {
 				pr.ImageBytes = imgBytes
 				pr.ImageExt = pictureExts[cellRef]
 			}
 
 			allRows = append(allRows, pr)
+		}
+	}
+
+	// Belt-and-suspenders check: Model always comes from the hardcoded
+	// SheetNameToModel map above, so this should never trip in practice —
+	// but it's a cheap real safety net if that mapping logic changes later.
+	for _, pr := range allRows {
+		if !ValidModels[pr.Model] {
+			return nil, fmt.Errorf("parts: unrecognized model %q produced during parsing", pr.Model)
 		}
 	}
 

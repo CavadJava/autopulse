@@ -2,19 +2,17 @@ package parts
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var ErrNotFound = errors.New("parts: not found")
-
 type Repository interface {
 	ListSellers(ctx context.Context) ([]Seller, error)
 	GetOrCreateSeller(ctx context.Context, name string) (*Seller, error)
 	InsertParts(ctx context.Context, parts []NewPart) error
+	DeleteSellerParts(ctx context.Context, sellerID int64) error
 	ListParts(ctx context.Context, filter PartFilter) ([]Part, int, error)
 }
 
@@ -46,21 +44,20 @@ func (r *pgRepository) ListSellers(ctx context.Context) ([]Seller, error) {
 
 func (r *pgRepository) GetOrCreateSeller(ctx context.Context, name string) (*Seller, error) {
 	var s Seller
-	err := r.pool.QueryRow(ctx, `SELECT id, name FROM avto444.sellers WHERE name = $1`, name).Scan(&s.ID, &s.Name)
-	if err == nil {
-		return &s, nil
-	}
-	if !errors.Is(err, pgx.ErrNoRows) {
-		return nil, err
-	}
-
-	err = r.pool.QueryRow(ctx,
-		`INSERT INTO avto444.sellers (name) VALUES ($1) RETURNING id, name`, name,
-	).Scan(&s.ID, &s.Name)
+	err := r.pool.QueryRow(ctx, `
+		INSERT INTO avto444.sellers (name) VALUES ($1)
+		ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+		RETURNING id, name
+	`, name).Scan(&s.ID, &s.Name)
 	if err != nil {
 		return nil, err
 	}
 	return &s, nil
+}
+
+func (r *pgRepository) DeleteSellerParts(ctx context.Context, sellerID int64) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM avto444.seller_parts WHERE seller_id = $1`, sellerID)
+	return err
 }
 
 func (r *pgRepository) InsertParts(ctx context.Context, newParts []NewPart) error {

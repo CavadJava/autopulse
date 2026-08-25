@@ -37,6 +37,17 @@ func (f *fakePartsRepo) InsertParts(ctx context.Context, newParts []NewPart) err
 	return nil
 }
 
+func (f *fakePartsRepo) DeleteSellerParts(ctx context.Context, sellerID int64) error {
+	kept := f.inserted[:0]
+	for _, p := range f.inserted {
+		if p.SellerID != sellerID {
+			kept = append(kept, p)
+		}
+	}
+	f.inserted = kept
+	return nil
+}
+
 func (f *fakePartsRepo) ListParts(ctx context.Context, filter PartFilter) ([]Part, int, error) {
 	return nil, 0, nil
 }
@@ -114,5 +125,64 @@ func TestJobRunner_GetJob_UnknownID(t *testing.T) {
 	_, ok := jr.GetJob("does-not-exist")
 	if ok {
 		t.Fatal("expected ok=false for unknown job id")
+	}
+}
+
+func waitForJob(t *testing.T, jr *JobRunner, jobID string) *Job {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		j, ok := jr.GetJob(jobID)
+		if !ok {
+			t.Fatal("job not found")
+		}
+		if j.Status == JobDone || j.Status == JobFailed {
+			return j
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("job did not complete within timeout")
+	return nil
+}
+
+func TestJobRunner_ReuploadSameSellerDoesNotDuplicateParts(t *testing.T) {
+	repo := newFakePartsRepo()
+	jr := NewJobRunner(repo, &fakeStorageClient{})
+
+	fileBytes := buildOneRowWorkbook(t)
+
+	jobID1 := jr.StartUpload(context.Background(), "same-seller", fileBytes)
+	job1 := waitForJob(t, jr, jobID1)
+	if job1.Status != JobDone {
+		t.Fatalf("first upload: expected done, got %s (%s)", job1.Status, job1.Error)
+	}
+	if len(repo.inserted) != 1 {
+		t.Fatalf("first upload: expected 1 part inserted, got %d", len(repo.inserted))
+	}
+
+	jobID2 := jr.StartUpload(context.Background(), "same-seller", fileBytes)
+	job2 := waitForJob(t, jr, jobID2)
+	if job2.Status != JobDone {
+		t.Fatalf("second upload: expected done, got %s (%s)", job2.Status, job2.Error)
+	}
+
+	if len(repo.inserted) != 1 {
+		t.Fatalf("expected re-upload to replace rather than duplicate parts, got %d parts inserted", len(repo.inserted))
+	}
+}
+
+func TestJobRunner_InvalidWorkbookSurfacesFailureThroughGetJob(t *testing.T) {
+	repo := newFakePartsRepo()
+	jr := NewJobRunner(repo, &fakeStorageClient{})
+
+	invalidBytes := []byte("this is not a valid xlsx file")
+	jobID := jr.StartUpload(context.Background(), "some-seller", invalidBytes)
+
+	job := waitForJob(t, jr, jobID)
+	if job.Status != JobFailed {
+		t.Fatalf("expected status failed, got %s", job.Status)
+	}
+	if job.Error == "" {
+		t.Fatal("expected non-empty error message on failed job")
 	}
 }

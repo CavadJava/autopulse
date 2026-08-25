@@ -19,6 +19,9 @@ func (f *fakeHandlerRepo) GetOrCreateSeller(ctx context.Context, name string) (*
 	return &Seller{ID: 1, Name: name}, nil
 }
 func (f *fakeHandlerRepo) InsertParts(ctx context.Context, newParts []NewPart) error { return nil }
+func (f *fakeHandlerRepo) DeleteSellerParts(ctx context.Context, sellerID int64) error {
+	return nil
+}
 func (f *fakeHandlerRepo) ListParts(ctx context.Context, filter PartFilter) ([]Part, int, error) {
 	return f.parts, f.total, nil
 }

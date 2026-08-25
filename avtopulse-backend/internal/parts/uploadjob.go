@@ -4,11 +4,40 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/CavadJava/avtopulse-backend/internal/storage"
 	"github.com/google/uuid"
 )
+
+// imageContentTypes maps a picture file extension (as returned by
+// excelize, including the leading dot) to a proper MIME type for upload.
+// Extensions with no known mapping fall back to a generic binary type
+// rather than producing an invalid MIME string.
+var imageContentTypes = map[string]string{
+	".png":  "image/png",
+	".jpg":  "image/jpeg",
+	".jpeg": "image/jpeg",
+	".gif":  "image/gif",
+	".bmp":  "image/bmp",
+	".tiff": "image/tiff",
+	".emf":  "image/x-emf",
+	".wmf":  "image/x-wmf",
+}
+
+func contentTypeForExt(ext string) string {
+	if ct, ok := imageContentTypes[strings.ToLower(ext)]; ok {
+		return ct
+	}
+	return "application/octet-stream"
+}
+
+// jobMaxAge is how long a completed/failed job is kept in the in-memory
+// jobs map before being evicted, bounding growth over the process
+// lifetime for this admin-only, low-frequency upload flow.
+const jobMaxAge = 24 * time.Hour
 
 type JobStatus string
 
@@ -25,6 +54,7 @@ type Job struct {
 	Processed int
 	Total     int
 	Error     string
+	CreatedAt time.Time
 }
 
 // JobRunner processes uploaded workbooks in the background and tracks
@@ -51,15 +81,28 @@ func NewJobRunner(repo Repository, storageClient storage.Client) *JobRunner {
 // and returns immediately with a job ID for status polling.
 func (jr *JobRunner) StartUpload(ctx context.Context, sellerName string, fileBytes []byte) string {
 	jobID := uuid.NewString()
-	job := &Job{ID: jobID, Status: JobPending}
+	job := &Job{ID: jobID, Status: JobPending, CreatedAt: time.Now()}
 
 	jr.mu.Lock()
+	jr.evictOldJobsLocked()
 	jr.jobs[jobID] = job
 	jr.mu.Unlock()
 
 	go jr.process(context.Background(), job, sellerName, fileBytes)
 
 	return jobID
+}
+
+// evictOldJobsLocked removes jobs older than jobMaxAge from the in-memory
+// map. Callers must hold jr.mu. Called lazily on each StartUpload rather
+// than via a background ticker, keeping the fix self-contained.
+func (jr *JobRunner) evictOldJobsLocked() {
+	cutoff := time.Now().Add(-jobMaxAge)
+	for id, j := range jr.jobs {
+		if j.CreatedAt.Before(cutoff) {
+			delete(jr.jobs, id)
+		}
+	}
 }
 
 func (jr *JobRunner) GetJob(jobID string) (*Job, bool) {
@@ -105,6 +148,15 @@ func (jr *JobRunner) process(ctx context.Context, job *Job, sellerName string, f
 		return
 	}
 
+	// Delete the seller's existing catalog before inserting the new batch,
+	// so a re-upload of the same workbook replaces the catalog instead of
+	// duplicating it — the simplest correct idempotency strategy for this
+	// admin-driven, low-frequency upload flow.
+	if err := jr.repo.DeleteSellerParts(ctx, seller.ID); err != nil {
+		jr.setError(job, fmt.Errorf("clearing existing seller parts: %w", err))
+		return
+	}
+
 	// Process in batches so a single bad image doesn't fail the whole
 	// upload, and so a very large file (1500+ rows) isn't held entirely
 	// in one giant INSERT statement.
@@ -141,7 +193,7 @@ func (jr *JobRunner) process(ctx context.Context, job *Job, sellerName string, f
 
 		if len(row.ImageBytes) > 0 {
 			objectPath := fmt.Sprintf("parts/%s/%d_%s%s", row.Model, seller.ID, uuid.NewString(), row.ImageExt)
-			minioURL, s3URL, err := jr.storage.UploadDual(ctx, objectPath, bytes.NewReader(row.ImageBytes), int64(len(row.ImageBytes)), "image/"+row.ImageExt[1:])
+			minioURL, s3URL, err := jr.storage.UploadDual(ctx, objectPath, bytes.NewReader(row.ImageBytes), int64(len(row.ImageBytes)), contentTypeForExt(row.ImageExt))
 			if err == nil {
 				newPart.ImageURL = &minioURL
 				newPart.ImageURLS3 = &s3URL

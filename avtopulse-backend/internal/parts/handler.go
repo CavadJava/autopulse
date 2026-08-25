@@ -89,8 +89,14 @@ func (h *partsHandlers) Upload(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := req.ParseMultipartForm(256 << 20); err != nil { // 256MB limit — source files run ~195MB
-		http.Error(w, "invalid multipart form", http.StatusBadRequest)
+	// Cap the request body at 256MB (source files run ~195MB) so an
+	// oversized upload is rejected with a clear error instead of silently
+	// OOMing the process, and lower ParseMultipartForm's in-memory
+	// threshold so large uploads spill to a temp file rather than being
+	// buffered entirely in RAM.
+	req.Body = http.MaxBytesReader(w, req.Body, 256<<20)
+	if err := req.ParseMultipartForm(10 << 20); err != nil { // 10MB in-memory threshold, spills to disk above that
+		http.Error(w, "invalid multipart form or file too large", http.StatusBadRequest)
 		return
 	}
 	f, _, err := req.FormFile("file")
@@ -106,10 +112,10 @@ func (h *partsHandlers) Upload(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	sellerName := req.FormValue("sellerName")
-	if sellerName == "" {
-		sellerName = "seller-" + strconv.FormatInt(shopID, 10)
-	}
+	// Identity is always derived from the authenticated shop, never from
+	// client-supplied form data — otherwise any logged-in shop could claim
+	// to be any seller by setting the sellerName field.
+	sellerName := "seller-" + strconv.FormatInt(shopID, 10)
 
 	jobID := h.jobRunner.StartUpload(req.Context(), sellerName, fileBytes)
 	writeJSON(w, http.StatusAccepted, map[string]string{"jobId": jobID})

@@ -113,3 +113,107 @@ func TestSheetNameToModel_TrimsWhitespace(t *testing.T) {
 		t.Errorf("expected trimmed 'MODEL Y' to map to modely, got %q", SheetNameToModel["MODEL Y"])
 	}
 }
+
+// tiny1x1PNG is a minimal valid 1x1 white opaque PNG, verified to decode via
+// Go's image/png package (which excelize uses to validate pictures).
+var tiny1x1PNG = []byte{
+	0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+	0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+	0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
+	0x0B, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0xF8, 0x0F, 0x04, 0x00,
+	0x09, 0xFB, 0x03, 0xFD, 0xFB, 0x5E, 0x6B, 0x2B, 0x00, 0x00, 0x00, 0x00,
+	0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+}
+
+// buildMultiImageFixtureWorkbook builds a workbook with images on 3+ rows,
+// including a trailing image-only row (an image in column B with no other
+// cell values, positioned after the last row GetRows would normally
+// report) — this is the shape of fixture that should have caught the
+// original quadratic-scan-drops-image-only-rows bug.
+func buildMultiImageFixtureWorkbook(t *testing.T) []byte {
+	t.Helper()
+	f := excelize.NewFile()
+	sheet := "MODEL 3"
+	f.SetSheetName(f.GetSheetName(0), sheet)
+
+	f.SetCellValue(sheet, "A1", "Tesla Model 3 parts")
+	f.SetCellValue(sheet, "A2", "NO.")
+
+	addPic := func(cell string) {
+		if err := f.AddPictureFromBytes(sheet, cell, &excelize.Picture{
+			Extension: ".png",
+			File:      tiny1x1PNG,
+			Format:    &excelize.GraphicOptions{},
+		}); err != nil {
+			t.Fatalf("AddPictureFromBytes(%s) failed: %v", cell, err)
+		}
+	}
+
+	// Row 3: normal row with text + image.
+	f.SetCellValue(sheet, "A3", 1)
+	f.SetCellValue(sheet, "C3", "OEM-1")
+	f.SetCellValue(sheet, "D3", "desc 1")
+	f.SetCellValue(sheet, "F3", "Made in China＝$1")
+	addPic("B3")
+
+	// Row 4: normal row with text + image.
+	f.SetCellValue(sheet, "A4", 2)
+	f.SetCellValue(sheet, "C4", "OEM-2")
+	f.SetCellValue(sheet, "D4", "desc 2")
+	f.SetCellValue(sheet, "F4", "Made in China＝$2")
+	addPic("B4")
+
+	// Row 5: text row, no image.
+	f.SetCellValue(sheet, "A5", 3)
+	f.SetCellValue(sheet, "C5", "OEM-3")
+	f.SetCellValue(sheet, "D5", "desc 3")
+
+	// Row 47: image-only row — no other cell in this row has a value, so
+	// GetRows would not report a row this far down (last populated row via
+	// GetRows is row 5). Only the picture anchor makes this row exist.
+	addPic("B47")
+
+	var buf bytes.Buffer
+	if err := f.Write(&buf); err != nil {
+		t.Fatalf("workbook write failed: %v", err)
+	}
+	return buf.Bytes()
+}
+
+func TestParseWorkbook_ImagesOnMultipleRowsIncludingTrailingImageOnlyRow(t *testing.T) {
+	data := buildMultiImageFixtureWorkbook(t)
+
+	rows, err := ParseWorkbook(bytes.NewReader(data))
+	if err != nil {
+		t.Fatalf("ParseWorkbook failed: %v", err)
+	}
+
+	imagedRows := map[int]bool{}
+	for _, r := range rows {
+		if len(r.ImageBytes) > 0 {
+			if r.RowNo != nil {
+				imagedRows[*r.RowNo] = true
+			} else {
+				imagedRows[-1] = true // marks the image-only row with no RowNo
+			}
+		}
+	}
+
+	if len(imagedRows) < 3 {
+		t.Fatalf("expected images captured on at least 3 rows, got %d (rows: %+v)", len(imagedRows), rows)
+	}
+
+	// Specifically assert the trailing image-only row (47) was not dropped.
+	foundTrailing := false
+	for _, r := range rows {
+		if len(r.ImageBytes) > 0 && r.OEM == nil && r.Description == nil && r.PriceRaw == nil {
+			foundTrailing = true
+			if r.ImageExt != ".png" {
+				t.Errorf("trailing image-only row: expected .png extension, got %q", r.ImageExt)
+			}
+		}
+	}
+	if !foundTrailing {
+		t.Fatalf("expected to find the trailing image-only row (B47) among parsed rows, got %d rows total", len(rows))
+	}
+}
