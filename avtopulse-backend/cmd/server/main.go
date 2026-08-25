@@ -17,6 +17,7 @@ import (
 	"github.com/CavadJava/avtopulse-backend/internal/chat"
 	"github.com/CavadJava/avtopulse-backend/internal/db"
 	"github.com/CavadJava/avtopulse-backend/internal/listings"
+	"github.com/CavadJava/avtopulse-backend/internal/parts"
 	"github.com/CavadJava/avtopulse-backend/internal/shop"
 	"github.com/CavadJava/avtopulse-backend/internal/storage"
 	"github.com/CavadJava/avtopulse-backend/internal/user"
@@ -168,6 +169,16 @@ func main() {
 	})
 
 	r.Mount("/api/shops", shop.NewHandler(shopRepo))
+
+	partsRepo := parts.NewRepository(pool)
+	partsJobRunner := parts.NewJobRunner(partsRepo, storageClient)
+	r.Mount("/api/parts", parts.NewHandler(partsRepo, partsJobRunner, func(req *http.Request) (int64, error) {
+		cookie, err := req.Cookie("shop_session")
+		if err != nil {
+			return 0, err
+		}
+		return sessions.Lookup(req.Context(), cookie.Value)
+	}))
 
 	r.Mount("/api/listings", listings.NewHandler(userRepo, shopRepo))
 
