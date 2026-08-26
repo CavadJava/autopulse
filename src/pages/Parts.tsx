@@ -23,14 +23,23 @@ export default function Parts() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     getParts({ model: activeModel, sellerIds: selectedSellerIds })
       .then((result) => {
+        if (cancelled) return;
         setParts(result.parts);
         setTotal(result.total);
       })
-      .catch((error) => console.error('Failed to fetch parts:', error))
-      .finally(() => setLoading(false));
+      .catch((error) => {
+        if (!cancelled) console.error('Failed to fetch parts:', error);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [activeModel, selectedSellerIds]);
 
   const toggleSelect = (partId: number) => {

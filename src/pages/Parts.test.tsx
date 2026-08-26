@@ -75,4 +75,59 @@ describe('Parts page', () => {
 
     await waitFor(() => expect(screen.getByText(/1 məhsul seçildi/)).toBeInTheDocument());
   });
+
+  it('ignores a stale out-of-order response when the model changes twice quickly', async () => {
+    let resolveModelY: (value: Awaited<ReturnType<typeof partsApi.getParts>>) => void;
+    let resolveModelX: (value: Awaited<ReturnType<typeof partsApi.getParts>>) => void;
+
+    const modelYPromise = new Promise<Awaited<ReturnType<typeof partsApi.getParts>>>((resolve) => {
+      resolveModelY = resolve;
+    });
+    const modelXPromise = new Promise<Awaited<ReturnType<typeof partsApi.getParts>>>((resolve) => {
+      resolveModelX = resolve;
+    });
+
+    const getPartsSpy = vi.spyOn(partsApi, 'getParts');
+    // First call (initial mount, model3) resolves immediately via the beforeEach default mock.
+    getPartsSpy.mockResolvedValueOnce({
+      parts: [
+        { id: 1, sellerId: 1, sellerName: 'Made in China Store', model: 'model3', description: 'Front logo' },
+      ],
+      total: 1,
+    });
+
+    render(
+      <MemoryRouter>
+        <Parts />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(screen.getByText('Front logo')).toBeInTheDocument());
+
+    // Second call: triggered by clicking MODEL Y — held pending on modelYPromise.
+    getPartsSpy.mockReturnValueOnce(modelYPromise);
+    fireEvent.click(screen.getByText('MODEL Y'));
+
+    // Third call: triggered by clicking MODEL X before MODEL Y's request resolves —
+    // held pending on modelXPromise.
+    getPartsSpy.mockReturnValueOnce(modelXPromise);
+    fireEvent.click(screen.getByText('MODEL X'));
+
+    // Resolve the LATER request (MODEL X) first, then the EARLIER, now-stale request (MODEL Y).
+    resolveModelX!({
+      parts: [
+        { id: 3, sellerId: 1, sellerName: 'Made in China Store', model: 'modelx', description: 'Model X trim' },
+      ],
+      total: 1,
+    });
+    resolveModelY!({
+      parts: [
+        { id: 2, sellerId: 1, sellerName: 'Made in China Store', model: 'modely', description: 'Model Y trim' },
+      ],
+      total: 1,
+    });
+
+    await waitFor(() => expect(screen.getByText('Model X trim')).toBeInTheDocument());
+    expect(screen.queryByText('Model Y trim')).not.toBeInTheDocument();
+  });
 });
