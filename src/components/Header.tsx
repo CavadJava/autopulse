@@ -32,6 +32,7 @@ export default function Header() {
             <Link to="/elanlar">Elanlar</Link>
             <Link to="/magazalar">Mağazalar</Link>
             <Link to="/qiymetler">Qiymətlər</Link>
+            <Link to="/hisseler">Hissələr</Link>
             <Link to="/business">Biznes üçün</Link>
           </div>
           <div className={styles.actions}>
