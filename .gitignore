@@ -8,3 +8,4 @@ avtopulse-backend/server
 avtopulse-backend/*.log
 avtopulse-backend/.env
 .worktrees/
+.claude/worktrees/
