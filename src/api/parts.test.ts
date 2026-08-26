@@ -8,27 +8,27 @@ import {
 } from './parts';
 
 describe('parts api client', () => {
-  const originalFetch = global.fetch;
+  const originalFetch = globalThis.fetch;
 
   beforeEach(() => {
-    global.fetch = vi.fn();
+    globalThis.fetch = vi.fn();
   });
 
   afterEach(() => {
-    global.fetch = originalFetch;
+    globalThis.fetch = originalFetch;
     vi.restoreAllMocks();
   });
 
   it('getSellers calls GET /api/parts/sellers and returns parsed JSON', async () => {
     const mockSellers = [{ id: 1, name: 'Made in China Store' }];
-    (global.fetch as any).mockResolvedValue({
+    (globalThis.fetch as any).mockResolvedValue({
       ok: true,
       json: async () => mockSellers,
     });
 
     const result = await getSellers();
 
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/api/parts/sellers'),
       expect.objectContaining({ credentials: 'include' })
     );
@@ -37,14 +37,14 @@ describe('parts api client', () => {
 
   it('getParts builds query params from filter and returns { parts, total }', async () => {
     const mockResult = { parts: [{ id: 1, sellerId: 1, sellerName: 'X', model: 'model3' }], total: 1 };
-    (global.fetch as any).mockResolvedValue({
+    (globalThis.fetch as any).mockResolvedValue({
       ok: true,
       json: async () => mockResult,
     });
 
     const result = await getParts({ model: 'model3', sellerIds: [1, 2], page: 2, limit: 20 });
 
-    const calledUrl = (global.fetch as any).mock.calls[0][0] as string;
+    const calledUrl = (globalThis.fetch as any).mock.calls[0][0] as string;
     expect(calledUrl).toContain('/api/parts?');
     expect(calledUrl).toContain('model=model3');
     expect(calledUrl).toContain('sellerIds=1%2C2');
@@ -54,17 +54,17 @@ describe('parts api client', () => {
   });
 
   it('getParts omits empty filter fields from the query string', async () => {
-    (global.fetch as any).mockResolvedValue({ ok: true, json: async () => ({ parts: [], total: 0 }) });
+    (globalThis.fetch as any).mockResolvedValue({ ok: true, json: async () => ({ parts: [], total: 0 }) });
 
     await getParts({});
 
-    const calledUrl = (global.fetch as any).mock.calls[0][0] as string;
+    const calledUrl = (globalThis.fetch as any).mock.calls[0][0] as string;
     expect(calledUrl).not.toContain('model=');
     expect(calledUrl).not.toContain('sellerIds=');
   });
 
   it('uploadPartsExcel sends multipart FormData with file and sellerName', async () => {
-    (global.fetch as any).mockResolvedValue({
+    (globalThis.fetch as any).mockResolvedValue({
       ok: true,
       json: async () => ({ jobId: 'job-123' }),
     });
@@ -72,17 +72,17 @@ describe('parts api client', () => {
     const file = new File(['dummy'], 'parts.xlsx');
     const result = await uploadPartsExcel(file, 'My Seller');
 
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/api/parts/upload'),
       expect.objectContaining({ method: 'POST', credentials: 'include' })
     );
-    const call = (global.fetch as any).mock.calls[0][1];
+    const call = (globalThis.fetch as any).mock.calls[0][1];
     expect(call.body).toBeInstanceOf(FormData);
     expect(result).toEqual({ jobId: 'job-123' });
   });
 
   it('uploadPartsExcel throws PartsUnauthorizedError on 401', async () => {
-    (global.fetch as any).mockResolvedValue({ ok: false, status: 401 });
+    (globalThis.fetch as any).mockResolvedValue({ ok: false, status: 401 });
 
     const file = new File(['dummy'], 'parts.xlsx');
     await expect(uploadPartsExcel(file, 'Seller')).rejects.toBeInstanceOf(PartsUnauthorizedError);
@@ -90,11 +90,11 @@ describe('parts api client', () => {
 
   it('getUploadStatus calls the status endpoint with the job id in the path', async () => {
     const mockJob = { id: 'job-123', status: 'processing', processed: 5, total: 100 };
-    (global.fetch as any).mockResolvedValue({ ok: true, json: async () => mockJob });
+    (globalThis.fetch as any).mockResolvedValue({ ok: true, json: async () => mockJob });
 
     const result = await getUploadStatus('job-123');
 
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/api/parts/upload/job-123/status'),
       expect.any(Object)
     );
