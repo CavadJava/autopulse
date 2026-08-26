@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import LoginVerify from './pages/LoginVerify';
 import NewListing from './pages/NewListing';
 import Compare from './pages/Compare';
+import Parts from './pages/Parts';
 import ShopList from './pages/shop/ShopList';
 import ShopFront from './pages/shop/ShopFront';
 import ShopLogin from './pages/shop/ShopLogin';
@@ -50,6 +51,7 @@ export default function App() {
             <Route path="/elan-ver" element={<NewListing />} />
             <Route path="/elan-ver/:id" element={<NewListing />} />
             <Route path="/muqayise" element={<Compare />} />
+            <Route path="/hisseler" element={<Parts />} />
             <Route path="/magazalar" element={<ShopList />} />
             <Route path="/magazalar/:name" element={<ShopFront />} />
             <Route path="/magaza-giris" element={<ShopLogin />} />
