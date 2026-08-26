@@ -35,6 +35,20 @@ describe('parts api client', () => {
     expect(result).toEqual(mockSellers);
   });
 
+  it('getSellers normalizes a null response body to an empty array', async () => {
+    // The Go backend marshals a nil slice as JSON null when there are no
+    // sellers yet — callers must never receive null here, since components
+    // call .map()/.length on the result unconditionally.
+    (globalThis.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => null,
+    });
+
+    const result = await getSellers();
+
+    expect(result).toEqual([]);
+  });
+
   it('getParts builds query params from filter and returns { parts, total }', async () => {
     const mockResult = { parts: [{ id: 1, sellerId: 1, sellerName: 'X', model: 'model3' }], total: 1 };
     (globalThis.fetch as any).mockResolvedValue({
@@ -51,6 +65,20 @@ describe('parts api client', () => {
     expect(calledUrl).toContain('page=2');
     expect(calledUrl).toContain('limit=20');
     expect(result).toEqual(mockResult);
+  });
+
+  it('getParts normalizes a null parts field to an empty array', async () => {
+    // {"parts":null,"total":0} is exactly what the real backend returns for
+    // an empty catalog/filtered result — must not throw when a consumer
+    // calls .map() on the result.
+    (globalThis.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ parts: null, total: 0 }),
+    });
+
+    const result = await getParts({ model: 'model3' });
+
+    expect(result).toEqual({ parts: [], total: 0 });
   });
 
   it('getParts omits empty filter fields from the query string', async () => {

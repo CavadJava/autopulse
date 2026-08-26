@@ -52,7 +52,10 @@ export async function getSellers(): Promise<Seller[]> {
   if (!res.ok) {
     throw new Error(`getSellers failed: ${res.status}`);
   }
-  return res.json();
+  // The Go backend marshals a nil slice as JSON null (not []) when there are
+  // no sellers yet — normalize so callers can always .map()/.length safely.
+  const data = await res.json();
+  return data ?? [];
 }
 
 export async function getParts(filter: PartsFilter): Promise<PartsListResult> {
@@ -71,7 +74,10 @@ export async function getParts(filter: PartsFilter): Promise<PartsListResult> {
   if (!res.ok) {
     throw new Error(`getParts failed: ${res.status}`);
   }
-  return res.json();
+  // Same nil-slice-as-null normalization as getSellers — an empty catalog
+  // (or an empty filtered result) comes back as {"parts":null,"total":0}.
+  const data = await res.json();
+  return { ...data, parts: data.parts ?? [] };
 }
 
 export async function uploadPartsExcel(file: File): Promise<{ jobId: string }> {
