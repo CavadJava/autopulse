@@ -1,23 +1,31 @@
-import { afterEach, beforeEach } from 'vitest';
+import { afterEach } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 
-// Mock localStorage
+// jsdom's localStorage can be uninitialized in some test runs (vitest issue).
+// Provide a real in-memory implementation backed by a Map to ensure correct round-tripping.
+const store = new Map<string, string>();
+
 const localStorageMock = {
-  getItem: () => null,
-  setItem: () => {},
-  removeItem: () => {},
-  clear: () => {},
+  getItem: (key: string) => store.get(key) ?? null,
+  setItem: (key: string, value: string) => store.set(key, value),
+  removeItem: (key: string) => store.delete(key),
+  clear: () => store.clear(),
+  key: (index: number) => Array.from(store.keys())[index] ?? null,
+  length: 0,
 };
-Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock,
+
+Object.defineProperty(localStorageMock, 'length', {
+  get: () => store.size,
 });
 
-beforeEach(() => {
-  // Clear any stored values before each test
-  localStorageMock.clear();
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
 });
 
 afterEach(() => {
   cleanup();
+  // Clear localStorage between tests to avoid cross-test pollution
+  store.clear();
 });
