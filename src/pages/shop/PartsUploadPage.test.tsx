@@ -3,10 +3,13 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import PartsUploadPage from './PartsUploadPage';
 import * as partsApi from '../../api/parts';
+import * as shopApi from '../../api/shop';
+import { ShopUnauthorizedError } from '../../api/shop';
 
 describe('PartsUploadPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.spyOn(shopApi, 'getMyShopProducts').mockResolvedValue([]);
   });
 
   it('uploads the selected file and polls status until done', async () => {
@@ -22,16 +25,13 @@ describe('PartsUploadPage', () => {
       </MemoryRouter>
     );
 
+    const fileInput = await screen.findByLabelText(/fayl seç/i) as HTMLInputElement;
     const file = new File(['dummy'], 'parts.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const fileInput = screen.getByLabelText(/fayl seç/i) as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [file] } });
-
-    const sellerNameInput = screen.getByLabelText(/satıcı adı/i);
-    fireEvent.change(sellerNameInput, { target: { value: 'Test Seller' } });
 
     fireEvent.click(screen.getByRole('button', { name: /yüklə/i }));
 
-    await waitFor(() => expect(partsApi.uploadPartsExcel).toHaveBeenCalledWith(file, 'Test Seller'));
+    await waitFor(() => expect(partsApi.uploadPartsExcel).toHaveBeenCalledWith(file));
     await waitFor(() => expect(screen.getByText(/100\/100/)).toBeInTheDocument(), { timeout: 3000 });
     expect(statusSpy).toHaveBeenCalled();
   });
@@ -45,21 +45,45 @@ describe('PartsUploadPage', () => {
       </MemoryRouter>
     );
 
+    const fileInput = await screen.findByLabelText(/fayl seç/i);
     const file = new File(['dummy'], 'parts.xlsx');
-    fireEvent.change(screen.getByLabelText(/fayl seç/i), { target: { files: [file] } });
-    fireEvent.change(screen.getByLabelText(/satıcı adı/i), { target: { value: 'Test Seller' } });
+    fireEvent.change(fileInput, { target: { files: [file] } });
     fireEvent.click(screen.getByRole('button', { name: /yüklə/i }));
 
     await waitFor(() => expect(screen.getByText(/xəta/i)).toBeInTheDocument());
   });
 
-  it('disables the upload button until a file is chosen', () => {
+  it('disables the upload button until a file is chosen', async () => {
     render(
       <MemoryRouter>
         <PartsUploadPage />
       </MemoryRouter>
     );
 
-    expect(screen.getByRole('button', { name: /yüklə/i })).toBeDisabled();
+    expect(await screen.findByRole('button', { name: /yüklə/i })).toBeDisabled();
+  });
+
+  it('no longer renders a seller-name field', async () => {
+    render(
+      <MemoryRouter>
+        <PartsUploadPage />
+      </MemoryRouter>
+    );
+
+    await screen.findByLabelText(/fayl seç/i);
+    expect(screen.queryByLabelText(/satıcı adı/i)).not.toBeInTheDocument();
+  });
+
+  it('redirects to /magaza-giris on mount when the shop session is unauthorized', async () => {
+    vi.spyOn(shopApi, 'getMyShopProducts').mockRejectedValue(new ShopUnauthorizedError('not logged in'));
+
+    render(
+      <MemoryRouter>
+        <PartsUploadPage />
+      </MemoryRouter>
+    );
+
+    // The form must never become interactive for an unauthorized visitor.
+    await waitFor(() => expect(screen.queryByLabelText(/fayl seç/i)).not.toBeInTheDocument());
   });
 });

@@ -130,4 +130,31 @@ describe('Parts page', () => {
     await waitFor(() => expect(screen.getByText('Model X trim')).toBeInTheDocument());
     expect(screen.queryByText('Model Y trim')).not.toBeInTheDocument();
   });
+
+  it('shows a distinct error message (not "no results") when getParts fails', async () => {
+    vi.spyOn(partsApi, 'getParts').mockRejectedValue(new Error('network down'));
+
+    render(
+      <MemoryRouter>
+        <Parts />
+      </MemoryRouter>
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText('Hissələr yüklənərkən xəta baş verdi.')).toBeInTheDocument()
+    );
+    expect(screen.queryByText('Heç bir hissə tapılmadı')).not.toBeInTheDocument();
+  });
+
+  it('shows a seller-load failure note when getSellers fails', async () => {
+    vi.spyOn(partsApi, 'getSellers').mockRejectedValue(new Error('network down'));
+
+    render(
+      <MemoryRouter>
+        <Parts />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(screen.getByText('Satıcılar yüklənə bilmədi.')).toBeInTheDocument());
+  });
 });

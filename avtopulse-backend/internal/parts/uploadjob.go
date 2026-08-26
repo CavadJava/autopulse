@@ -49,12 +49,12 @@ const (
 )
 
 type Job struct {
-	ID        string
-	Status    JobStatus
-	Processed int
-	Total     int
-	Error     string
-	CreatedAt time.Time
+	ID        string    `json:"id"`
+	Status    JobStatus `json:"status"`
+	Processed int       `json:"processed"`
+	Total     int       `json:"total"`
+	Error     string    `json:"error,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 // JobRunner processes uploaded workbooks in the background and tracks

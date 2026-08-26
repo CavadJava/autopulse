@@ -63,14 +63,14 @@ describe('parts api client', () => {
     expect(calledUrl).not.toContain('sellerIds=');
   });
 
-  it('uploadPartsExcel sends multipart FormData with file and sellerName', async () => {
+  it('uploadPartsExcel sends multipart FormData with the file (no sellerName — server derives identity)', async () => {
     (globalThis.fetch as any).mockResolvedValue({
       ok: true,
       json: async () => ({ jobId: 'job-123' }),
     });
 
     const file = new File(['dummy'], 'parts.xlsx');
-    const result = await uploadPartsExcel(file, 'My Seller');
+    const result = await uploadPartsExcel(file);
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/api/parts/upload'),
@@ -78,6 +78,7 @@ describe('parts api client', () => {
     );
     const call = (globalThis.fetch as any).mock.calls[0][1];
     expect(call.body).toBeInstanceOf(FormData);
+    expect(call.body.has('sellerName')).toBe(false);
     expect(result).toEqual({ jobId: 'job-123' });
   });
 
@@ -85,7 +86,7 @@ describe('parts api client', () => {
     (globalThis.fetch as any).mockResolvedValue({ ok: false, status: 401 });
 
     const file = new File(['dummy'], 'parts.xlsx');
-    await expect(uploadPartsExcel(file, 'Seller')).rejects.toBeInstanceOf(PartsUnauthorizedError);
+    await expect(uploadPartsExcel(file)).rejects.toBeInstanceOf(PartsUnauthorizedError);
   });
 
   it('getUploadStatus calls the status endpoint with the job id in the path', async () => {

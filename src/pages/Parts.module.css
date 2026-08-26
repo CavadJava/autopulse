@@ -38,3 +38,9 @@
   padding: 40px 0;
   text-align: center;
 }
+
+.error {
+  color: var(--color-danger, #d33);
+  padding: 16px 0;
+  text-align: center;
+}

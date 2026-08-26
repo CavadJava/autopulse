@@ -74,10 +74,9 @@ export async function getParts(filter: PartsFilter): Promise<PartsListResult> {
   return res.json();
 }
 
-export async function uploadPartsExcel(file: File, sellerName: string): Promise<{ jobId: string }> {
+export async function uploadPartsExcel(file: File): Promise<{ jobId: string }> {
   const form = new FormData();
   form.append('file', file);
-  form.append('sellerName', sellerName);
 
   const res = await fetch(`${API_BASE}/api/parts/upload`, {
     method: 'POST',

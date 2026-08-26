@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 )
 
 type fakeHandlerRepo struct {
@@ -26,7 +28,7 @@ func (f *fakeHandlerRepo) ListParts(ctx context.Context, filter PartFilter) ([]P
 	return f.parts, f.total, nil
 }
 
-func alwaysAuthorized(req *http.Request) (int64, error) { return 99, nil }
+func alwaysAuthorized(req *http.Request) (int64, error)   { return 99, nil }
 func alwaysUnauthorized(req *http.Request) (int64, error) { return 0, errUnauthorizedTest }
 
 var errUnauthorizedTest = fmtErrorfTest("unauthorized")
@@ -93,6 +95,37 @@ func TestHandler_Upload_RequiresAuth(t *testing.T) {
 
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d", rec.Code)
+	}
+}
+
+// TestJob_MarshalsToCamelCaseJSON pins the wire format of Job so the
+// frontend's camelCase UploadJob expectations can't silently regress —
+// see final-review finding: Job previously had no json struct tags and
+// serialized as PascalCase, which the frontend could never parse.
+func TestJob_MarshalsToCamelCaseJSON(t *testing.T) {
+	job := Job{
+		ID:        "job-123",
+		Status:    JobProcessing,
+		Processed: 5,
+		Total:     10,
+		CreatedAt: time.Now(),
+	}
+
+	b, err := json.Marshal(job)
+	if err != nil {
+		t.Fatalf("marshal failed: %v", err)
+	}
+	s := string(b)
+
+	for _, key := range []string{`"id"`, `"status"`, `"processed"`, `"total"`, `"createdAt"`} {
+		if !strings.Contains(s, key) {
+			t.Fatalf("expected JSON to contain camelCase key %s, got: %s", key, s)
+		}
+	}
+	for _, key := range []string{`"ID"`, `"Status"`, `"Processed"`, `"Total"`, `"CreatedAt"`} {
+		if strings.Contains(s, key) {
+			t.Fatalf("expected JSON NOT to contain PascalCase key %s, got: %s", key, s)
+		}
 	}
 }
 

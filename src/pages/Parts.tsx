@@ -15,16 +15,23 @@ export default function Parts() {
   const [total, setTotal] = useState(0);
   const [selectedPartIds, setSelectedPartIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
+  const [partsError, setPartsError] = useState(false);
+  const [sellersError, setSellersError] = useState(false);
 
   useEffect(() => {
+    setSellersError(false);
     getSellers()
       .then(setSellers)
-      .catch((error) => console.error('Failed to fetch sellers:', error));
+      .catch((error) => {
+        console.error('Failed to fetch sellers:', error);
+        setSellersError(true);
+      });
   }, []);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setPartsError(false);
     getParts({ model: activeModel, sellerIds: selectedSellerIds })
       .then((result) => {
         if (cancelled) return;
@@ -32,7 +39,10 @@ export default function Parts() {
         setTotal(result.total);
       })
       .catch((error) => {
-        if (!cancelled) console.error('Failed to fetch parts:', error);
+        if (!cancelled) {
+          console.error('Failed to fetch parts:', error);
+          setPartsError(true);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -52,11 +62,15 @@ export default function Parts() {
     <div className={styles.page}>
       <ModelTabs activeModel={activeModel} onModelChange={setActiveModel} />
       <div className={styles.container}>
-        <SellerFilterPanel
-          sellers={sellers}
-          selectedSellerIds={selectedSellerIds}
-          onChange={setSelectedSellerIds}
-        />
+        {sellersError ? (
+          <p className={styles.error}>Satıcılar yüklənə bilmədi.</p>
+        ) : (
+          <SellerFilterPanel
+            sellers={sellers}
+            selectedSellerIds={selectedSellerIds}
+            onChange={setSelectedSellerIds}
+          />
+        )}
         <div className={styles.content}>
           <div className={styles.header}>
             <h1>Ehtiyat Hissələri</h1>
@@ -64,6 +78,8 @@ export default function Parts() {
           </div>
           {loading ? (
             <p className={styles.loading}>Yüklənir...</p>
+          ) : partsError ? (
+            <p className={styles.error}>Hissələr yüklənərkən xəta baş verdi.</p>
           ) : (
             <PartsGrid parts={parts} selectedPartIds={selectedPartIds} onToggleSelect={toggleSelect} />
           )}
