@@ -91,30 +91,99 @@ describe('parts api client', () => {
     expect(calledUrl).not.toContain('sellerIds=');
   });
 
+  // uploadPartsExcel uses XMLHttpRequest (not fetch) so it can report
+  // upload progress — a fake XHR class stands in for the real one here.
+  class FakeXhr {
+    static instances: FakeXhr[] = [];
+    method = '';
+    url = '';
+    withCredentials = false;
+    status = 0;
+    responseText = '';
+    upload = { onprogress: null as null | ((e: ProgressEvent) => void) };
+    onload: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    sentBody: unknown = null;
+
+    constructor() {
+      FakeXhr.instances.push(this);
+    }
+    open(method: string, url: string) {
+      this.method = method;
+      this.url = url;
+    }
+    send(body: unknown) {
+      this.sentBody = body;
+    }
+  }
+
   it('uploadPartsExcel sends multipart FormData with the file (no sellerName — server derives identity)', async () => {
-    (globalThis.fetch as any).mockResolvedValue({
-      ok: true,
-      json: async () => ({ jobId: 'job-123' }),
-    });
+    const originalXhr = globalThis.XMLHttpRequest;
+    FakeXhr.instances = [];
+    (globalThis as any).XMLHttpRequest = FakeXhr;
 
-    const file = new File(['dummy'], 'parts.xlsx');
-    const result = await uploadPartsExcel(file);
+    try {
+      const file = new File(['dummy'], 'parts.xlsx');
+      const resultPromise = uploadPartsExcel(file);
 
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/parts/upload'),
-      expect.objectContaining({ method: 'POST', credentials: 'include' })
-    );
-    const call = (globalThis.fetch as any).mock.calls[0][1];
-    expect(call.body).toBeInstanceOf(FormData);
-    expect(call.body.has('sellerName')).toBe(false);
-    expect(result).toEqual({ jobId: 'job-123' });
+      const xhr = FakeXhr.instances[0];
+      expect(xhr.method).toBe('POST');
+      expect(xhr.url).toContain('/api/parts/upload');
+      expect(xhr.withCredentials).toBe(true);
+      expect(xhr.sentBody).toBeInstanceOf(FormData);
+      expect((xhr.sentBody as FormData).has('sellerName')).toBe(false);
+
+      xhr.status = 200;
+      xhr.responseText = JSON.stringify({ jobId: 'job-123' });
+      xhr.onload?.();
+
+      const result = await resultPromise;
+      expect(result).toEqual({ jobId: 'job-123' });
+    } finally {
+      globalThis.XMLHttpRequest = originalXhr;
+    }
+  });
+
+  it('uploadPartsExcel reports upload progress via the onUploadProgress callback', async () => {
+    const originalXhr = globalThis.XMLHttpRequest;
+    FakeXhr.instances = [];
+    (globalThis as any).XMLHttpRequest = FakeXhr;
+
+    try {
+      const file = new File(['dummy'], 'parts.xlsx');
+      const onProgress = vi.fn();
+      const resultPromise = uploadPartsExcel(file, onProgress);
+
+      const xhr = FakeXhr.instances[0];
+      xhr.upload.onprogress?.({ lengthComputable: true, loaded: 50, total: 100 } as ProgressEvent);
+      expect(onProgress).toHaveBeenCalledWith(50);
+
+      xhr.status = 200;
+      xhr.responseText = JSON.stringify({ jobId: 'job-123' });
+      xhr.onload?.();
+      await resultPromise;
+    } finally {
+      globalThis.XMLHttpRequest = originalXhr;
+    }
   });
 
   it('uploadPartsExcel throws PartsUnauthorizedError on 401', async () => {
-    (globalThis.fetch as any).mockResolvedValue({ ok: false, status: 401 });
+    const originalXhr = globalThis.XMLHttpRequest;
+    FakeXhr.instances = [];
+    (globalThis as any).XMLHttpRequest = FakeXhr;
 
-    const file = new File(['dummy'], 'parts.xlsx');
-    await expect(uploadPartsExcel(file)).rejects.toBeInstanceOf(PartsUnauthorizedError);
+    try {
+      const file = new File(['dummy'], 'parts.xlsx');
+      const resultPromise = uploadPartsExcel(file);
+
+      const xhr = FakeXhr.instances[0];
+      xhr.status = 401;
+      xhr.onload?.();
+
+      await expect(resultPromise).rejects.toBeInstanceOf(PartsUnauthorizedError);
+    } finally {
+      globalThis.XMLHttpRequest = originalXhr;
+    }
   });
 
   it('getUploadStatus calls the status endpoint with the job id in the path', async () => {

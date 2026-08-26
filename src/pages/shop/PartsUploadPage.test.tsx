@@ -31,9 +31,36 @@ describe('PartsUploadPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /yüklə/i }));
 
-    await waitFor(() => expect(partsApi.uploadPartsExcel).toHaveBeenCalledWith(file));
+    await waitFor(() => expect(partsApi.uploadPartsExcel).toHaveBeenCalledWith(file, expect.any(Function)));
     await waitFor(() => expect(screen.getByText(/100\/100/)).toBeInTheDocument(), { timeout: 3000 });
     expect(statusSpy).toHaveBeenCalled();
+  });
+
+  it('shows upload progress percentage while the file body is still being sent', async () => {
+    let capturedOnProgress: ((percent: number) => void) | undefined;
+    vi.spyOn(partsApi, 'uploadPartsExcel').mockImplementation((_file, onProgress) => {
+      capturedOnProgress = onProgress;
+      // Never resolves within this test — simulates the upload phase, where
+      // the server hasn't responded with a jobId yet.
+      return new Promise(() => {});
+    });
+
+    render(
+      <MemoryRouter>
+        <PartsUploadPage />
+      </MemoryRouter>
+    );
+
+    const fileInput = (await screen.findByLabelText(/fayl seç/i)) as HTMLInputElement;
+    const file = new File(['dummy'], 'parts.xlsx');
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    fireEvent.click(screen.getByRole('button', { name: /yüklə/i }));
+
+    await waitFor(() => expect(capturedOnProgress).toBeDefined());
+    capturedOnProgress!(42);
+
+    await waitFor(() => expect(screen.getByText(/42%/)).toBeInTheDocument());
+    expect(screen.getByText(/səhifəni bağlamayın/i)).toBeInTheDocument();
   });
 
   it('shows an error message if upload fails with a non-auth error', async () => {

@@ -80,22 +80,50 @@ export async function getParts(filter: PartsFilter): Promise<PartsListResult> {
   return { ...data, parts: data.parts ?? [] };
 }
 
-export async function uploadPartsExcel(file: File): Promise<{ jobId: string }> {
-  const form = new FormData();
-  form.append('file', file);
+export async function uploadPartsExcel(
+  file: File,
+  onUploadProgress?: (percent: number) => void
+): Promise<{ jobId: string }> {
+  // Source workbooks run ~195MB, so the upload itself (the file body
+  // reaching the server, before the backend has even started parsing) can
+  // take minutes on a slow connection. plain fetch() has no upload progress
+  // event, so XMLHttpRequest is used here specifically to drive a percent
+  // callback the UI can show while the browser is still sending bytes —
+  // without this, the page shows nothing at all during that phase.
+  return new Promise((resolve, reject) => {
+    const form = new FormData();
+    form.append('file', file);
 
-  const res = await fetch(`${API_BASE}/api/parts/upload`, {
-    method: 'POST',
-    credentials: 'include',
-    body: form,
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE}/api/parts/upload`);
+    xhr.withCredentials = true;
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && onUploadProgress) {
+        onUploadProgress(Math.round((event.loaded / event.total) * 100));
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status === 401) {
+        reject(new PartsUnauthorizedError('Not logged in'));
+        return;
+      }
+      if (xhr.status < 200 || xhr.status >= 300) {
+        reject(new Error(`uploadPartsExcel failed: ${xhr.status}`));
+        return;
+      }
+      try {
+        resolve(JSON.parse(xhr.responseText));
+      } catch {
+        reject(new Error('uploadPartsExcel: invalid JSON response'));
+      }
+    };
+
+    xhr.onerror = () => reject(new Error('uploadPartsExcel: network error'));
+
+    xhr.send(form);
   });
-  if (res.status === 401) {
-    throw new PartsUnauthorizedError('Not logged in');
-  }
-  if (!res.ok) {
-    throw new Error(`uploadPartsExcel failed: ${res.status}`);
-  }
-  return res.json();
 }
 
 export async function getUploadStatus(jobId: string): Promise<UploadJob> {

@@ -43,3 +43,9 @@
 .success {
   color: var(--success);
 }
+
+.warning {
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+}
