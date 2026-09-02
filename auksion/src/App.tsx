@@ -1,15 +1,23 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-
-function Home() {
-  return <h1>AutoPulse Auksion</h1>;
-}
+import { AuthProvider } from './context/AuthContext';
+import Header from './components/Header';
+import Home from './pages/Home';
+import ListingDetail from './pages/ListingDetail';
+import Login from './pages/Login';
+import LoginVerify from './pages/LoginVerify';
 
 export default function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Header />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/elan/:id" element={<ListingDetail />} />
+          <Route path="/giris" element={<Login />} />
+          <Route path="/giris/kod" element={<LoginVerify />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
