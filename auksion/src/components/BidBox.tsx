@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { placeBid, AuksionUnauthorizedError, BidTooLowError, AuctionEndedError, type Listing, type Bid } from '../api/auksion';
 import { useAuth } from '../context/AuthContext';
@@ -18,6 +18,13 @@ export default function BidBox({
   const [amount, setAmount] = useState(String(listing.minNextBid));
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Resync the input whenever minNextBid changes (e.g. someone else's bid
+  // raises it via the background poll) so the user never silently submits
+  // a now-stale, too-low amount.
+  useEffect(() => {
+    setAmount(String(listing.minNextBid));
+  }, [listing.minNextBid]);
 
   const price = listing.currentBid ?? listing.startingBid;
 

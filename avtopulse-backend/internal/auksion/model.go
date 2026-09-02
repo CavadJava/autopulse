@@ -20,15 +20,15 @@ func (e *BidTooLowError) Error() string {
 }
 
 type Listing struct {
-	ID          int64     `json:"id"`
-	Make        string    `json:"make"`
-	Model       string    `json:"model"`
-	Year        int       `json:"year"`
-	Description string    `json:"description"`
-	Images      []string  `json:"images"`
-	StartingBid float64   `json:"startingBid"`
-	CurrentBid  *float64  `json:"currentBid,omitempty"`
-	BidCount    int       `json:"bidCount"`
+	ID          int64    `json:"id"`
+	Make        string   `json:"make"`
+	Model       string   `json:"model"`
+	Year        int      `json:"year"`
+	Description string   `json:"description"`
+	Images      []string `json:"images"`
+	StartingBid float64  `json:"startingBid"`
+	CurrentBid  *float64 `json:"currentBid,omitempty"`
+	BidCount    int      `json:"bidCount"`
 	// MinNextBid is computed server-side on every read: StartingBid if no
 	// bid has been placed yet, otherwise CurrentBid + minIncrement. The
 	// frontend must never re-derive this itself — it just displays it.
@@ -41,11 +41,11 @@ type Listing struct {
 }
 
 type Bid struct {
-	ID            int64     `json:"id"`
-	ListingID     int64     `json:"listingId"`
-	BidderUserID  int64     `json:"bidderUserId"`
-	Amount        float64   `json:"amount"`
-	CreatedAt     time.Time `json:"createdAt"`
+	ID           int64     `json:"id"`
+	ListingID    int64     `json:"listingId"`
+	BidderUserID int64     `json:"bidderUserId"`
+	Amount       float64   `json:"amount"`
+	CreatedAt    time.Time `json:"createdAt"`
 }
 
 type NewListingInput struct {

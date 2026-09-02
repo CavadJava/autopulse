@@ -39,6 +39,6 @@ describe('Home', () => {
       </MemoryRouter>
     );
 
-    await waitFor(() => expect(screen.getByText('Hazırda aktiv hərraj yoxdur.')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Hazırda aktiv hərrac yoxdur.')).toBeInTheDocument());
   });
 });

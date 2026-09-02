@@ -11,25 +11,35 @@ export default function ListingDetail() {
   const [bids, setBids] = useState<Bid[]>([]);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasLoadedRef = useRef(false);
 
   const listingId = Number(id);
 
   const load = () => {
     getListing(listingId)
       .then((detail) => {
+        hasLoadedRef.current = true;
         setListing(detail.listing);
         setBids(detail.bids);
       })
       .catch(() => {
-        setError('Elan tapılmadı.');
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
+        // Only show a hard error (and stop polling) if we've never
+        // successfully loaded this listing — a poll failure AFTER a
+        // successful load is treated as transient and silently ignored,
+        // so a live auction page never disappears mid-bidding-war over
+        // one flaky network blip.
+        if (!hasLoadedRef.current) {
+          setError('Elan tapılmadı.');
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+          }
         }
       });
   };
 
   useEffect(() => {
     setError(null);
+    hasLoadedRef.current = false;
     load();
     // Poll for live bid updates every 4 seconds while this page is open.
     intervalRef.current = setInterval(load, 4000);

@@ -18,7 +18,7 @@ export default function Home() {
     <div className={styles.page}>
       <h1 className={styles.heading}>Aktiv hərraclar</h1>
       {listings.length === 0 ? (
-        <p className={styles.empty}>Hazırda aktiv hərraj yoxdur.</p>
+        <p className={styles.empty}>Hazırda aktiv hərrac yoxdur.</p>
       ) : (
         <div className={styles.grid}>
           {listings.map((listing) => (

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ListingDetail from './ListingDetail';
 import * as api from '../api/auksion';
@@ -54,5 +54,49 @@ describe('ListingDetail', () => {
 
     await waitFor(() => expect(screen.getByText('Elan tapılmadı.')).toBeInTheDocument());
     expect(screen.queryByText('Yüklənir...')).not.toBeInTheDocument();
+  });
+
+  it('keeps showing the last-known-good listing when a poll AFTER a successful load fails (transient blip)', async () => {
+    vi.useFakeTimers();
+    try {
+      const listing = {
+        id: 7, make: 'BMW', model: 'M3', year: 2022, description: '', images: [],
+        startingBid: 30000, currentBid: 31000, bidCount: 2, minNextBid: 31500,
+        endTime: new Date(Date.now() + 3600_000).toISOString(), status: 'live' as const, createdAt: new Date().toISOString(),
+      };
+
+      vi.mocked(api.getListing)
+        .mockResolvedValueOnce({ listing, bids: [] })
+        .mockRejectedValueOnce(new Error('network blip'));
+
+      render(
+        <AuthProvider>
+          <MemoryRouter initialEntries={['/elan/7']}>
+            <Routes>
+              <Route path="/elan/:id" element={<ListingDetail />} />
+            </Routes>
+          </MemoryRouter>
+        </AuthProvider>
+      );
+
+      // Flush the initial (successful) load.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(screen.getByText('BMW M3')).toBeInTheDocument();
+
+      // Advance past the next poll tick (4s), which rejects.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(4000);
+      });
+
+      // The transient failure must NOT replace the live page with an error,
+      // and must NOT stop polling — the last-known-good listing stays shown.
+      expect(screen.getByText('BMW M3')).toBeInTheDocument();
+      expect(screen.queryByText('Elan tapılmadı.')).not.toBeInTheDocument();
+      expect(api.getListing).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

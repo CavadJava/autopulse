@@ -14,7 +14,7 @@ func TestListing_MarshalsToCamelCaseJSON(t *testing.T) {
 	bid := 15100.0
 	l := Listing{
 		ID: 1, Make: "Tesla", Model: "Model 3", Year: 2022,
-		Images: []string{"https://example.com/1.jpg"},
+		Images:      []string{"https://example.com/1.jpg"},
 		StartingBid: 15000, CurrentBid: &bid, BidCount: 3, MinNextBid: 15200,
 		EndTime: time.Now(), Status: "live", CreatedAt: time.Now(),
 	}
