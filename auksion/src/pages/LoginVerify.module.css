@@ -1,0 +1,28 @@
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.back {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.hint {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin: var(--space-2) 0 0;
+}
+
+.resend {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.875rem;
+  margin-top: var(--space-4);
+  cursor: pointer;
+}
