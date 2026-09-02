@@ -641,9 +641,9 @@ func TestRepository_PlaceBid_RejectsAfterEndTime(t *testing.T) {
 
 - [ ] **Step 3: Run the tests to verify they fail (or are skipped)**
 
-Run: `cd avtopulse-backend && AVTOPULSE_TEST_DSN="postgres://localhost:5432/autopulse_test?sslmode=disable" go test ./internal/auksion/... -run TestRepository -p 1 -v`
+Run: `cd avtopulse-backend && AVTOPULSE_TEST_DSN="postgres://localhost:5432/avtopulse_test?sslmode=disable" go test ./internal/auksion/... -run TestRepository -p 1 -v`
 
-If `autopulse_test` doesn't exist locally yet, create it first: `createdb autopulse_test` (or reuse whatever local test DB/DSN this repo's other `_pg_test.go` files already use — check for one in your shell history or `README.md` before creating a new one). Expected before the fix/first run: compiles and runs; if it fails, the failure output tells you which assertion is wrong.
+A local `avtopulse_test` database already exists on this machine (confirmed via `psql -lqt`) — no need to create one. If it's ever missing, create it with `createdb avtopulse_test`. Expected before the fix/first run: compiles and runs; if it fails, the failure output tells you which assertion is wrong.
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
