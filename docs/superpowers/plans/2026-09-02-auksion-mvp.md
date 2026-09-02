@@ -1095,23 +1095,44 @@ Expected: all packages `PASS` (integration tests will `SKIP` if `AVTOPULSE_TEST_
 
 - [ ] **Step 5: Manual smoke test**
 
-Start the backend locally (reuse whatever env vars this repo's README/`docs/` already documents for `AVTOPULSE_DSN`, `AVTOPULSE_MINIO_*`, `ADMIN_USERNAME`/`ADMIN_PASSWORD`):
+A local MinIO instance is already running on this machine (`http://127.0.0.1:9000`, started before this plan's execution began — verify with `curl -s http://127.0.0.1:9000/minio/health/live`, expect `200`; if it's down, restart it with `MINIO_ROOT_USER=minioadmin MINIO_ROOT_PASSWORD=minioadmin minio server ~/minio-data/avtopulse-local --address :9000 --console-address :9091 &`). A local Postgres dev database `avtopulse` already exists too. Start the backend with these confirmed-working local dev values:
 
 ```bash
-cd avtopulse-backend && go run ./cmd/server
+cd avtopulse-backend
+export AVTOPULSE_DSN="postgres://localhost:5432/avtopulse?sslmode=disable"
+export AVTOPULSE_PORT=8090
+export AVTOPULSE_MINIO_ENDPOINT=127.0.0.1:9000
+export AVTOPULSE_MINIO_ACCESS_KEY=minioadmin
+export AVTOPULSE_MINIO_SECRET_KEY=minioadmin
+export AVTOPULSE_MINIO_BUCKET=avtopulse-local
+export AVTOPULSE_MINIO_PUBLIC_URL=http://127.0.0.1:9000/avtopulse-local
+export ADMIN_USERNAME=localadmin
+export ADMIN_PASSWORD=localdevpass123
+nohup go run ./cmd/server > /tmp/avtopulse-backend-smoketest.log 2>&1 &
+disown
+sleep 3
+curl -s -o /dev/null -w "healthz: %{http_code}\n" http://localhost:8090/healthz
 ```
 
-In another shell:
+Expected: `healthz: 200`. If not, check `/tmp/avtopulse-backend-smoketest.log`.
 
 ```bash
 # Log in as admin, create a listing, confirm it shows up live.
 curl -s -c /tmp/admin.jar -X POST http://localhost:8090/api/admin/login \
-  -H 'Content-Type: application/json' -d '{"username":"<ADMIN_USERNAME>","password":"<ADMIN_PASSWORD>"}'
+  -H 'Content-Type: application/json' -d '{"username":"localadmin","password":"localdevpass123"}'
 curl -s -b /tmp/admin.jar -X POST http://localhost:8090/api/auksion/admin/listings \
   -H 'Content-Type: application/json' \
   -d '{"make":"Tesla","model":"Model 3","year":2022,"startingBid":15000,"endTime":"2099-01-01T00:00:00Z"}'
 curl -s http://localhost:8090/api/auksion/listings
 ```
+
+Then stop the server (`go run` spawns a separate compiled-binary child process, so killing by matching the `go run` command line does not work — find the real PID by the port it's listening on instead):
+
+```bash
+kill -9 $(lsof -ti:8090)
+```
+
+MinIO stays running for later tasks — do not stop it.
 
 Expected: the last call returns a JSON array containing the listing just created, with `"minNextBid":15000` and `"status":"live"`.
 
@@ -2952,36 +2973,86 @@ git commit -m "feat(auksion): wire ListingDetail, Header and final app routes"
 
 - [ ] **Step 1: Start the backend**
 
+A local MinIO instance and the local Postgres `avtopulse` dev database are already set up on this machine (see Task 4 Step 5 for how to verify/restart MinIO if needed).
+
 ```bash
-cd avtopulse-backend && go run ./cmd/server
+cd avtopulse-backend
+export AVTOPULSE_DSN="postgres://localhost:5432/avtopulse?sslmode=disable"
+export AVTOPULSE_PORT=8090
+export AVTOPULSE_MINIO_ENDPOINT=127.0.0.1:9000
+export AVTOPULSE_MINIO_ACCESS_KEY=minioadmin
+export AVTOPULSE_MINIO_SECRET_KEY=minioadmin
+export AVTOPULSE_MINIO_BUCKET=avtopulse-local
+export AVTOPULSE_MINIO_PUBLIC_URL=http://127.0.0.1:9000/avtopulse-local
+export ADMIN_USERNAME=localadmin
+export ADMIN_PASSWORD=localdevpass123
+nohup go run ./cmd/server > /tmp/avtopulse-backend-e2e.log 2>&1 &
+disown
+sleep 3
+curl -s -o /dev/null -w "healthz: %{http_code}\n" http://localhost:8090/healthz
 ```
+
+Expected: `healthz: 200`.
 
 - [ ] **Step 2: Start the auksion frontend**
 
 ```bash
-cd auksion && cp .env.local.example .env.local && npm run dev
+cd auksion && cp .env.local.example .env.local
+nohup npm run dev > /tmp/auksion-frontend-e2e.log 2>&1 &
+disown
+sleep 3
+cat /tmp/auksion-frontend-e2e.log
 ```
+
+Note the printed local URL (typically `http://localhost:5173`) — call it `$FRONTEND_URL` below.
 
 - [ ] **Step 3: Create a short-lived listing via the admin API**
 
 ```bash
 curl -s -c /tmp/admin.jar -X POST http://localhost:8090/api/admin/login \
-  -H 'Content-Type: application/json' -d '{"username":"<ADMIN_USERNAME>","password":"<ADMIN_PASSWORD>"}'
+  -H 'Content-Type: application/json' -d '{"username":"localadmin","password":"localdevpass123"}'
 curl -s -b /tmp/admin.jar -X POST http://localhost:8090/api/auksion/admin/listings \
   -H 'Content-Type: application/json' \
   -d '{"make":"Tesla","model":"Model 3","year":2022,"description":"Test","images":["https://images.unsplash.com/photo-1560958089-b8a1929cea89"],"startingBid":15000,"endTime":"'"$(date -u -v+2M +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d '+2 minutes' +%Y-%m-%dT%H:%M:%SZ)"'"}'
 ```
 
-- [ ] **Step 4: Verify in the browser**
+Note the returned `id` — call it `$LISTING_ID` below.
 
-Open the Vite dev server URL (printed by `npm run dev`, typically `http://localhost:5173`). Confirm:
-- The home page shows the Tesla Model 3 card with a live countdown badge.
-- Clicking it opens the detail page with the same countdown, a bid box showing `15 000 ₼` / "Başlanğıc qiymət", and an input pre-filled with `15100`.
-- Log in via `/giris` with any phone number and OTP code `1234` (the fixed test code — see `internal/user/handler.go`'s `otpTestCode`).
-- Place a bid of `15100` — the price updates to `15 100 ₼`, bid count increments, and the bid appears in the history list.
-- Try placing `15100` again — it's rejected with "Minimum təklif: 15200 ₼".
-- Wait for the countdown to reach 0 (the listing was created with a 2-minute window) — the BidBox switches to "Hərrac bitib." and the countdown shows "Bitdi".
+- [ ] **Step 4: Verify the full flow end-to-end via the real HTTP API**
 
-- [ ] **Step 5: Note the result**
+```bash
+# Home feed shows the listing live, with a computed minNextBid of 15000.
+curl -s http://localhost:8090/api/auksion/listings | grep -o '"minNextBid":[0-9.]*'
+
+# Log in as a bidder (fixed test OTP code "1234", per internal/user/handler.go's otpTestCode).
+curl -s -c /tmp/bidder.jar -X POST http://localhost:8090/api/users/otp/request \
+  -H 'Content-Type: application/json' -d '{"phone":"+994500000001"}'
+curl -s -c /tmp/bidder.jar -X POST http://localhost:8090/api/users/otp/verify \
+  -H 'Content-Type: application/json' -d '{"phone":"+994500000001","code":"1234"}'
+
+# Place a bid at the minimum (15000) — expect 200 with currentBid=15000, bidCount=1, minNextBid=15100.
+curl -s -b /tmp/bidder.jar -X POST http://localhost:8090/api/auksion/listings/$LISTING_ID/bids \
+  -H 'Content-Type: application/json' -d '{"amount":15000}'
+
+# Re-bid at the old minimum again — expect 400 with {"error":"bid_too_low","minimum":15100}.
+curl -s -b /tmp/bidder.jar -X POST http://localhost:8090/api/auksion/listings/$LISTING_ID/bids \
+  -H 'Content-Type: application/json' -d '{"amount":15000}'
+
+# Frontend dev server itself responds (confirms the Vite app built/serves, not just the backend).
+curl -s -o /dev/null -w "frontend: %{http_code}\n" "$FRONTEND_URL"
+```
+
+If a browser is available in this environment, also open `$FRONTEND_URL` directly and confirm visually: the home page shows the Tesla Model 3 card with a live countdown badge; the detail page's bid box updates to `15 100 ₼` after the bid above; logging in via `/giris` with any phone number and code `1234` works from the UI; and after the 2-minute window elapses, the BidBox switches to "Hərrac bitib." and the countdown shows "Bitdi". This visual check is a bonus, not a requirement — the curl checks above are the actual pass/fail signal.
+
+- [ ] **Step 5: Stop both dev servers**
+
+```bash
+kill -9 $(lsof -ti:8090) 2>/dev/null
+kill -9 $(lsof -ti:5173) 2>/dev/null
+```
+
+(Adjust the second port if Step 2's output printed a different one.) MinIO stays running — do not stop it.
+
+- [ ] **Step 6: Note the result**
 
 No commit for this task — it's a verification pass. If any step fails, go back to the relevant task, fix it (write a new failing test first if it's a logic bug), and re-run this task's steps from the top.
