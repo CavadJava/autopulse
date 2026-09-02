@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { requestOtp, verifyOtp, UserOtpError } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
@@ -16,8 +16,13 @@ export default function LoginVerify() {
   const [error, setError] = useState<string | null>(null);
   const [resent, setResent] = useState(false);
 
+  useEffect(() => {
+    if (!phone) {
+      navigate('/giris');
+    }
+  }, [phone, navigate]);
+
   if (!phone) {
-    navigate('/giris');
     return null;
   }
 
@@ -37,9 +42,13 @@ export default function LoginVerify() {
   };
 
   const handleResend = async () => {
-    setResent(true);
     setError(null);
-    await requestOtp(phone);
+    try {
+      await requestOtp(phone);
+      setResent(true);
+    } catch {
+      setError('SMS-kod göndərilə bilmədi. Yenidən cəhd edin.');
+    }
   };
 
   return (
