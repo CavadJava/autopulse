@@ -38,4 +38,21 @@ describe('ListingDetail', () => {
     expect(screen.getByText('Təmiz maşın')).toBeInTheDocument();
     expect(screen.getByText('20 500 ₼')).toBeInTheDocument();
   });
+
+  it('shows "Elan tapılmadı." when getListing fails (404 or network error)', async () => {
+    vi.mocked(api.getListing).mockRejectedValue(new Error('getListing failed: 404'));
+
+    render(
+      <AuthProvider>
+        <MemoryRouter initialEntries={['/elan/999']}>
+          <Routes>
+            <Route path="/elan/:id" element={<ListingDetail />} />
+          </Routes>
+        </MemoryRouter>
+      </AuthProvider>
+    );
+
+    await waitFor(() => expect(screen.getByText('Elan tapılmadı.')).toBeInTheDocument());
+    expect(screen.queryByText('Yüklənir...')).not.toBeInTheDocument();
+  });
 });

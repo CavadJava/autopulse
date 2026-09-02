@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getListing, type Listing, type Bid } from '../api/auksion';
 import BidBox from '../components/BidBox';
@@ -9,23 +9,39 @@ export default function ListingDetail() {
   const { id } = useParams<{ id: string }>();
   const [listing, setListing] = useState<Listing | null>(null);
   const [bids, setBids] = useState<Bid[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const listingId = Number(id);
 
   const load = () => {
-    getListing(listingId).then((detail) => {
-      setListing(detail.listing);
-      setBids(detail.bids);
-    });
+    getListing(listingId)
+      .then((detail) => {
+        setListing(detail.listing);
+        setBids(detail.bids);
+      })
+      .catch(() => {
+        setError('Elan tapılmadı.');
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+        }
+      });
   };
 
   useEffect(() => {
+    setError(null);
     load();
     // Poll for live bid updates every 4 seconds while this page is open.
-    const interval = setInterval(load, 4000);
-    return () => clearInterval(interval);
+    intervalRef.current = setInterval(load, 4000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listingId]);
+
+  if (error) {
+    return <div className={styles.page}>{error}</div>;
+  }
 
   if (!listing) {
     return <div className={styles.page}>Yüklənir...</div>;
