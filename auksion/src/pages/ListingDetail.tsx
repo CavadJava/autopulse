@@ -1,0 +1,88 @@
+import { useEffect, useRef, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { getListing, type Listing, type Bid } from '../api/auksion';
+import BidBox from '../components/BidBox';
+import CountdownTimer from '../components/CountdownTimer';
+import styles from './ListingDetail.module.css';
+
+export default function ListingDetail() {
+  const { id } = useParams<{ id: string }>();
+  const [listing, setListing] = useState<Listing | null>(null);
+  const [bids, setBids] = useState<Bid[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasLoadedRef = useRef(false);
+
+  const listingId = Number(id);
+
+  const load = () => {
+    getListing(listingId)
+      .then((detail) => {
+        hasLoadedRef.current = true;
+        setListing(detail.listing);
+        setBids(detail.bids);
+      })
+      .catch(() => {
+        // Only show a hard error (and stop polling) if we've never
+        // successfully loaded this listing — a poll failure AFTER a
+        // successful load is treated as transient and silently ignored,
+        // so a live auction page never disappears mid-bidding-war over
+        // one flaky network blip.
+        if (!hasLoadedRef.current) {
+          setError('Elan tapılmadı.');
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+          }
+        }
+      });
+  };
+
+  useEffect(() => {
+    setError(null);
+    hasLoadedRef.current = false;
+    load();
+    // Poll for live bid updates every 4 seconds while this page is open.
+    intervalRef.current = setInterval(load, 4000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listingId]);
+
+  if (error) {
+    return <div className={styles.page}>{error}</div>;
+  }
+
+  if (!listing) {
+    return <div className={styles.page}>Yüklənir...</div>;
+  }
+
+  return (
+    <div className={styles.page}>
+      <div className={styles.gallery}>
+        {listing.images[0] ? (
+          <img src={listing.images[0]} alt={`${listing.make} ${listing.model}`} />
+        ) : (
+          <div className={styles.placeholder} />
+        )}
+      </div>
+      <div className={styles.info}>
+        <h1>
+          {listing.make} {listing.model}
+        </h1>
+        <p className={styles.meta}>
+          {listing.year} · <CountdownTimer endTime={listing.endTime} onEnd={load} /> qalıb
+        </p>
+        {listing.description && <p className={styles.description}>{listing.description}</p>}
+        <BidBox
+          listing={listing}
+          bids={bids}
+          onBidPlaced={(updated) => {
+            setListing(updated);
+            load();
+          }}
+        />
+      </div>
+    </div>
+  );
+}

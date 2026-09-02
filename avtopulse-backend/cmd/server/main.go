@@ -13,6 +13,7 @@ import (
 	_ "github.com/CavadJava/avtopulse-backend/docs"
 	"github.com/CavadJava/avtopulse-backend/internal/admin"
 	"github.com/CavadJava/avtopulse-backend/internal/adminnotify"
+	"github.com/CavadJava/avtopulse-backend/internal/auksion"
 	"github.com/CavadJava/avtopulse-backend/internal/auth"
 	"github.com/CavadJava/avtopulse-backend/internal/chat"
 	"github.com/CavadJava/avtopulse-backend/internal/db"
@@ -251,6 +252,16 @@ func main() {
 	r.Post("/api/admin/shop-products/{id}/cancel", func(w http.ResponseWriter, req *http.Request) {
 		http.StripPrefix("/api/admin", adminHandler).ServeHTTP(w, req)
 	})
+
+	auksionRepo := auksion.NewRepository(pool)
+	auksionAuthFunc := func(req *http.Request) (int64, error) {
+		cookie, err := req.Cookie("user_session")
+		if err != nil {
+			return 0, err
+		}
+		return userSessions.Lookup(req.Context(), cookie.Value)
+	}
+	r.Mount("/api/auksion", auksion.NewHandler(auksionRepo, auksionAuthFunc, adminHandlerHooks.RequireAdminMiddleware()))
 
 	adminNotifyRepo := adminnotify.NewRepository(pool)
 	adminNotifyAdminHandler := adminnotify.NewAdminHandler(adminNotifyRepo, adminHandlerHooks.RequireAdminMiddleware())

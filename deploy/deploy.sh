@@ -131,6 +131,7 @@ if [ -z "$SKIP_FRONTEND" ]; then
     --exclude .worktrees \
     --exclude .claude \
     --exclude .superpowers \
+    --exclude auksion \
     -e "ssh ${SSH_OPTS[*]}" \
     "$LOCAL_DIR"/ "$SERVER:$REMOTE_DIR/"
 

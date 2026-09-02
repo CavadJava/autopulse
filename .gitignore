@@ -9,3 +9,4 @@ avtopulse-backend/*.log
 avtopulse-backend/.env
 .worktrees/
 .claude/worktrees/
+auksion/reference/
