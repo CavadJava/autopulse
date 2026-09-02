@@ -14,19 +14,24 @@ export default function CountdownTimer({ endTime, onEnd }: { endTime: string; on
   const end = new Date(endTime).getTime();
   const [remaining, setRemaining] = useState(() => end - Date.now());
   const firedRef = useRef(false);
+  const onEndRef = useRef(onEnd);
+  onEndRef.current = onEnd; // always call the latest onEnd, without making the effect depend on it
 
   useEffect(() => {
     firedRef.current = false;
     const interval = setInterval(() => {
       const next = end - Date.now();
       setRemaining(next);
-      if (next <= 0 && !firedRef.current) {
-        firedRef.current = true;
-        onEnd?.();
+      if (next <= 0) {
+        if (!firedRef.current) {
+          firedRef.current = true;
+          onEndRef.current?.();
+        }
+        clearInterval(interval);
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [end, onEnd]);
+  }, [end]);
 
   if (remaining <= 0) {
     return <span className={styles.ended}>Bitdi</span>;
