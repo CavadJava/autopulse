@@ -1,14 +1,8 @@
 import { Link } from 'react-router-dom';
 import type { Listing } from '../api/auksion';
 import CountdownTimer from './CountdownTimer';
+import { formatPrice } from '../utils/formatPrice';
 import styles from './AuctionCard.module.css';
-
-// `toLocaleString('az-AZ')` is CLDR-data-dependent — Node's bundled ICU (and
-// some browsers) group thousands with '.' for az-AZ, not the space this app's
-// design uses. Format deterministically instead of relying on runtime ICU data.
-function formatPrice(amount: number): string {
-  return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-}
 
 export default function AuctionCard({ listing }: { listing: Listing }) {
   const price = listing.currentBid ?? listing.startingBid;
